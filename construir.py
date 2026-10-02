@@ -13,7 +13,7 @@ no escribe nada ni cambia ningún producto. La web antigua
 GitHub Actions lo corre con cada cambio y todas las noches
 (.github/workflows/publicar.yml) y publica dist/ en GitHub Pages.
 """
-import csv, html, importlib.util, json, os, re, shutil, sys, urllib.request
+import base64, csv, html, importlib.util, json, os, re, shutil, sys, urllib.error, urllib.request
 from datetime import date
 
 RAIZ_REPO = os.path.dirname(os.path.abspath(__file__))
@@ -21,14 +21,21 @@ os.chdir(RAIZ_REPO)
 spec = importlib.util.spec_from_file_location("gen", "herramientas/paginas-producto.py")
 gen = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gen)
+import tema as T
 
 SITIO = "https://karivejoyas.cl/"
 DIST = "dist"
 EST = "estatico"
 MARCA = gen.MARCA
+# estos se completan en main() con lo que diga la base (panel → Configuración)
 WA = gen.WHATSAPP
 IG, FBK = gen.INSTAGRAM, gen.FACEBOOK
 ENV_RM, ENV_RESTO = gen.ENVIO_RM, gen.ENVIO_RESTO
+CORREO = "karive.joyas@gmail.com"
+WA_MSG = ""
+RESENAS = []
+TEMA = T.TEMA_DEFECTO
+VARS = {}
 VERSION = date.today().strftime("%Y%m%d")
 e = lambda s: html.escape(str(s), quote=True)
 pesos = gen.pesos
@@ -41,6 +48,115 @@ gen.WEB_ID = SITIO + "#sitio"
 
 
 # ------------------------------------------------------------------ datos
+
+def fs_py(v):
+    """Valor de la API REST de Firestore → valor de Python (con mapas y listas)."""
+    if not isinstance(v, dict):
+        return None
+    if "mapValue" in v:
+        return {k: fs_py(x) for k, x in v["mapValue"].get("fields", {}).items()}
+    if "arrayValue" in v:
+        return [fs_py(x) for x in v["arrayValue"].get("values", [])]
+    if "integerValue" in v:
+        return int(v["integerValue"])
+    if "nullValue" in v:
+        return None
+    for k in ("stringValue", "booleanValue", "doubleValue", "timestampValue"):
+        if k in v:
+            return v[k]
+    return None
+
+
+def leer_doc(ruta, campos=None):
+    url = gen.RAIZ + "/" + ruta
+    if campos:
+        url += "?" + "&".join("mask.fieldPaths=%s" % c for c in campos)
+    try:
+        with urllib.request.urlopen(url, timeout=60) as r:
+            return {k: fs_py(v) for k, v in json.load(r).get("fields", {}).items()}
+    except urllib.error.HTTPError as err:
+        print("No se pudo leer %s (%s): se usan los valores de fábrica" % (ruta, err.code))
+    except Exception as err:
+        print("No se pudo leer %s (%s): se usan los valores de fábrica" % (ruta, err))
+    return {}
+
+
+def solo_digitos(s):
+    return re.sub(r"[^0-9]", "", str(s or ""))
+
+
+def ajustes_tienda():
+    """WhatsApp, redes, correo y envíos: lo que se edita en el panel."""
+    global WA, IG, FBK, ENV_RM, ENV_RESTO, CORREO, WA_MSG, TEMA, VARS, RESENAS
+    s = leer_doc("catalog/settings", ["whatsapp", "instagram", "facebook", "whatsappMsg", "envioTarifas", "resenas"])
+    RESENAS = [r for r in (s.get("resenas") or []) if isinstance(r, dict) and r.get("producto")]
+    wa = solo_digitos(s.get("whatsapp"))
+    if len(wa) == 9:
+        wa = "56" + wa
+    if len(wa) >= 11:
+        WA = wa
+    ig = str(s.get("instagram") or "").strip()
+    if ig:
+        IG = ig if ig.startswith("http") else "https://www.instagram.com/%s/" % ig.lstrip("@").strip("/")
+    fb = str(s.get("facebook") or "").strip()
+    if fb:
+        FBK = fb if fb.startswith("http") else "https://www.facebook.com/%s" % fb.lstrip("@")
+    WA_MSG = s.get("whatsappMsg") or ""
+    tar = s.get("envioTarifas") or {}
+    if int(tar.get("rm") or 0) > 0:
+        ENV_RM = int(tar["rm"])
+    if int(tar.get("regiones") or 0) > 0:
+        ENV_RESTO = int(tar["regiones"])
+    web = leer_doc("catalog/web")
+    TEMA = T.mezclar(T.TEMA_DEFECTO, web.get("tema") or {})
+    CORREO = ((web.get("general") or {}).get("correo") or CORREO).strip()
+    VARS = {"envio_rm": pesos(ENV_RM), "envio_regiones": pesos(ENV_RESTO)}
+
+
+MEDIOS = {}
+
+def imagen(ruta):
+    """Ruta de una imagen del tema. Las que se suben desde el panel vienen
+    como "medio:ID" y se guardan en catalog/web/medios/ID."""
+    ruta = str(ruta or "")
+    if not ruta.startswith("medio:"):
+        return ruta
+    ident = re.sub(r"[^A-Za-z0-9_-]", "", ruta[6:])
+    if ident in MEDIOS:
+        return MEDIOS[ident]
+    MEDIOS[ident] = ""
+    d = leer_doc("catalog/web/medios/" + ident, ["data"])
+    data = d.get("data") or ""
+    if not data.startswith("data:"):
+        return ""
+    os.makedirs(DIST + "/assets/medios", exist_ok=True)
+    ext = "png" if data.startswith("data:image/png") else "jpg"
+    destino = DIST + "/assets/medios/%s.%s" % (ident, ext)
+    open(destino, "wb").write(base64.b64decode(data.split(",", 1)[1]))
+    MEDIOS[ident] = "/assets/medios/%s.%s" % (ident, ext)
+    if gen.Image and ext == "jpg":
+        try:
+            im = gen.Image.open(destino).convert("RGB")
+            if im.width > 1600:
+                im = im.resize((1600, round(im.height * 1600 / im.width)), gen.Image.LANCZOS)
+            im.save(destino[:-4] + ".webp", "WEBP", quality=82, method=6)
+            MEDIOS[ident] = "/assets/medios/%s.webp" % ident
+        except Exception as err:
+            print("medio sin webp", ident, err)
+    return MEDIOS[ident]
+
+
+def tx(s):
+    return T.texto(s, VARS)
+
+
+def tp(s):
+    return T.plano(s, VARS)
+
+
+def kv(ruta):
+    """Marca un elemento para que el editor del panel lo actualice en vivo."""
+    return ' data-kv="%s"' % ruta
 
 def descuento_global():
     """Mismo criterio que kvDescuentoActivo (comun.js): si hay descuento general
@@ -185,7 +301,17 @@ FUENTES = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel
            '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@400;500;600&display=swap" media="print" onload="this.media=\'all\'">')
 
 
-def cabeza(titulo, desc, ruta, imagen, jsonld=None, tipo="website", robots="index, follow, max-image-preview:large", extra=""):
+COLOR_VARS = {"fondo": "--crema", "fondo2": "--crema2", "texto": "--tinta", "suave": "--suave", "borde": "--borde",
+              "principal": "--morado", "oscuro": "--morado-osc", "lila": "--lila", "dorado": "--dorado", "doradoClaro": "--dorado-cl"}
+
+
+def estilo_colores():
+    c = TEMA.get("colores") or {}
+    pares = ["%s:%s" % (var, c[k]) for k, var in COLOR_VARS.items() if re.match(r"^#[0-9A-Fa-f]{3,8}$", str(c.get(k) or ""))]
+    return '<style id="kv-colores">:root{%s}</style>' % ";".join(pares)
+
+
+def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="index, follow, max-image-preview:large", extra=""):
     url = SITIO + ruta.lstrip("/")
     j = ('<script type="application/ld+json">%s</script>' % json.dumps(jsonld, ensure_ascii=False).replace("</", "<\\/")) if jsonld else ""
     return """<!doctype html>
@@ -197,7 +323,7 @@ def cabeza(titulo, desc, ruta, imagen, jsonld=None, tipo="website", robots="inde
 <meta name="description" content="{d}">
 <meta name="robots" content="{rob}">
 <link rel="canonical" href="{u}">
-<meta name="theme-color" content="#2A123E">
+<meta name="theme-color" content="{tc}">
 <meta property="og:type" content="{tipo}"><meta property="og:site_name" content="{m}"><meta property="og:locale" content="es_CL">
 <meta property="og:title" content="{t}"><meta property="og:description" content="{d}"><meta property="og:url" content="{u}">
 <meta property="og:image" content="{img}">{extra}
@@ -205,29 +331,44 @@ def cabeza(titulo, desc, ruta, imagen, jsonld=None, tipo="website", robots="inde
 <link rel="icon" href="/assets/logo-avatar.png" type="image/png"><link rel="apple-touch-icon" href="/assets/logo-avatar.png"><link rel="manifest" href="/manifest.webmanifest">
 {fuentes}
 <link rel="stylesheet" href="/estatico/tienda.css?v={v}">
+{colores}
 {j}
 </head>
-""".format(t=e(titulo), d=e(desc), u=e(url), img=e(imagen), tipo=tipo, m=e(MARCA), rob=robots, fuentes=FUENTES, v=VERSION, j=j, extra=extra)
+""".format(t=e(titulo), d=e(desc), u=e(url), img=e(imagen_url), tipo=tipo, m=e(MARCA), rob=robots, fuentes=FUENTES, v=VERSION, j=j, extra=extra,
+           colores=estilo_colores(), tc=e((TEMA.get("colores") or {}).get("oscuro") or "#2A123E"))
+
+
+ACTUAL_URL = {"tienda": "/tienda/", "nosotros": "/nosotros.html", "preguntas": "/preguntas-frecuentes.html", "contacto": "/contacto.html"}
+
+
+def menu_html(cols, movil=False, actual=""):
+    sub = "".join('<a href="/c/%s.html">%s</a>' % (e(c["slug"]), e(c["nombre"])) for c in cols)
+    out = []
+    for it in TEMA.get("menu") or []:
+        t = e(it.get("texto") or "")
+        if it.get("tipo") == "colecciones":
+            if movil:
+                out.append('<div class="sub">%s</div>' % sub)
+            else:
+                out.append('<div class="desplegable"><button type="button" aria-expanded="false" aria-haspopup="true">%s ▾</button>'
+                           '<div class="desplegable-panel">%s<a href="/tienda/">Ver todo</a></div></div>' % (t, sub))
+        else:
+            u = it.get("url") or "/"
+            out.append('<a href="%s"%s>%s</a>' % (e(u), ' aria-current="page"' if ACTUAL_URL.get(actual) == u else "", t))
+    return "".join(out)
 
 
 def encabezado(cols, actual=""):
-    sub = "".join('<a href="/c/%s.html">%s</a>' % (e(c["slug"]), e(c["nombre"])) for c in cols)
-    sub_movil = "".join('<a href="/c/%s.html">%s</a>' % (e(c["slug"]), e(c["nombre"])) for c in cols)
-    marca = lambda k: ' aria-current="page"' if actual == k else ""
+    an = TEMA.get("anuncio") or {}
+    pie_links = "".join('<a href="%s">%s</a>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in TEMA.get("menuPie") or [])
     return """<body>
 <a class="sr" href="#contenido">Saltar al contenido</a>
-<div class="anuncio">Envíos a todo Chile · <b>Hecho a mano en Santiago</b> · 3 meses de garantía</div>
+<div class="anuncio"{an_kv}{an_oculto}>{an_txt}</div>
 <header class="cabecera">
   <div class="envoltura">
     <button class="icono hamburguesa" id="btn-menu" aria-label="Abrir menú">{i_menu}</button>
     <a class="logo" href="/"><img src="/assets/logo-karive-web.png" alt="{m}" width="89" height="44"></a>
-    <nav class="menu" aria-label="Principal">
-      <a href="/tienda/"{a1}>Tienda</a>
-      <div class="desplegable"><button type="button" aria-expanded="false" aria-haspopup="true">Colecciones ▾</button><div class="desplegable-panel">{sub}<a href="/tienda/">Ver todo</a></div></div>
-      <a href="/nosotros.html"{a2}>Nosotros</a>
-      <a href="/preguntas-frecuentes.html"{a3}>Preguntas</a>
-      <a href="/contacto.html"{a4}>Contacto</a>
-    </nav>
+    <nav class="menu" aria-label="Principal" data-kv-lista="menu">{menu}</nav>
     <div class="iconos">
       <button class="icono" id="btn-buscar" aria-label="Buscar">{i_buscar}</button>
       <button class="icono" id="btn-carro" aria-label="Ver carrito">{i_carro}<span class="contador" hidden>0</span></button>
@@ -238,8 +379,7 @@ def encabezado(cols, actual=""):
   <div class="cajon-fondo" data-cerrar="cajon-menu"></div>
   <div class="cajon-panel" role="dialog" aria-modal="true" aria-label="Menú">
     <div class="cajon-top"><img src="/assets/logo-karive-web.png" alt="{m}" width="89" height="44"><button class="icono" data-cerrar="cajon-menu" aria-label="Cerrar menú">{i_cerrar}</button></div>
-    <nav aria-label="Menú del celular"><a href="/">Inicio</a><a href="/tienda/">Tienda</a><div class="sub">{sub_movil}</div>
-      <a href="/nosotros.html">Nosotros</a><a href="/preguntas-frecuentes.html">Preguntas frecuentes</a><a href="/envios.html">Envíos</a><a href="/contacto.html">Contacto</a></nav>
+    <nav aria-label="Menú del celular"><a href="/">Inicio</a><span data-kv-lista="menu-movil">{menu_movil}</span><div class="sub sub-ayuda">{pie_links}</div></nav>
   </div>
 </div>
 <div class="cajon" id="cajon-carro">
@@ -256,31 +396,37 @@ def encabezado(cols, actual=""):
 </div>
 <main id="contenido">
 """.format(i_menu=ICONOS["menu"], i_buscar=ICONOS["buscar"], i_carro=ICONOS["carro"], i_cerrar=ICONOS["cerrar"], m=e(MARCA),
-           sub=sub, sub_movil=sub_movil, a1=marca("tienda"), a2=marca("nosotros"), a3=marca("preguntas"), a4=marca("contacto"))
+           menu=menu_html(cols, False, actual), menu_movil=menu_html(cols, True), pie_links=pie_links,
+           an_kv=kv("anuncio.texto"), an_oculto="" if an.get("activo", True) else " hidden", an_txt=tx(an.get("texto")))
 
 
 def pie(cols, scripts=""):
+    pi = TEMA.get("pie") or {}
+    ayuda = "".join('<li><a href="%s">%s</a></li>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in TEMA.get("menuPie") or [])
+    flota = ('<a class="wa-flota" href="https://wa.me/%s" aria-label="Escríbenos por WhatsApp" rel="noopener" data-kv-si="whatsappFlotante">%s</a>' % (WA, ICONOS["wa"])) \
+        if TEMA.get("whatsappFlotante", True) else ('<a class="wa-flota" hidden href="https://wa.me/%s" aria-label="Escríbenos por WhatsApp" data-kv-si="whatsappFlotante">%s</a>' % (WA, ICONOS["wa"]))
     return """</main>
 <footer class="pie">
   <div class="envoltura">
     <div><a class="pie-logo" href="/"><img src="/assets/logo-karive-web.png" alt="{m}" width="105" height="52" loading="lazy"></a>
-      <p style="margin-top:12px">Aros artesanales hechos a mano, uno por uno, en Santiago de Chile. Flores de arcilla, argollas de cristal, corazones, conchas y charms.</p>
+      <p style="margin-top:12px"{k_txt}>{txt}</p>
       <p><a href="{ig}" rel="noopener">Instagram</a> · <a href="{fb}" rel="noopener">Facebook</a> · <a href="https://wa.me/{wa}">WhatsApp</a></p></div>
     <div><h3>Colecciones</h3><ul>{cols}<li><a href="/tienda/">Ver todo</a></li></ul></div>
-    <div><h3>Ayuda</h3><ul><li><a href="/preguntas-frecuentes.html">Preguntas frecuentes</a></li><li><a href="/envios.html">Envíos</a></li>
-      <li><a href="/devoluciones.html">Cambios y devoluciones</a></li><li><a href="/privacidad.html">Privacidad</a></li><li><a href="/contacto.html">Contacto</a></li></ul></div>
-    <div><h3>Novedades</h3><p>Entérate primero de los modelos nuevos.</p>
+    <div><h3>Ayuda</h3><ul data-kv-lista="menuPie">{ayuda}</ul></div>
+    <div><h3{k_bt}>{bt}</h3><p{k_bx}>{bx}</p>
       <form class="boletin" id="boletin"><input name="correo" type="email" placeholder="Tu correo" aria-label="Tu correo" required><button class="btn btn-oro" type="submit">Suscribirme</button></form>
       <div class="boletin-msg" id="boletin-msg" role="status"></div></div>
   </div>
-  <div class="pie-final">© {anio} {m} · Hecho a mano en Chile 💜</div>
+  <div class="pie-final">© {anio} {m} · <span{k_fin}>{fin}</span></div>
 </footer>
-<a class="wa-flota" href="https://wa.me/{wa}" aria-label="Escríbenos por WhatsApp" rel="noopener">{i_wa}</a>
+{flota}
 <script src="/estatico/comun.js?v={v}" defer></script>
 <script src="/estatico/tienda.js?v={v}" defer></script>{scripts}
 </body>
 </html>
-""".format(m=e(MARCA), ig=IG, fb=FBK, wa=WA, anio=date.today().year, v=VERSION, scripts=scripts, i_wa=ICONOS["wa"],
+""".format(m=e(MARCA), ig=e(IG), fb=e(FBK), wa=WA, anio=date.today().year, v=VERSION, scripts=scripts, flota=flota, ayuda=ayuda,
+           txt=tx(pi.get("texto")), k_txt=kv("pie.texto"), bt=tx(pi.get("boletinTitulo")), k_bt=kv("pie.boletinTitulo"),
+           bx=tx(pi.get("boletinTexto")), k_bx=kv("pie.boletinTexto"), fin=tx(pi.get("final")), k_fin=kv("pie.final"),
            cols="".join('<li><a href="/c/%s.html">%s</a></li>' % (e(c["slug"]), e(c["nombre"])) for c in cols))
 
 
@@ -311,88 +457,100 @@ def escribir(ruta, contenido):
 
 # --------------------------------------------------------------- páginas
 
+def boton(b, clase, ruta):
+    b = b or {}
+    return '<a class="btn %s" href="%s"%s>%s</a>' % (clase, e(b.get("url") or "/"), kv(ruta), e(b.get("texto") or ""))
+
+
 def portada(prods, cols, mas_vistos, img_cols):
+    P = TEMA["portada"]
     vis = [p for p in prods if p["hay"]]
     porid = {p["id"]: p for p in vis}
-    nuevos = sorted(vis, key=lambda p: p["creado"], reverse=True)[:8]
+    n_nuevos = max(1, min(24, int(P["nuevos"].get("cantidad") or 8)))
+    n_fav = max(1, min(24, int(P["favoritos"].get("cantidad") or 8)))
+    nuevos = sorted(vis, key=lambda p: p["creado"], reverse=True)[:n_nuevos]
     # favoritos: los que el panel marca como "lo más visto" y, para completar,
     # el primero de cada colección (sin repetir lo que ya sale en "lo nuevo")
     destacados = [porid[i] for i in mas_vistos if i in porid]
     ronda = 0
-    while len(destacados) < 8 and ronda < 10:
+    while len(destacados) < n_fav and ronda < 10:
         for c in cols:
             cand = [p for p in c["_prods"] if p not in destacados and p not in nuevos]
-            if len(cand) > ronda and len(destacados) < 8:
+            if len(cand) > ronda and len(destacados) < n_fav:
                 destacados.append(cand[ronda])
         ronda += 1
+    seo = TEMA.get("seo") or {}
     jsonld = {"@context": "https://schema.org", "@graph": [
         gen.organizacion(),
         {"@type": "WebSite", "@id": SITIO + "#sitio", "url": SITIO, "name": MARCA, "inLanguage": "es-CL", "publisher": {"@id": SITIO + "#organizacion"},
          "potentialAction": {"@type": "SearchAction", "target": {"@type": "EntryPoint", "urlTemplate": SITIO + "tienda/?q={search_term_string}"},
                              "query-input": "required name=search_term_string"}},
-        {"@type": "WebPage", "@id": SITIO + "#portada", "url": SITIO, "name": MARCA + " | Aros artesanales hechos a mano en Chile",
+        {"@type": "WebPage", "@id": SITIO + "#portada", "url": SITIO, "name": tp(seo.get("titulo")),
          "isPartOf": {"@id": SITIO + "#sitio"}, "about": {"@id": SITIO + "#organizacion"}, "inLanguage": "es-CL"},
     ]}
     tarj_cols = "".join(
         '<a class="coleccion" href="/c/{s}.html"><img src="{img}" alt="{alt}" loading="lazy" width="450" height="560"><span>{n}<small>{k} modelos</small></span></a>'.format(
             s=e(c["slug"]), img=e(img_cols.get(c["id"]) or c["_prods"][0]["img"]), alt=e(gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0]),
             n=e(c["nombre"]), k=len(c["_prods"])) for c in cols)
-    h = cabeza(MARCA + " | Aros artesanales hechos a mano en Chile",
-               "Aros artesanales hechos a mano en Santiago: flores de arcilla, argollas de cristal, corazones, conchas y charms. Compra online con envío a todo Chile.",
-               "/", SITIO + "assets/modelo-portada.jpg", jsonld)
+    img_seo = imagen(seo.get("imagen")) or "/assets/modelo-portada.jpg"
+    h = cabeza(tp(seo.get("titulo")), tp(seo.get("descripcion")), "/", SITIO + img_seo.lstrip("/"), jsonld)
     h += encabezado(cols)
-    h += """<section class="envoltura hero">
+
+    H, C, CO, F, TA, N, ES = (P[k] for k in ("hero", "confianza", "colecciones", "favoritos", "taller", "nuevos", "especial"))
+    sec = {}
+    sec["hero"] = """<section class="envoltura hero">
   <div class="hero-txt">
-    <div class="antetitulo">Joyería artesanal · Santiago, Chile</div>
-    <h1>Aros hechos a mano, uno por uno</h1>
-    <p>Flores de arcilla polimérica, argollas de cristal, corazones y conchitas con base de acero. Piezas livianas, alegres y únicas, para usar todos los días o para regalar.</p>
-    <div class="hero-acc"><a class="btn btn-1" href="/tienda/">Ver la tienda</a><a class="btn btn-2" href="#colecciones">Colecciones</a></div>
+    <div class="antetitulo"{k1}>{ante}</div>
+    <h1{k2}>{tit}</h1>
+    <p{k3}>{txt}</p>
+    <div class="hero-acc">{b1}{b2}</div>
   </div>
-  <div class="hero-img"><img src="/assets/modelo-portada.jpg" alt="Modelo usando aros de flor hechos a mano de Karivé Joyas" width="860" height="645" fetchpriority="high"><span class="hero-sello">✦ Hecho a mano en Chile</span></div>
-</section>
-<div class="envoltura"><div class="confianza">
-  <div><span class="ic">🚚</span><span><b>Envíos a todo Chile</b>$2.990 RM · $3.990 regiones</span></div>
-  <div><span class="ic">💳</span><span><b>Pago seguro</b>Mercado Pago o transferencia</span></div>
-  <div><span class="ic">🛡️</span><span><b>3 meses de garantía</b>Si llega con falla, lo solucionamos</span></div>
-  <div><span class="ic">✋</span><span><b>Hecho a mano</b>Cada par es único</span></div>
-</div></div>
-<section class="seccion envoltura" id="colecciones">
-  <div class="seccion-cab"><div><div class="antetitulo">Colecciones</div><h2>Encuentra tu estilo</h2></div><a class="ver-todo" href="/tienda/">Ver todo →</a></div>
-  <div class="colecciones">{cols}</div>
-</section>
-<section class="seccion envoltura">
-  <div class="seccion-cab"><div><div class="antetitulo">Favoritos</div><h2>Los más queridos</h2></div><a class="ver-todo" href="/tienda/">Ver la tienda →</a></div>
-  <ul class="grilla">{dest}</ul>
-</section>
-<section class="franja">
+  <div class="hero-img"><img src="{img}" alt="{alt}" width="860" height="645" fetchpriority="high" data-kv-img="portada.hero.imagen"><span class="hero-sello"{k4}>{sello}</span></div>
+</section>""".format(k1=kv("portada.hero.antetitulo"), ante=tx(H.get("antetitulo")), k2=kv("portada.hero.titulo"), tit=tx(H.get("titulo")),
+                     k3=kv("portada.hero.texto"), txt=tx(H.get("texto")), b1=boton(H.get("boton1"), "btn-1", "portada.hero.boton1"),
+                     b2=boton(H.get("boton2"), "btn-2", "portada.hero.boton2"), img=e(imagen(H.get("imagen")) or "/assets/modelo-portada.jpg"),
+                     alt=e(H.get("imagenAlt") or MARCA), k4=kv("portada.hero.sello"), sello=tx(H.get("sello")))
+    sec["confianza"] = '<div class="envoltura"><div class="confianza" data-kv-lista="portada.confianza.items">%s</div></div>' % "".join(
+        '<div><span class="ic">%s</span><span><b>%s</b>%s</span></div>' % (e(it.get("icono") or ""), tx(it.get("titulo")), tx(it.get("texto")))
+        for it in C.get("items") or [])
+    def cab(d, ruta, url, extra=""):
+        return ('<div class="seccion-cab"><div><div class="antetitulo"%s>%s</div><h2%s>%s</h2></div><a class="ver-todo" href="%s"%s>%s</a></div>'
+                % (kv(ruta + ".antetitulo"), tx(d.get("antetitulo")), kv(ruta + ".titulo"), tx(d.get("titulo")), url, kv(ruta + ".enlace"), tx(d.get("enlace"))))
+    sec["colecciones"] = '<section class="seccion envoltura" id="colecciones">%s<div class="colecciones">%s</div></section>' % (
+        cab(CO, "portada.colecciones", "/tienda/"), tarj_cols)
+    sec["favoritos"] = '<section class="seccion envoltura">%s<ul class="grilla">%s</ul></section>' % (
+        cab(F, "portada.favoritos", "/tienda/"), "".join(tarjeta(p, i) for i, p in enumerate(destacados[:n_fav])))
+    sec["taller"] = """<section class="franja">
   <div class="envoltura">
-    <img src="/assets/modelo-argollas.jpg" alt="Argollas de cristal hechas a mano por Karivé Joyas" loading="lazy" width="900" height="675">
+    <img src="{img}" alt="{alt}" loading="lazy" width="900" height="675" data-kv-img="portada.taller.imagen">
     <div>
-      <div class="antetitulo">Nuestro taller</div>
-      <h2>Hechos a mano en Santiago, con calma y con cariño</h2>
-      <p>Cada par de aros se modela, se hornea y se arma a mano. Por eso ningún par es idéntico a otro: esas pequeñas diferencias son parte de lo que los hace únicos.</p>
-      <ol class="pasos">
-        <li><span class="n">1</span><span>Elige tus favoritos y agrégalos al carrito.</span></li>
-        <li><span class="n">2</span><span>Paga con tarjeta (Mercado Pago) o transferencia.</span></li>
-        <li><span class="n">3</span><span>Los enviamos en su empaque, listos para regalar, a cualquier lugar de Chile.</span></li>
-      </ol>
-      <p style="margin-top:18px"><a class="btn btn-oro" href="/nosotros.html">Conoce Karivé</a></p>
+      <div class="antetitulo"{k1}>{ante}</div>
+      <h2{k2}>{tit}</h2>
+      <p{k3}>{txt}</p>
+      <ol class="pasos" data-kv-lista="portada.taller.pasos">{pasos}</ol>
+      <p style="margin-top:18px">{bt}</p>
     </div>
   </div>
-</section>
-<section class="seccion envoltura">
-  <div class="seccion-cab"><div><div class="antetitulo">Recién llegados</div><h2>Lo nuevo del taller</h2></div><a class="ver-todo" href="/tienda/?orden=nuevos">Ver lo nuevo →</a></div>
-  <ul class="grilla">{nuevos}</ul>
-</section>
-<section class="seccion envoltura" style="text-align:center">
-  <div class="antetitulo">¿Buscas un diseño especial?</div>
-  <h2>Hacemos tus colores favoritos</h2>
-  <p style="max-width:560px;margin:0 auto 18px;color:var(--suave)">Si te gusta un modelo pero lo imaginas en otro color, escríbenos y lo creamos para ti.</p>
-  <a class="btn btn-wa" href="https://wa.me/{wa}?text={wat}">{i_wa} Escríbenos por WhatsApp</a>
-</section>
-""".format(cols=tarj_cols, dest="".join(tarjeta(p, i) for i, p in enumerate(destacados[:8])),
-           nuevos="".join(tarjeta(p, i) for i, p in enumerate(nuevos)), wa=WA, i_wa=ICONOS["wa"],
-           wat=gen.urllib.parse.quote("¡Hola Karivé! Quiero consultar por un diseño en otros colores 💜"))
+</section>""".format(img=e(imagen(TA.get("imagen")) or "/assets/modelo-argollas.jpg"), alt=e(TA.get("imagenAlt") or MARCA),
+                     k1=kv("portada.taller.antetitulo"), ante=tx(TA.get("antetitulo")), k2=kv("portada.taller.titulo"), tit=tx(TA.get("titulo")),
+                     k3=kv("portada.taller.texto"), txt=tx(TA.get("texto")), bt=boton(TA.get("boton"), "btn-oro", "portada.taller.boton"),
+                     pasos="".join('<li><span class="n">%d</span><span>%s</span></li>' % (i + 1, tx(x)) for i, x in enumerate(TA.get("pasos") or [])))
+    sec["nuevos"] = '<section class="seccion envoltura">%s<ul class="grilla">%s</ul></section>' % (
+        cab(N, "portada.nuevos", "/tienda/?orden=nuevos"), "".join(tarjeta(p, i) for i, p in enumerate(nuevos)))
+    sec["especial"] = """<section class="seccion envoltura" style="text-align:center">
+  <div class="antetitulo"{k1}>{ante}</div>
+  <h2{k2}>{tit}</h2>
+  <p style="max-width:560px;margin:0 auto 18px;color:var(--suave)"{k3}>{txt}</p>
+  <a class="btn btn-wa" href="https://wa.me/{wa}?text={wat}">{i_wa} <span{k4}>{bt}</span></a>
+</section>""".format(k1=kv("portada.especial.antetitulo"), ante=tx(ES.get("antetitulo")), k2=kv("portada.especial.titulo"), tit=tx(ES.get("titulo")),
+                     k3=kv("portada.especial.texto"), txt=tx(ES.get("texto")), wa=WA, wat=gen.urllib.parse.quote(ES.get("mensaje") or ""),
+                     i_wa=ICONOS["wa"], k4=kv("portada.especial.boton"), bt=tx(ES.get("boton")))
+    orden = [k for k in (P.get("orden") or []) if k in sec] + [k for k in sec if k not in (P.get("orden") or [])]
+    ocultas = set(P.get("ocultas") or [])
+    h += '<div data-kv-secciones>\n'
+    for k in orden:
+        h += '<div data-kv-sec="%s"%s>%s</div>\n' % (k, " hidden" if k in ocultas else "", sec[k])
+    h += '</div>\n'
     h += pie(cols)
     escribir("index.html", h)
 
@@ -524,11 +682,7 @@ def producto(p, cols):
       <button type="button" class="btn btn-1" id="ficha-agregar" data-agregar="{id}" data-cantidad-de="#ficha-cantidad"{dis}>{btxt}</button>
     </div>
     <a class="btn btn-2 btn-bloque" href="https://wa.me/{wa}?text={wat}">Consultar por WhatsApp</a>
-    <ul class="lista-confianza">
-      <li>🚚 Envío a todo Chile: {rm} en la RM · {resto} a regiones</li>
-      <li>💳 Paga con tarjeta (Mercado Pago) o transferencia</li>
-      <li>🛡️ 3 meses de garantía por fallas · <a href="/devoluciones.html">ver política</a></li>
-    </ul>
+    <ul class="lista-confianza" data-kv-lista="producto.beneficios">{benef}</ul>
     <div class="acordeon">
       <details open><summary>Descripción</summary><p>{texto} Al ser piezas hechas a mano, cada par puede tener pequeñas diferencias: eso las hace únicas. Se envían en su empaque, listos para regalar.</p></details>
       <details><summary>Medidas y material</summary><ul>{medida}<li>Base de acero quirúrgico</li><li>Hecho a mano en Chile</li>{color}</ul></details>
@@ -537,13 +691,15 @@ def producto(p, cols):
     </div>
   </div>
 </article>
-<section class="seccion" style="padding-top:20px"><h2>Preguntas frecuentes</h2><div class="faq">{faq}</div></section>
+{opiniones}<section class="seccion" style="padding-top:20px"><h2>Preguntas frecuentes</h2><div class="faq">{faq}</div></section>
 {rel}
 </div>
 """.format(cs=e(col["slug"]), cn=e(col["nombre"]), nom=e(p["nombre"]), id=e(p["id"]), foto=e(p["foto"]), img=e(p["img"]),
            alt=e(alt), w=w, hh=hh, cod=e(p["codigo"]), precio=precio, scls=stock_cls, stxt=stock_txt,
            dis="" if p["hay"] else " disabled", btxt="Agregar al carrito" if p["hay"] else "Agotado", wa=WA, wat=wa_txt,
            rm=pesos(ENV_RM), resto=pesos(ENV_RESTO), texto=e(texto),
+           opiniones=opiniones_html(p["id"]),
+           benef="".join("<li>%s</li>" % tx(x) for x in (TEMA.get("producto") or {}).get("beneficios") or []),
            medida=("<li>Medida: %s</li>" % e(p["medida"])) if p["medida"] else "",
            color=("<li>Color: %s</li>" % e(p["color"])) if p["color"] else "",
            faq="".join("<details><summary>%s</summary><p>%s</p></details>" % (e(q), e(a)) for q, a in faq),
@@ -551,6 +707,18 @@ def producto(p, cols):
                 % (e(col["slug"]), e(col["nombre"]), "".join(tarjeta(q, i) for i, q in enumerate(otros)))) if otros else "")
     h += pie(cols)
     escribir(ruta, h)
+
+
+def opiniones_html(pid):
+    lista = [r for r in RESENAS if r.get("producto") == pid]
+    if not lista:
+        return ""
+    prom = sum(int(r.get("estrellas") or 0) for r in lista) / len(lista)
+    est = lambda n: '<span class="estrellas" aria-label="%d de 5 estrellas">%s</span>' % (n, "★" * n + "☆" * (5 - n))
+    return ('<section class="seccion opiniones" style="padding-top:20px"><h2>Opiniones</h2><p>%s <b>%s</b> · %d opinión%s</p>%s</section>'
+            % (est(round(prom)), ("%.1f" % prom).replace(".", ","), len(lista), "" if len(lista) == 1 else "es",
+               "".join('<div class="opinion">%s <b>%s</b><p>%s</p></div>' % (est(int(r.get("estrellas") or 0)), e(r.get("nombre") or ""), e(r.get("texto") or ""))
+                       for r in sorted(lista, key=lambda r: r.get("fecha") or "", reverse=True))))
 
 
 def pagina_texto(ruta, titulo, desc, cuerpo_html, cols, actual="", jsonld=None, robots="index, follow"):
@@ -561,71 +729,84 @@ def pagina_texto(ruta, titulo, desc, cuerpo_html, cols, actual="", jsonld=None, 
     escribir(ruta, h)
 
 
-PREGUNTAS_GENERALES = [
-    ("¿De qué material son los aros?", "Los hacemos a mano con arcilla polimérica, cristales, mostacillas y otros materiales, siempre sobre una base de acero quirúrgico. Si tienes la piel muy sensible, escríbenos antes de comprar."),
-    ("¿Hacen envíos a regiones?", "Sí, enviamos a todo Chile desde Santiago: $2.990 a la Región Metropolitana y $3.990 al resto del país. No tenemos retiro en tienda."),
-    ("¿Cuánto demora mi pedido?", "Preparamos tu pedido apenas verificamos el pago y te avisamos cuando va en camino, con su número de seguimiento."),
-    ("¿Cómo puedo pagar?", "Con tarjeta de débito o crédito a través de Mercado Pago, o por transferencia bancaria (en ese caso adjuntas el comprobante al terminar la compra)."),
-    ("¿Puedo pedir un modelo en otros colores?", "Sí. Si te gusta un diseño pero lo imaginas en otro color, escríbenos por WhatsApp o Instagram y lo creamos para ti."),
-    ("¿Qué pasa si mi pedido llega con una falla?", "Tienes 3 meses de garantía legal: lo cambiamos, lo reparamos o te devolvemos el dinero, y el envío de vuelta lo pagamos nosotros. Por higiene no aceptamos cambios por arrepentimiento."),
-    ("¿Son iguales a las fotos?", "Sí, aunque al ser hechos a mano cada par puede tener pequeñas diferencias de tono o forma. Eso es parte de que sean únicos."),
-    ("¿Sirven para regalo?", "¡Claro! Todos nuestros aros se envían en su empaque, listos para regalar."),
-]
+def tabla_envios():
+    td = 'style="padding:10px;border-bottom:1px solid var(--borde)"'
+    return ('<table class="tabla-envios" style="width:100%%;border-collapse:collapse;margin:10px 0 20px"><tr><th style="text-align:left;padding:10px;border-bottom:1px solid var(--borde)">Destino</th>'
+            '<th style="text-align:right;padding:10px;border-bottom:1px solid var(--borde)">Costo</th></tr>'
+            '<tr><td %s>Región Metropolitana</td><td %s>%s</td></tr><tr><td style="padding:10px">Resto de Chile</td><td style="text-align:right;padding:10px">%s</td></tr></table>'
+            % (td, td.replace('style="', 'style="text-align:right;'), pesos(ENV_RM), pesos(ENV_RESTO)))
 
 
-def paginas_texto(cols):
-    faq_ld = {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
-        {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in PREGUNTAS_GENERALES]}
-    pagina_texto("/preguntas-frecuentes.html", "Preguntas frecuentes | " + MARCA,
-                 "Respuestas sobre materiales, envíos a todo Chile, pagos, garantía y diseños a pedido de los aros hechos a mano de Karivé Joyas.",
-                 '<div class="antetitulo">Ayuda</div><h1>Preguntas frecuentes</h1><div class="faq">' +
-                 "".join("<details><summary>%s</summary><p>%s</p></details>" % (e(q), e(a)) for q, a in PREGUNTAS_GENERALES) +
-                 '</div><p style="margin-top:24px">¿Te quedó alguna duda? <a href="/contacto.html">Escríbenos</a>.</p>', cols, "preguntas", faq_ld)
+def tarjetas_contacto():
+    ig = IG.rstrip("/").split("/")[-1]
+    wa = WA[2:] if WA.startswith("56") else WA
+    wa_txt = "+56 %s %s %s" % (wa[:1], wa[1:5], wa[5:]) if len(wa) == 9 else "+" + WA
+    return ('<div class="contacto-grilla"><a href="https://wa.me/%s"><b>WhatsApp</b>%s</a><a href="%s" rel="noopener"><b>Instagram</b>@%s</a>'
+            '<a href="mailto:%s"><b>Correo</b>%s</a></div>' % (WA, e(wa_txt), e(IG), e(ig), e(CORREO), e(CORREO)))
 
-    pagina_texto("/nosotros.html", "Nosotros: joyería artesanal hecha a mano | " + MARCA,
-                 "Karivé Joyas es un taller de joyería artesanal en Santiago de Chile: aros hechos a mano, uno por uno, con arcilla polimérica, cristales y base de acero.",
-                 """<div class="antetitulo">Nosotros</div><h1>Accesorios que iluminan, hechos con amor</h1>
-<p>Karivé Joyas nació en Santiago de Chile de las ganas de crear aros alegres, livianos y distintos a los que se encuentran en cualquier tienda.</p>
-<p>Cada pieza se hace a mano, una por una, en nuestro taller: se modela la arcilla polimérica, se hornea, se lija, se pinta o se arma con cristales y mostacillas, y se monta sobre una base de acero. Por eso ningún par es exactamente igual a otro.</p>
-<h2>Lo que hacemos</h2>
-<ul><li><a href="/c/flores.html">Aros de flores</a> de arcilla polimérica, en muchos colores.</li><li><a href="/c/argollas-de-cristal.html">Argollas de cristal</a> hechas a mano.</li>
-<li><a href="/c/corazones.html">Corazones</a> pequeños para el día a día.</li><li><a href="/c/marina.html">Conchitas y estrellas de mar</a>, inspiradas en la costa.</li>
-<li><a href="/c/charms.html">Charms</a> y piezas para fechas especiales.</li></ul>
-<h2>Cómo trabajamos</h2>
-<p>Preferimos pocas piezas bien hechas a muchas iguales. Revisamos cada par antes de enviarlo y lo despachamos en su empaque, listo para regalar, a cualquier lugar de Chile.</p>
-<p>Si sueñas con un diseño o un color especial, <a href="/contacto.html">escríbenos</a>: nos encanta crear piezas a pedido.</p>
-<p style="margin-top:28px"><a class="btn btn-1" href="/tienda/">Ver la tienda</a></p>""", cols, "nosotros")
 
-    pagina_texto("/contacto.html", "Contacto | " + MARCA,
-                 "Escríbenos por WhatsApp, Instagram o correo. Respondemos dudas de modelos, medidas, envíos y diseños a pedido.",
-                 """<div class="antetitulo">Contacto</div><h1>Conversemos</h1>
-<p>¿Dudas sobre un modelo, una medida o tu pedido? Escríbenos por donde te acomode.</p>
-<div class="contacto-grilla">
-<a href="https://wa.me/{wa}"><b>WhatsApp</b>+56 9 8882 9803</a>
-<a href="{ig}" rel="noopener"><b>Instagram</b>@karive.joyas</a>
-<a href="mailto:karive.joyas@gmail.com"><b>Correo</b>karive.joyas@gmail.com</a>
-</div>
-<p>Somos una tienda en línea: despachamos desde Santiago a todo Chile y no tenemos retiro en tienda.</p>""".format(wa=WA, ig=IG), cols, "contacto")
+def html_pagina(s):
+    """HTML de una página escrita en el panel, con sus {variables}."""
+    return T.reemplazos(str(s or ""), dict(VARS, tabla_envios=tabla_envios(), tarjetas_contacto=tarjetas_contacto()))
 
-    pagina_texto("/envios.html", "Envíos a todo Chile | " + MARCA,
-                 "Enviamos a todo Chile desde Santiago: $2.990 a la Región Metropolitana y $3.990 al resto del país. Así funcionan los despachos de Karivé Joyas.",
-                 """<div class="antetitulo">Ayuda</div><h1>Envíos</h1>
-<table style="width:100%;border-collapse:collapse;margin:10px 0 20px"><tr><th style="text-align:left;padding:10px;border-bottom:1px solid var(--borde)">Destino</th><th style="text-align:right;padding:10px;border-bottom:1px solid var(--borde)">Costo</th></tr>
-<tr><td style="padding:10px;border-bottom:1px solid var(--borde)">Región Metropolitana</td><td style="text-align:right;padding:10px;border-bottom:1px solid var(--borde)">$2.990</td></tr>
-<tr><td style="padding:10px">Resto de Chile</td><td style="text-align:right;padding:10px">$3.990</td></tr></table>
-<p>Despachamos desde Santiago. Preparamos tu pedido apenas verificamos el pago y te avisamos cuando va en camino, con su número de seguimiento.</p>
-<p>No tenemos retiro en tienda. Si tu pedido no llega en el plazo estimado, escríbenos y lo rastreamos contigo; si se extravía, te lo reenviamos o te devolvemos el dinero.</p>""", cols)
 
-    for archivo, actual in (("devoluciones.html", ""), ("privacidad.html", "")):
-        crudo = open(archivo, encoding="utf-8").read()
+def pagina_tema(clave, ruta, actual="", jsonld=None, robots="index, follow"):
+    pg = TEMA["paginas"][clave]
+    cuerpo = ('<div class="antetitulo"%s>%s</div><h1%s>%s</h1><div class="pagina-html" data-kv-html="paginas.%s.html">%s</div>'
+              % (kv("paginas.%s.antetitulo" % clave), tx(pg.get("antetitulo")), kv("paginas.%s.titulo" % clave), tx(pg.get("titulo")),
+                 clave, html_pagina(pg.get("html"))))
+    pagina_texto(ruta, tp(pg.get("seoTitulo") or (pg.get("titulo") + " | " + MARCA)), tp(pg.get("seoDesc") or pg.get("titulo")),
+                 cuerpo, cols_global, actual, jsonld, robots)
+
+
+def legales_por_defecto():
+    """Devoluciones y privacidad: si en el panel no se escribió nada, se usa el
+    texto de las páginas del catálogo antiguo."""
+    for archivo in ("devoluciones", "privacidad"):
+        pg = TEMA["paginas"][archivo]
+        if (pg.get("html") or "").strip():
+            continue
+        crudo = open(archivo + ".html", encoding="utf-8").read()
         m = re.search(r'<div class="caja">(.*?)</div>\s*</body>', crudo, re.S)
         cuerpo = m.group(1) if m else ""
         cuerpo = re.sub(r'<div class="marca">.*?</div>', "", cuerpo, flags=re.S)
         cuerpo = cuerpo.replace('href="privacidad.html"', 'href="/privacidad.html"').replace('href="devoluciones.html"', 'href="/devoluciones.html"')
-        t = re.search(r"<title>(.*?)</title>", crudo).group(1)
+        t = re.search(r"<h1>(.*?)</h1>", cuerpo, re.S)
+        cuerpo = re.sub(r"\s*<h1>.*?</h1>", "", cuerpo, count=1, flags=re.S).strip()
         d = re.search(r'name="description" content="(.*?)"', crudo)
-        pagina_texto("/" + archivo, t, html.unescape(d.group(1)) if d else t, cuerpo, cols,
-                     robots="index, follow" if archivo == "devoluciones.html" else "noindex, follow")
+        tt = re.search(r"<title>(.*?)</title>", crudo).group(1)
+        pg.update({"titulo": pg.get("titulo") or (html.unescape(t.group(1)) if t else tt), "antetitulo": pg.get("antetitulo") or "Ayuda",
+                   "seoTitulo": pg.get("seoTitulo") or tt.replace("·", "|"),
+                   "seoDesc": pg.get("seoDesc") or (html.unescape(d.group(1)) if d else tt), "html": cuerpo})
+
+
+cols_global = []
+
+
+def paginas_texto(cols):
+    global cols_global
+    cols_global = cols
+    pq = TEMA["paginas"]["preguntas"]
+    items = [it for it in pq.get("items") or [] if it.get("q")]
+    faq_ld = {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+        {"@type": "Question", "name": tp(it["q"]), "acceptedAnswer": {"@type": "Answer", "text": tp(it.get("a"))}} for it in items]}
+    pagina_texto("/preguntas-frecuentes.html", tp(pq.get("seoTitulo")), tp(pq.get("seoDesc")),
+                 '<div class="antetitulo"%s>%s</div><h1%s>%s</h1><div class="faq" data-kv-lista="paginas.preguntas.items">' % (
+                     kv("paginas.preguntas.antetitulo"), tx(pq.get("antetitulo")), kv("paginas.preguntas.titulo"), tx(pq.get("titulo"))) +
+                 "".join("<details><summary>%s</summary><p>%s</p></details>" % (tx(it["q"]), tx(it.get("a"))) for it in items) +
+                 '</div><p style="margin-top:24px">¿Te quedó alguna duda? <a href="/contacto.html">Escríbenos</a>.</p>', cols, "preguntas", faq_ld)
+    pagina_tema("nosotros", "/nosotros.html", "nosotros")
+    pagina_tema("contacto", "/contacto.html", "contacto")
+    pagina_tema("envios", "/envios.html")
+    legales_por_defecto()
+    pagina_tema("devoluciones", "/devoluciones.html")
+    pagina_tema("privacidad", "/privacidad.html", robots="noindex, follow")
+    for x in TEMA["paginas"].get("extra") or []:
+        slug = gen.slug(x.get("slug") or x.get("titulo") or "")
+        if not slug or x.get("visible") is False:
+            continue
+        TEMA["paginas"]["_x_" + slug] = x
+        pagina_tema("_x_" + slug, "/paginas/%s.html" % slug)
 
     pagina_texto("/finalizar-compra.html", "Finalizar compra | " + MARCA, "Completa tus datos y paga tu pedido de Karivé Joyas.",
                  '<h1 style="margin-bottom:0">Finalizar compra</h1>', cols, robots="noindex, nofollow")
@@ -653,13 +834,17 @@ def archivos_buscadores(prods, cols):
         fh.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n')
         for r in ["", "tienda/", "nosotros.html", "preguntas-frecuentes.html", "envios.html", "contacto.html", "devoluciones.html"]:
             fh.write("  <url><loc>%s%s</loc><lastmod>%s</lastmod></url>\n" % (SITIO, r, ult))
+        for x in TEMA["paginas"].get("extra") or []:
+            slug = gen.slug(x.get("slug") or x.get("titulo") or "")
+            if slug and x.get("visible") is not False:
+                fh.write("  <url><loc>%spaginas/%s.html</loc><lastmod>%s</lastmod></url>\n" % (SITIO, slug, ult))
         for c in cols:
             fh.write("  <url><loc>%sc/%s.html</loc><lastmod>%s</lastmod></url>\n" % (SITIO, c["slug"], ult))
         for p in sorted(vis, key=lambda p: p["codigo"]):
             fh.write("  <url><loc>%sp/%s.html</loc><lastmod>%s</lastmod><image:image><image:loc>%s</image:loc></image:image></url>\n"
                      % (SITIO, p["codigo"], p["actualizado"] or hoy, html.escape(p["foto_abs"])))
         fh.write("</urlset>\n")
-    open(DIST + "/robots.txt", "w").write("User-agent: *\nAllow: /\nDisallow: /finalizar-compra.html\n\nSitemap: %ssitemap.xml\n" % SITIO)
+    open(DIST + "/robots.txt", "w").write("User-agent: *\nAllow: /\nDisallow: /finalizar-compra.html\nDisallow: /admin/\n\nSitemap: %ssitemap.xml\n" % SITIO)
 
     filas = []
     for p in sorted(prods, key=lambda p: (p["cat"], p["orden"])):
@@ -681,8 +866,8 @@ def archivos_buscadores(prods, cols):
 
     lineas = ["# %s" % MARCA, "", "> Joyería artesanal hecha a mano en Santiago, Chile. Aros de arcilla polimérica, argollas de cristal, corazones, "
               "conchitas y charms, con base de acero. Tienda online con envíos a todo Chile.", "",
-              "- Tienda: %stienda/" % SITIO, "- Instagram: %s" % IG, "- Facebook: %s" % FBK, "- WhatsApp: +56 9 8882 9803",
-              "- Envíos: a todo Chile desde Santiago ($2.990 Región Metropolitana, $3.990 resto de Chile). Sin retiro en tienda.",
+              "- Tienda: %stienda/" % SITIO, "- Instagram: %s" % IG, "- Facebook: %s" % FBK, "- WhatsApp: +%s" % WA,
+              "- Envíos: a todo Chile desde Santiago (%s Región Metropolitana, %s resto de Chile). Sin retiro en tienda." % (pesos(ENV_RM), pesos(ENV_RESTO)),
               "- Pagos: tarjeta (Mercado Pago) o transferencia.", "- Garantía: 3 meses por fallas (%sdevoluciones.html)." % SITIO,
               "- Preguntas frecuentes: %spreguntas-frecuentes.html" % SITIO, "", "## Colecciones", ""]
     for c in cols:
@@ -715,11 +900,29 @@ def archivos_buscadores(prods, cols):
     open(DIST + "/_redirects", "w").write("/catalogo/* /:splat 301\n/index.html / 301\n")
 
 
+# ------------------------------------------------------------------ panel
+
+def panel():
+    """El panel de administración (dist/admin) y el tema tal como quedó
+    publicado, para que el editor parta desde lo que se ve en la web."""
+    shutil.copytree("admin", DIST + "/admin")
+    import time
+    ix = DIST + "/admin/index.html"
+    contenido = open(ix, encoding="utf-8").read().replace("__V__", str(int(time.time())))
+    open(ix, "w", encoding="utf-8").write(contenido)
+    t = {k: v for k, v in TEMA.items()}
+    t["paginas"] = {k: v for k, v in TEMA["paginas"].items() if not k.startswith("_x_")}
+    json.dump({"tema": t, "defecto": T.TEMA_DEFECTO, "secciones": T.SECCIONES_PORTADA, "generado": date.today().isoformat(),
+               "envio": {"rm": ENV_RM, "regiones": ENV_RESTO}, "whatsapp": WA, "instagram": IG, "facebook": FBK, "correo": CORREO},
+              open(DIST + "/admin/tema-actual.json", "w", encoding="utf-8"), ensure_ascii=False)
+
+
 # ---------------------------------------------------------------- programa
 
 def main():
     if os.path.exists(DIST):
         shutil.rmtree(DIST)
+    ajustes_tienda()
     os.makedirs(DIST + "/estatico", exist_ok=True)
     for f in os.listdir(EST):
         shutil.copy(os.path.join(EST, f), DIST + "/estatico/" + f)
@@ -739,6 +942,7 @@ def main():
         producto(p, cols)
     paginas_texto(cols)
     archivos_buscadores(prods, cols)
+    panel()
     total = sum(len(fs) for _, _, fs in os.walk(DIST))
     print("productos: %d | colecciones: %d | archivos en %s: %d" % (len(prods), len(cols), DIST, total))
 

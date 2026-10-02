@@ -100,6 +100,7 @@
     raiz.querySelectorAll('[data-c]').forEach(n => n.addEventListener(n.tagName === 'SELECT' ? 'change' : 'input', () => {
       form[n.dataset.c] = n.value;
       try { localStorage.setItem('kv_datos_compra', JSON.stringify(form)); } catch (e) {}
+      guardarContacto();
       if (n.dataset.c === 'region') { if (kvComunasDe(n.value).indexOf(form.comuna) < 0) form.comuna = ''; pintar(); }
     }));
     raiz.querySelectorAll('[data-medio]').forEach(b => b.addEventListener('click', () => { medio = b.dataset.medio; pintar(); }));
@@ -119,6 +120,21 @@
     const comp = $('#comprobante');
     if (comp) comp.addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) kvCompressPhoto(f, d => { comprobante = d; pintar(); }, 1100, 0.8); });
     $('#confirmar').addEventListener('click', enviar);
+  }
+
+  /* Si alcanza a escribir sus datos y no termina, el panel puede ayudarte a
+     recuperar el carrito (Pedidos → Carritos abandonados). */
+  let contactoT = null, contactoUlt = '';
+  function guardarContacto() {
+    clearTimeout(contactoT);
+    contactoT = setTimeout(() => {
+      const mail = String(form.correo || '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail) || !KV.visita) return;
+      const firma = mail + '|' + (form.nombre || '') + '|' + (form.telefono || '');
+      if (firma === contactoUlt) return;
+      contactoUlt = firma;
+      KV.visita({ contacto: { nombre: String(form.nombre || '').trim(), correo: mail, telefono: String(form.telefono || '').trim() } });
+    }, 900);
   }
 
   async function enviar() {
@@ -189,6 +205,7 @@
   }
 
   function listo(num, total) {
+    if (KV.visita) KV.visita({ hizoPedido: true });
     const txt = 'Hola Karivé 💜 ' + (form.nombre ? 'Soy ' + form.nombre.trim() + ', acabo' : 'Acabo') + ' de hacer ' + (num ? 'el pedido #' + num : 'un pedido') +
       (total ? ' por ' + formatCLP(total) : '') + ' en la web. ¡Quedo atenta!';
     raiz.innerHTML = '<div class="ok-caja" style="grid-column:1/-1"><div class="antetitulo">Pedido recibido</div>' +

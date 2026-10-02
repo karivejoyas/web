@@ -1,8 +1,9 @@
 // ============================================================
 //  WEB · KARIVÉ JOYAS (karivejoyas.cl / nueva.karivejoyas.cl)
-//  Vuelve a publicar la web apenas cambia un producto: lo que subas o
-//  cambies con el bot de Telegram o en el panel aparece en la web en
-//  unos 5 a 8 minutos, sin esperar la actualización de la noche.
+//  Vuelve a publicar la web apenas cambia algo: los productos (bot de
+//  Telegram o panel), la configuración (cupones, colecciones, envíos…) o
+//  los textos y diseño de la web (panel nuevo → Tienda online). Aparece en
+//  la web en unos 5 a 8 minutos, sin esperar la actualización de la noche.
 //
 //  Este archivo va APARTE del publicador: en Apps Script, junto al archivo
 //  que ya tienes, aprieta "+" → "Secuencia de comandos", llámalo "web" y
@@ -18,9 +19,9 @@
 var WEB_REPO = 'karivejoyas/web';
 var WEB_FLUJO = 'publicar.yml';
 
-/* ¿Cambió algún producto desde la última revisión? Se mira la fecha de
-   modificación de todos (sin bajar las fotos, es muy liviano) y cuántos hay,
-   así también se nota un producto borrado. */
+/* ¿Cambió algo desde la última revisión? Se mira la fecha de modificación
+   de todos los productos (sin bajar las fotos, es muy liviano) y cuántos
+   hay —así también se nota uno borrado—, y la de la configuración y la web. */
 function webVigilar() {
   var props = PropertiesService.getScriptProperties();
   var firma = webFirmaProductos();
@@ -46,7 +47,16 @@ function webFirmaProductos() {
       token = d.nextPageToken || '';
     } while (token);
   } catch (e) { return ''; }
-  return total + '|' + ultima;
+  return total + '|' + ultima + '|' + webFechaDoc('catalog/settings', 'whatsapp') + '|' + webFechaDoc('catalog/web', 'nombreTema');
+}
+
+/* Fecha de última modificación de un documento ('' si no se puede leer). */
+function webFechaDoc(ruta, campo) {
+  try {
+    var r = UrlFetchApp.fetch('https://firestore.googleapis.com/v1/projects/karive-catalogo/databases/(default)/documents/' + ruta + '?mask.fieldPaths=' + campo, { muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) return '';
+    return JSON.parse(r.getContentText()).updateTime || '';
+  } catch (e) { return ''; }
 }
 
 /* Le pide a GitHub que vuelva a armar y publicar la web (tarda 1 a 2 minutos).

@@ -261,3 +261,10 @@ p{margin:0 0 1em}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 @media (max-width:699px){.colecciones .coleccion:last-child:nth-child(odd){grid-column:span 2;aspect-ratio:8/5}}
+
+/* ---- opiniones en la ficha ---- */
+.opiniones .estrellas{color:var(--dorado);letter-spacing:2px}
+.opinion{background:var(--blanco);border:1px solid var(--borde);border-radius:var(--radio);padding:14px 16px;margin-top:10px}
+.opinion p{margin:6px 0 0;color:var(--suave)}
+.cajon .sub-ayuda{border-top:1px solid var(--borde);margin-top:8px;padding-top:8px}
+.cajon-panel nav .sub-ayuda a{padding-left:4px;font-size:15px}

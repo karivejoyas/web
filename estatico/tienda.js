@@ -9,7 +9,7 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const FS = 'https://firestore.googleapis.com/v1/projects/karive-catalogo/databases/(default)/documents';
-  const CAMPOS_AJUSTES = ['igPubUrl', 'pedidos', 'pagos', 'cupones', 'bienvenida', 'descuentoGlobal', 'whatsapp', 'instagram', 'facebook', 'whatsappMsg'];
+  const CAMPOS_AJUSTES = ['igPubUrl', 'pedidos', 'pagos', 'cupones', 'bienvenida', 'descuentoGlobal', 'whatsapp', 'instagram', 'facebook', 'whatsappMsg', 'envioTarifas'];
   const CAMPOS_PROD = ['name', 'price', 'priceOffer', 'category', 'code', 'stock', 'cantidad', 'detail'];
 
   /* ---------- Firestore por REST (sin el SDK: más liviano) ---------- */
@@ -63,8 +63,15 @@
       Object.keys(d.fields || {}).forEach(k => { v[k] = fsValor(d.fields[k]); });
       try { sessionStorage.setItem('kv_ajustes', JSON.stringify({ t: Date.now(), v: v })); } catch (e) {}
       return v;
-    })().then(v => { kvSetDescuento(v); return v; }).catch(err => { ajustesProm = null; throw err; });
+    })().then(v => { kvSetDescuento(v); usarTarifas(v); return v; }).catch(err => { ajustesProm = null; throw err; });
     return ajustesProm;
+  }
+
+  /* Costos de envío: los que se fijan en el panel (Configuración → Envíos). */
+  function usarTarifas(v) {
+    const t = (v && v.envioTarifas) || {};
+    const rm = Number(t.rm) || 2990, reg = Number(t.regiones) || 3990;
+    window.kvEnvioCosto = function (region) { return region === KV_REGION_RM ? rm : reg; };
   }
 
   /* ---------- productos: los de la página + precios y stock al día ---------- */
@@ -133,7 +140,7 @@
   const CARRO_KEY = 'kv_carrito';
   let carro = {};
   try { carro = JSON.parse(localStorage.getItem(CARRO_KEY) || '{}') || {}; } catch (e) { carro = {}; }
-  function carroGuardar() { try { localStorage.setItem(CARRO_KEY, JSON.stringify(carro)); } catch (e) {} carroContador(); }
+  function carroGuardar() { try { localStorage.setItem(CARRO_KEY, JSON.stringify(carro)); } catch (e) {} carroContador(); visitaCarrito(); }
   function carroContador() {
     const n = Object.values(carro).reduce((a, b) => a + (b || 0), 0);
     $$('.contador').forEach(c => { c.textContent = n > 99 ? '99+' : n; c.hidden = n === 0; });
@@ -306,7 +313,60 @@
     } catch (err) { msg.textContent = 'No pudimos guardar tu correo. Intenta de nuevo.'; }
   });
 
+  /* ============================================================
+     VISITAS (anónimas, para el panel: Informes y Vista en tiempo real).
+     Igual que el catálogo antiguo: sin IP ni datos personales; solo ciudad
+     aproximada, dispositivo, de dónde llegó y qué miró. No se cuentan las
+     vistas previas del panel (van dentro de un marco).
+     ============================================================ */
+  const RAIZ_DOC = 'projects/karive-catalogo/databases/(default)/documents/';
+  let visitaId = '';
+  const enMarco = (() => { try { return window.top !== window; } catch (e) { return true; } })();
+  if (!enMarco && !/[?&]nocontar\b/.test(location.search)) {
+    try {
+      visitaId = sessionStorage.getItem('kv_visita_id') || '';
+      if (!visitaId) { visitaId = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); sessionStorage.setItem('kv_visita_id', visitaId); }
+    } catch (e) { visitaId = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  }
+  /* Guarda campos en la visita; `agregar` suma elementos a listas sin repetir. */
+  function visita(datos, agregar) {
+    if (!visitaId) return;
+    const campos = Object.assign({ ultima: new Date().toISOString() }, datos || {});
+    const w = { update: { name: RAIZ_DOC + 'catalog/visitas/items/' + visitaId, fields: fsCampos(campos) }, updateMask: { fieldPaths: Object.keys(campos) } };
+    if (agregar) w.updateTransforms = Object.keys(agregar).map(k => ({ fieldPath: k, appendMissingElements: { values: agregar[k].map(fsCampo) } }));
+    fetch(FS + ':commit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ writes: [w] }), keepalive: true }).catch(() => {});
+  }
+  if (visitaId) {
+    let nueva = false;
+    try { nueva = !sessionStorage.getItem('kv_visita_ok'); sessionStorage.setItem('kv_visita_ok', '1'); } catch (e) {}
+    if (nueva) {
+      const dev = kvVisitaDispositivo(), org = kvVisitaOrigen(document.referrer);
+      visita({ creada: new Date().toISOString(), dispositivo: dev.dispositivo, so: dev.so, navegador: dev.navegador, origenTipo: org.tipo, origenHost: org.host, pais: '', region: '', ciudad: '', sitio: 'web nueva' });
+      try {
+        const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 2500);
+        fetch('https://get.geojs.io/v1/ip/geo.json', { signal: ctrl.signal }).then(r => r.json())
+          .then(g => { if (g) visita({ pais: g.country || '', region: g.region || '', ciudad: g.city || '' }); }).catch(() => {});
+      } catch (e) {}
+    } else visita({});
+    const ficha = $('[data-ficha]');
+    if (ficha) visita({}, { productos: [($('h1', ficha) || {}).textContent || ''], productosIds: [ficha.dataset.ficha] });
+    const col = location.pathname.match(/^\/c\//) && $('.migas [aria-current]');
+    if (col) visita({}, { colecciones: [col.textContent.trim()] });
+  }
+  let visitaCarroT = null;
+  function visitaCarrito() {
+    if (!visitaId) return;
+    clearTimeout(visitaCarroT);
+    visitaCarroT = setTimeout(async () => {
+      const items = await carroItems();
+      const datos = { carritoActual: items.map(it => ({ id: it.p.id, name: it.p.name || '', code: it.p.code || '', qty: it.qty, precio: precioDe(it.p) })),
+        carritoTotal: items.reduce((s, it) => s + precioDe(it.p) * it.qty, 0) };
+      if (items.length) datos.agregoCarrito = true;
+      visita(datos);
+    }, 800);
+  }
+
   // lo que usa la página de pago
   window.KV = { productos: productos, ajustes: ajustes, carroItems: carroItems, carro: () => carro, vaciarCarro: () => { carro = {}; carroGuardar(); },
-                fsCrear: fsCrear, fsActualizar: fsActualizar, aviso: aviso, precioDe: precioDe };
+                fsCrear: fsCrear, fsActualizar: fsActualizar, aviso: aviso, precioDe: precioDe, visita: visita };
 })();
