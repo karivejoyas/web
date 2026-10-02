@@ -1,0 +1,5 @@
+dist/
+__pycache__/
+# las genera construir.py en cada publicación
+assets/productos/w/
+assets/productos/[A-Z][A-Z]-[0-9][0-9][0-9].*

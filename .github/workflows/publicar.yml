@@ -1,0 +1,46 @@
+# Arma la web desde el catálogo en vivo (Firestore) y la publica en GitHub Pages.
+# Corre con cada cambio en el repositorio, todas las noches (para tomar productos,
+# precios y stock nuevos) y a mano desde la pestaña Actions ("Run workflow").
+name: Publicar web
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '30 9 * * *'     # 05:30 / 06:30 en Chile
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Instalar Pillow (fotos WebP)
+        run: pip install --quiet pillow
+      - name: Armar la web desde el catálogo
+        run: python3 construir.py
+      - name: Revisar que salió completa
+        run: |
+          n=$(ls dist/p/*.html | wc -l)
+          echo "fichas: $n"
+          if [ "$n" -lt 20 ]; then echo "Salió muy poco contenido. No se publica."; exit 1; fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: despliegue
+        uses: actions/deploy-pages@v4
