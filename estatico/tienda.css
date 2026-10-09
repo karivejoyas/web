@@ -37,7 +37,7 @@ p{margin:0 0 1em}
 .btn-2{background:transparent;border-color:var(--morado-osc);color:var(--morado-osc)}
 .btn-2:hover{background:var(--morado-osc);color:var(--crema)}
 .btn-oro{background:linear-gradient(135deg,var(--dorado),var(--dorado-cl));color:var(--morado-osc)}
-.btn-wa{background:#1F9D55;color:#fff}
+.btn-wa{background:#157F43;color:#fff}
 .btn svg{width:20px;height:20px;flex:0 0 20px}
 .btn-bloque{width:100%}
 .btn[disabled]{opacity:.55;cursor:default}
@@ -55,7 +55,7 @@ p{margin:0 0 1em}
 .icono{position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:0;background:none;cursor:pointer;color:var(--morado-osc)}
 .icono:hover{background:var(--crema2)}
 .icono svg{width:23px;height:23px}
-.contador{position:absolute;top:4px;right:2px;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:var(--dorado);color:#fff;font-size:11px;font-weight:600;line-height:19px;text-align:center}
+.contador{position:absolute;top:4px;right:2px;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:var(--morado-osc);color:var(--dorado-cl);font-size:11px;font-weight:600;line-height:19px;text-align:center}
 .contador[hidden]{display:none}
 .hamburguesa{display:inline-flex}
 @media (min-width:900px){.menu{display:flex}.iconos{margin-left:8px}.hamburguesa{display:none}}
@@ -196,7 +196,7 @@ p{margin:0 0 1em}
 .pie-logo img{height:52px;width:auto;filter:brightness(1.6) saturate(.3)}
 .boletin{display:flex;gap:8px;margin-top:8px}
 .boletin input{flex:1;min-width:0;min-height:46px;border-radius:999px;border:1px solid rgba(207,196,223,.4);background:rgba(255,255,255,.06);color:var(--crema);padding:0 16px}
-.boletin input::placeholder{color:rgba(207,196,223,.7)}
+.boletin input::placeholder{color:#CFC4DF}
 .boletin-msg{font-size:13px;margin-top:6px;color:var(--dorado-cl)}
 .pie-final{border-top:1px solid rgba(207,196,223,.18);padding:16px;text-align:center;font-size:13px}
 
@@ -251,7 +251,7 @@ p{margin:0 0 1em}
 .cupon-msg.ok{color:var(--ok)}.cupon-msg.error{color:var(--error)}
 
 /* ---- WhatsApp flotante ---- */
-.wa-flota{position:fixed;right:16px;bottom:16px;z-index:30;width:56px;height:56px;border-radius:50%;background:#1F9D55;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(0,0,0,.25)}
+.wa-flota{position:fixed;right:16px;bottom:16px;z-index:30;width:56px;height:56px;border-radius:50%;background:#157F43;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(0,0,0,.25)}
 .wa-flota svg{width:30px;height:30px}
 
 /* ---- foto ampliada ---- */
@@ -260,7 +260,6 @@ p{margin:0 0 1em}
 .zoom img{max-width:100%;max-height:100%;border-radius:12px}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
-@media (max-width:699px){.colecciones .coleccion:last-child:nth-child(odd){grid-column:span 2;aspect-ratio:8/5}}
 
 /* ---- opiniones en la ficha ---- */
 .opiniones .estrellas{color:var(--dorado);letter-spacing:2px}
@@ -268,3 +267,155 @@ p{margin:0 0 1em}
 .opinion p{margin:6px 0 0;color:var(--suave)}
 .cajon .sub-ayuda{border-top:1px solid var(--borde);margin-top:8px;padding-top:8px}
 .cajon-panel nav .sub-ayuda a{padding-left:4px;font-size:15px}
+
+/* ============================================================
+   VIDA — una idea: las piezas "atrapan la luz", como una joya.
+   · Portada: el título sube palabra por palabra, la foto se descubre
+     y un destello la cruza una vez (el momento principal).
+   · Al pasar el mouse por fotos de productos y colecciones, el mismo
+     destello las recorre; al agregar al carrito la foto vuela a la bolsa.
+   · Curvas de salida rápidas; todo se apaga con "reducir movimiento".
+   ============================================================ */
+:root{--salida:cubic-bezier(.23,1,.32,1);--resorte:cubic-bezier(.16,1,.3,1)}
+
+/* superficies del navegador con la paleta */
+::selection{background:var(--lila);color:var(--morado-osc)}
+html{caret-color:var(--morado);scrollbar-color:var(--lila) var(--crema)}
+a{text-underline-offset:.18em;text-decoration-thickness:1px}
+.precio,.fila,.contador{font-variant-numeric:tabular-nums}
+
+/* botones: respuesta inmediata al apretar */
+.btn{transition:transform .16s var(--salida),background-color .2s,color .2s,box-shadow .25s;touch-action:manipulation}
+.btn:active{transform:scale(.97)}
+@media (hover:hover){
+  .btn-1:hover{background:color-mix(in srgb,var(--morado-osc) 82%,var(--morado));box-shadow:0 8px 20px -6px rgba(42,18,62,.45)}
+  .btn-oro:hover{box-shadow:0 8px 20px -6px rgba(184,144,47,.55)}
+  .btn-wa:hover{background:#106636}
+}
+
+/* encabezado: al bajar se compacta y toma sombra */
+.cabecera{transition:box-shadow .3s,background-color .3s}
+.cabecera .envoltura{transition:min-height .3s var(--salida)}
+.cabecera.bajando{box-shadow:0 6px 24px -10px rgba(42,18,62,.25);background:rgba(251,247,241,.97)}
+@media (min-width:900px){.cabecera.bajando .envoltura{min-height:58px}}
+.menu a::after{content:"";position:absolute;left:14px;right:14px;bottom:6px;height:1px;background:var(--dorado);transform:scaleX(0);transform-origin:right;transition:transform .3s var(--salida)}
+.menu a{position:relative}
+@media (hover:hover){.menu a:hover::after{transform:scaleX(1);transform-origin:left}}
+.menu a[aria-current]::after{transform:scaleX(1)}
+.contador.salta{animation:salta .45s var(--resorte)}
+@keyframes salta{40%{transform:scale(1.45)}}
+#btn-carro.salta svg{animation:menea .5s var(--salida)}
+@keyframes menea{25%{transform:rotate(-12deg)}55%{transform:rotate(8deg)}80%{transform:rotate(-3deg)}}
+.vuela{position:fixed;z-index:95;width:64px;height:64px;border-radius:14px;object-fit:cover;pointer-events:none;box-shadow:0 12px 28px -8px rgba(42,18,62,.5)}
+
+/* el destello (luz que cruza una joya) */
+.destello{position:relative;overflow:hidden}
+.destello::after{content:"";position:absolute;inset:-20% auto -20% -60%;width:45%;pointer-events:none;
+  background:linear-gradient(105deg,transparent 0,rgba(255,250,235,0) 30%,rgba(255,250,235,.55) 50%,rgba(255,250,235,0) 70%,transparent 100%);transform:skewX(-14deg);opacity:0}
+@keyframes destello{0%{left:-60%;opacity:1}100%{left:125%;opacity:1}}
+@media (hover:hover){.destello:hover::after{animation:destello .9s var(--salida)}}
+
+/* portada: el momento principal */
+.hero-marco{position:relative;background:radial-gradient(70% 90% at 85% 20%,#F4ECE1 0,transparent 60%)}
+.hero h1{text-wrap:balance}
+.hero h1 .palabra{display:inline-block;opacity:0;transform:translateY(.5em);filter:blur(6px);animation:palabra .9s var(--salida) forwards;animation-delay:calc(var(--p) * 60ms + 80ms)}
+@keyframes palabra{to{opacity:1;transform:none;filter:blur(0)}}
+.js .hero-txt p,.js .hero-acc{opacity:0;animation:aparece .8s var(--salida) .55s forwards}
+.js .hero-acc{animation-delay:.7s}
+@keyframes aparece{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.hero-img-marco{position:relative}
+.hero-img{box-shadow:0 30px 60px -28px rgba(42,18,62,.45)}
+.js .hero-img{clip-path:inset(100% 0 0 0 round 24px);animation:descubre 1.1s var(--salida) .2s forwards}
+@keyframes descubre{to{clip-path:inset(0 0 0 0 round 24px)}}
+.js .hero-img img{transform:scale(1.12);animation:asienta 1.6s var(--salida) .2s forwards}
+@keyframes asienta{to{transform:scale(1)}}
+.js .hero-img::after{animation:destello 1.3s var(--salida) 1.2s both}
+.hero-sello{left:auto;right:14px;top:14px;bottom:auto;background:var(--crema);box-shadow:0 6px 16px -8px rgba(42,18,62,.35)}
+.hero-nuevo{position:absolute;right:10px;bottom:-26px;display:flex;align-items:center;gap:12px;padding:8px 16px 8px 8px;border-radius:18px;background:var(--blanco);
+  box-shadow:0 18px 40px -16px rgba(42,18,62,.4);text-decoration:none;max-width:280px;transition:transform .3s var(--salida),box-shadow .3s}
+.js .hero-nuevo{opacity:0;animation:aparece .7s var(--salida) 1.35s forwards}
+@media (hover:hover){.hero-nuevo:hover{transform:translateY(-3px);box-shadow:0 22px 44px -16px rgba(42,18,62,.5)}}
+.hero-nuevo img{width:54px;height:54px;border-radius:12px;object-fit:cover;flex:0 0 54px}
+.hero-nuevo span{display:flex;flex-direction:column;font-size:14px;line-height:1.25;color:var(--suave);min-width:0}
+.hero-nuevo small{font-size:12px;color:#7A5B12;font-weight:500}
+.hero-nuevo b{font-weight:500;color:var(--tinta);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (min-width:900px){.hero-nuevo{right:auto;left:-36px;bottom:36px}}
+
+/* cinta en movimiento */
+.cinta{background:var(--morado-osc);color:var(--crema);overflow:hidden;padding:16px 0}
+.cinta-pista{display:flex;align-items:center;width:max-content;animation:cinta 42s linear infinite}
+.cinta.quieta .cinta-pista,.cinta:hover .cinta-pista{animation-play-state:paused}
+.cinta span{font-family:var(--serif);font-style:italic;font-size:clamp(20px,2.4vw,27px);white-space:nowrap;padding:0 22px}
+.cinta-copia{display:contents}
+.cinta-sep{width:14px;height:14px;fill:var(--dorado-cl);flex:0 0 14px}
+@keyframes cinta{to{transform:translateX(-50%)}}
+
+/* beneficios: íconos dibujados, sin cajas */
+.confianza{padding:30px 0 10px;border-bottom:1px solid var(--borde)}
+.confianza span.ic{flex:0 0 46px;width:46px;height:46px;border-radius:50%;background:var(--crema2);color:var(--morado);display:flex;align-items:center;justify-content:center;transition:transform .35s var(--resorte),background-color .3s}
+.confianza span.ic svg{width:24px;height:24px}
+@media (hover:hover){.confianza>div:hover span.ic{transform:rotate(-10deg) scale(1.08);background:var(--dorado-cl)}}
+
+/* colecciones: entran en cascada (única entrada al bajar) */
+.js .coleccion[data-revelar]{opacity:0;transform:translateY(24px) scale(.98);transition:opacity .7s var(--salida),transform .8s var(--salida);transition-delay:calc(var(--i,0) * 70ms)}
+.js .coleccion[data-revelar].visto,.revelar-todo .coleccion[data-revelar]{opacity:1;transform:none}
+.coleccion img{transition:transform .8s var(--salida)}
+.coleccion span{transition:transform .4s var(--salida)}
+.coleccion-flecha{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:var(--crema);color:var(--morado-osc);display:flex;align-items:center;justify-content:center;font-style:normal;opacity:0;transform:scale(.6) rotate(-45deg);transition:opacity .25s,transform .35s var(--resorte)}
+.coleccion-flecha svg{width:18px;height:18px}
+@media (hover:hover){
+  .coleccion.visto,.revelar-todo .coleccion{transition:transform .4s var(--salida),box-shadow .4s,opacity .7s}
+  .coleccion:hover{transform:translateY(-6px);box-shadow:0 24px 40px -20px rgba(42,18,62,.55)}
+  .coleccion:hover img{transform:scale(1.07)}
+  .coleccion:hover span{transform:translateY(-6px)}
+  .coleccion:hover .coleccion-flecha{opacity:1;transform:none}
+}
+
+/* tarjetas de producto */
+.tarjeta-foto{transition:box-shadow .35s var(--salida),transform .35s var(--salida)}
+.tarjeta-foto img{transition:transform .8s var(--salida)}
+.tarjeta-ver{position:absolute;left:50%;bottom:12px;transform:translate(-50%,10px);opacity:0;background:var(--crema);color:var(--morado-osc);font-size:13px;padding:7px 14px;border-radius:999px;white-space:nowrap;box-shadow:0 6px 16px -8px rgba(42,18,62,.4);transition:opacity .25s,transform .3s var(--salida)}
+@media (hover:hover){
+  .tarjeta:hover .tarjeta-foto{transform:translateY(-4px);box-shadow:0 20px 34px -18px rgba(42,18,62,.5)}
+  .tarjeta:hover .tarjeta-foto img{transform:scale(1.06)}
+  .tarjeta:hover .tarjeta-ver{opacity:1;transform:translate(-50%,0)}
+}
+
+/* taller: sello que gira despacio */
+.franja-img{position:relative}
+.sello-gira{position:absolute;width:116px;height:116px;left:-22px;top:-30px;border-radius:50%;background:var(--dorado-cl);animation:gira 30s linear infinite;box-shadow:0 10px 24px -10px rgba(0,0,0,.45)}
+.sello-gira text{font-family:var(--sans);font-size:10.2px;letter-spacing:.22em;fill:var(--morado-osc);font-weight:600}
+.sello-gira path:last-child{fill:var(--morado-osc)}
+.franja.quieta .sello-gira{animation-play-state:paused}
+@keyframes gira{to{transform:rotate(360deg)}}
+@media (max-width:899px){.sello-gira{width:92px;height:92px;left:auto;right:10px;top:-24px}}
+
+/* diseños a pedido */
+.especial{text-align:center;background:var(--crema2);border-radius:32px;margin-top:40px;margin-bottom:40px;padding-left:24px;padding-right:24px}
+@media (min-width:900px){.especial{max-width:calc(var(--ancho) - 32px)}}
+
+/* WhatsApp */
+.wa-flota{transition:transform .3s var(--resorte)}
+@media (hover:hover){.wa-flota:hover{transform:scale(1.08) rotate(-6deg)}}
+
+/* ficha */
+.ficha-foto img{transition:transform .8s var(--salida)}
+@media (hover:hover){.ficha-foto:hover img{transform:scale(1.04)}}
+
+/* mosaico de colecciones */
+@media (max-width:1049px){.colecciones{grid-template-columns:repeat(2,1fr)}.colecciones .coleccion.grande{grid-column:span 2;aspect-ratio:16/10}}
+@media (min-width:1050px){
+  .colecciones{grid-template-columns:repeat(4,1fr);gap:16px}
+  .colecciones .coleccion.grande{grid-column:span 2;grid-row:span 2;aspect-ratio:auto}
+  .colecciones .coleccion.grande span{font-size:34px;padding:60px 24px 24px}
+  .colecciones .coleccion.ancha{grid-column:span 2;aspect-ratio:33/20}
+  .colecciones .coleccion.ancha-4{grid-column:span 4;aspect-ratio:32/9}
+}
+@media (max-width:699px){.colecciones .coleccion:last-child:nth-child(even):not(.grande){grid-column:span 2;aspect-ratio:8/5}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .js .coleccion[data-revelar],.js .hero-txt p,.js .hero-acc,.js .hero-nuevo,.hero h1 .palabra{opacity:1!important;transform:none!important;filter:none!important}
+  .js .hero-img{clip-path:none}
+  .js .hero-img img{transform:none}
+}

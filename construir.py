@@ -331,6 +331,7 @@ def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="
 <link rel="icon" href="/assets/logo-avatar.png" type="image/png"><link rel="apple-touch-icon" href="/assets/logo-avatar.png"><link rel="manifest" href="/manifest.webmanifest">
 {fuentes}
 <link rel="stylesheet" href="/estatico/tienda.css?v={v}">
+<script>document.documentElement.classList.add('js');setTimeout(function(){{if(!window.kvRevela)document.documentElement.classList.add('revelar-todo')}},2500)</script>
 {colores}
 {j}
 </head>
@@ -439,11 +440,11 @@ def tarjeta(p, i=0, lazy=True):
     elif p["cantidad"] is not None and 0 < p["cantidad"] <= 3:
         etiqueta = '<span class="etiqueta">Últimas</span>'
     precio = pesos(p["vigente"]) + (("<s>%s</s>" % pesos(p["precio"])) if p["rebajado"] else "")
-    return ('<li class="tarjeta" data-tarjeta="{id}" data-col="{col}" data-precio="{pv}" data-i="{i}" data-n="{n}">'
-            '<a class="tarjeta-foto" href="{url}"><img src="{img}" alt="{alt}" width="480" height="480"{lz}>{et}</a>'
+    return ('<li class="tarjeta" data-tarjeta="{id}" data-col="{col}" data-precio="{pv}" data-i="{i}" data-n="{n}" style="--i:{im}">'
+            '<a class="tarjeta-foto destello" href="{url}"><img src="{img}" alt="{alt}" width="480" height="480"{lz}>{et}<span class="tarjeta-ver" aria-hidden="true">Ver detalle</span></a>'
             '<div class="tarjeta-txt"><a class="tarjeta-nombre" href="{url}">{nom}</a><span class="precio">{precio}</span>'
             '<div class="agregar"><button type="button" class="btn btn-2" data-agregar="{id}"{dis}>{txt}</button></div></div></li>').format(
-        id=e(p["id"]), col=e(p["col"]["slug"]), pv=p["vigente"], i=i, n=p["creado"][:19].replace("-", "").replace(":", "").replace("T", ""),
+        id=e(p["id"]), col=e(p["col"]["slug"]), pv=p["vigente"], i=i, im=i % 4, n=p["creado"][:19].replace("-", "").replace(":", "").replace("T", ""),
         url=e(p["url"]), img=e(p["img_chica"]), alt=e("%s, aros hechos a mano – %s" % (p["nombre"], MARCA)),
         lz=' loading="lazy" decoding="async"' if lazy else "", et=etiqueta, nom=e(p["nombre"]), precio=precio,
         dis="" if p["hay"] else " disabled", txt="Agregar al carrito" if p["hay"] else "Agotado")
@@ -456,6 +457,44 @@ def escribir(ruta, contenido):
 
 
 # --------------------------------------------------------------- páginas
+
+SELLO_GIRA = ('<svg class="sello-gira" viewBox="0 0 120 120" aria-hidden="true"><defs><path id="circ" d="M60 60m-44 0a44 44 0 1 1 88 0a44 44 0 1 1-88 0"/></defs>'
+              '<text><textPath href="#circ">HECHO A MANO · SANTIAGO DE CHILE · KARIVÉ ·</textPath></text><path d="M60 47c1.6 6.4 4.6 9.4 11 11-6.4 1.6-9.4 4.6-11 11-1.6-6.4-4.6-9.4-11-11 6.4-1.6 9.4-4.6 11-11Z"/></svg>')
+
+
+def clase_mosaico(i, n):
+    """Mosaico de colecciones en escritorio (4 columnas): la primera es grande
+    (2×2) y las últimas se ensanchan para que no quede ningún hueco."""
+    if n < 4:
+        return ""
+    if i == 0:
+        return " grande"
+    resto = (n - 1) % 4
+    desde_el_final = n - 1 - i
+    if resto == 1 and desde_el_final == 0:
+        return " ancha-4"
+    if resto == 2 and desde_el_final < 2:
+        return " ancha"
+    if resto == 3 and desde_el_final == 0:
+        return " ancha"
+    return ""
+
+
+def cinta_html(items):
+    """Cinta con frases que se desplazan sin parar (la lista va dos veces para que el giro no se note)."""
+    fila = "".join('<span>%s</span><svg class="cinta-sep" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c.7 5.3 3 7.6 10 10-7 2.4-9.3 4.7-10 10-.7-5.3-3-7.6-10-10 7-2.4 9.3-4.7 10-10Z"/></svg>' % tx(x) for x in items if str(x).strip())
+    return ('<div class="cinta" aria-label="%s"><div class="cinta-pista" data-kv-lista="portada.cinta.items">%s<span aria-hidden="true" class="cinta-copia">%s</span></div></div>'
+            % (e(" · ".join(tp(x) for x in items)), fila, fila))
+
+
+def tarjeta_nuevo(p, activo):
+    """Tarjetita de vidrio sobre la foto de portada con el último producto subido."""
+    if not p:
+        return ""
+    return ('<a class="hero-nuevo vidrio" href="%s" data-kv-si="portada.hero.tarjetaNuevo"%s><img src="%s" alt="" width="64" height="64">'
+            '<span><small>Nuevo en el taller</small><b>%s</b>%s</span></a>'
+            % (e(p["url"]), "" if activo else " hidden", e(p["img_chica"]), e(p["nombre"]), pesos(p["vigente"])))
+
 
 def boton(b, clase, ruta):
     b = b or {}
@@ -488,64 +527,72 @@ def portada(prods, cols, mas_vistos, img_cols):
         {"@type": "WebPage", "@id": SITIO + "#portada", "url": SITIO, "name": tp(seo.get("titulo")),
          "isPartOf": {"@id": SITIO + "#sitio"}, "about": {"@id": SITIO + "#organizacion"}, "inLanguage": "es-CL"},
     ]}
+    img_tema = P["colecciones"].get("imagenes") or {}
     tarj_cols = "".join(
-        '<a class="coleccion" href="/c/{s}.html"><img src="{img}" alt="{alt}" loading="lazy" width="450" height="560"><span>{n}<small>{k} modelos</small></span></a>'.format(
-            s=e(c["slug"]), img=e(img_cols.get(c["id"]) or c["_prods"][0]["img"]), alt=e(gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0]),
-            n=e(c["nombre"]), k=len(c["_prods"])) for c in cols)
+        '<a class="coleccion destello{cl}" href="/c/{s}.html" style="--i:{i}" data-revelar><img src="{img}" alt="{alt}" loading="lazy" width="450" height="560" data-kv-colimg="{cid}">'
+        '<span>{n}<small>{k} modelos</small></span><i class="coleccion-flecha" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></i></a>'.format(
+            s=e(c["slug"]), img=e(imagen(img_tema.get(c["id"])) or img_cols.get(c["id"]) or c["_prods"][0]["img"]), alt=e(gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0]),
+            n=e(c["nombre"]), k=len(c["_prods"]), cid=e(c["id"]), i=i, cl=clase_mosaico(i, len(cols))) for i, c in enumerate(cols))
     img_seo = imagen(seo.get("imagen")) or "/assets/modelo-portada.jpg"
     h = cabeza(tp(seo.get("titulo")), tp(seo.get("descripcion")), "/", SITIO + img_seo.lstrip("/"), jsonld)
     h += encabezado(cols)
 
     H, C, CO, F, TA, N, ES = (P[k] for k in ("hero", "confianza", "colecciones", "favoritos", "taller", "nuevos", "especial"))
+    CI = P.get("cinta") or {}
+    nuevo = nuevos[0] if nuevos else None
     sec = {}
-    sec["hero"] = """<section class="envoltura hero">
+    sec["hero"] = """<section class="hero-marco"><div class="hero-fondo" aria-hidden="true"><i></i><i></i><i></i></div><div class="envoltura hero">
   <div class="hero-txt">
-    <div class="antetitulo"{k1}>{ante}</div>
     <h1{k2}>{tit}</h1>
     <p{k3}>{txt}</p>
     <div class="hero-acc">{b1}{b2}</div>
   </div>
-  <div class="hero-img"><img src="{img}" alt="{alt}" width="860" height="645" fetchpriority="high" data-kv-img="portada.hero.imagen"><span class="hero-sello"{k4}>{sello}</span></div>
-</section>""".format(k1=kv("portada.hero.antetitulo"), ante=tx(H.get("antetitulo")), k2=kv("portada.hero.titulo"), tit=tx(H.get("titulo")),
+  <div class="hero-img-marco"><div class="hero-img destello"><img src="{img}" alt="{alt}" width="860" height="645" fetchpriority="high" data-kv-img="portada.hero.imagen"><span class="hero-sello"{k4}>{sello}</span></div>{nuevo}</div>
+</div></section>""".format(nuevo=tarjeta_nuevo(nuevo, H.get("tarjetaNuevo", True)),k1=kv("portada.hero.antetitulo"), ante=tx(H.get("antetitulo")), k2=kv("portada.hero.titulo"), tit=tx(H.get("titulo")),
                      k3=kv("portada.hero.texto"), txt=tx(H.get("texto")), b1=boton(H.get("boton1"), "btn-1", "portada.hero.boton1"),
                      b2=boton(H.get("boton2"), "btn-2", "portada.hero.boton2"), img=e(imagen(H.get("imagen")) or "/assets/modelo-portada.jpg"),
                      alt=e(H.get("imagenAlt") or MARCA), k4=kv("portada.hero.sello"), sello=tx(H.get("sello")))
+    sec["cinta"] = cinta_html(CI.get("items") or [])
     sec["confianza"] = '<div class="envoltura"><div class="confianza" data-kv-lista="portada.confianza.items">%s</div></div>' % "".join(
-        '<div><span class="ic">%s</span><span><b>%s</b>%s</span></div>' % (e(it.get("icono") or ""), tx(it.get("titulo")), tx(it.get("texto")))
-        for it in C.get("items") or [])
+        '<div><span class="ic">%s</span><span><b>%s</b>%s</span></div>' % (T.icono(it.get("icono")), tx(it.get("titulo")), tx(it.get("texto")))
+        for i, it in enumerate(C.get("items") or []))
     def cab(d, ruta, url, extra=""):
-        return ('<div class="seccion-cab"><div><div class="antetitulo"%s>%s</div><h2%s>%s</h2></div><a class="ver-todo" href="%s"%s>%s</a></div>'
-                % (kv(ruta + ".antetitulo"), tx(d.get("antetitulo")), kv(ruta + ".titulo"), tx(d.get("titulo")), url, kv(ruta + ".enlace"), tx(d.get("enlace"))))
+        return ('<div class="seccion-cab"><h2%s>%s</h2><a class="ver-todo" href="%s"%s>%s</a></div>'
+                % (kv(ruta + ".titulo"), tx(d.get("titulo")), url, kv(ruta + ".enlace"), tx(d.get("enlace"))))
     sec["colecciones"] = '<section class="seccion envoltura" id="colecciones">%s<div class="colecciones">%s</div></section>' % (
         cab(CO, "portada.colecciones", "/tienda/"), tarj_cols)
     sec["favoritos"] = '<section class="seccion envoltura">%s<ul class="grilla">%s</ul></section>' % (
         cab(F, "portada.favoritos", "/tienda/"), "".join(tarjeta(p, i) for i, p in enumerate(destacados[:n_fav])))
     sec["taller"] = """<section class="franja">
   <div class="envoltura">
-    <img src="{img}" alt="{alt}" loading="lazy" width="900" height="675" data-kv-img="portada.taller.imagen">
+    <div class="franja-img"><img src="{img}" alt="{alt}" loading="lazy" width="900" height="675" data-kv-img="portada.taller.imagen">{sello}</div>
     <div>
-      <div class="antetitulo"{k1}>{ante}</div>
       <h2{k2}>{tit}</h2>
       <p{k3}>{txt}</p>
       <ol class="pasos" data-kv-lista="portada.taller.pasos">{pasos}</ol>
       <p style="margin-top:18px">{bt}</p>
     </div>
   </div>
-</section>""".format(img=e(imagen(TA.get("imagen")) or "/assets/modelo-argollas.jpg"), alt=e(TA.get("imagenAlt") or MARCA),
+</section>""".format(sello=SELLO_GIRA, img=e(imagen(TA.get("imagen")) or "/assets/modelo-argollas.jpg"), alt=e(TA.get("imagenAlt") or MARCA),
                      k1=kv("portada.taller.antetitulo"), ante=tx(TA.get("antetitulo")), k2=kv("portada.taller.titulo"), tit=tx(TA.get("titulo")),
                      k3=kv("portada.taller.texto"), txt=tx(TA.get("texto")), bt=boton(TA.get("boton"), "btn-oro", "portada.taller.boton"),
                      pasos="".join('<li><span class="n">%d</span><span>%s</span></li>' % (i + 1, tx(x)) for i, x in enumerate(TA.get("pasos") or [])))
     sec["nuevos"] = '<section class="seccion envoltura">%s<ul class="grilla">%s</ul></section>' % (
         cab(N, "portada.nuevos", "/tienda/?orden=nuevos"), "".join(tarjeta(p, i) for i, p in enumerate(nuevos)))
-    sec["especial"] = """<section class="seccion envoltura" style="text-align:center">
-  <div class="antetitulo"{k1}>{ante}</div>
+    sec["especial"] = """<section class="seccion envoltura especial">
   <h2{k2}>{tit}</h2>
   <p style="max-width:560px;margin:0 auto 18px;color:var(--suave)"{k3}>{txt}</p>
   <a class="btn btn-wa" href="https://wa.me/{wa}?text={wat}">{i_wa} <span{k4}>{bt}</span></a>
 </section>""".format(k1=kv("portada.especial.antetitulo"), ante=tx(ES.get("antetitulo")), k2=kv("portada.especial.titulo"), tit=tx(ES.get("titulo")),
                      k3=kv("portada.especial.texto"), txt=tx(ES.get("texto")), wa=WA, wat=gen.urllib.parse.quote(ES.get("mensaje") or ""),
                      i_wa=ICONOS["wa"], k4=kv("portada.especial.boton"), bt=tx(ES.get("boton")))
-    orden = [k for k in (P.get("orden") or []) if k in sec] + [k for k in sec if k not in (P.get("orden") or [])]
+    orden = [k for k in (P.get("orden") or []) if k in sec]
+    fabrica = T.TEMA_DEFECTO["portada"]["orden"]
+    for k in fabrica:
+        if k in sec and k not in orden:   # sección nueva: va después de la que la precede de fábrica
+            antes = [x for x in fabrica[:fabrica.index(k)] if x in orden]
+            orden.insert(orden.index(antes[-1]) + 1 if antes else 0, k)
+    orden += [k for k in sec if k not in orden]
     ocultas = set(P.get("ocultas") or [])
     h += '<div data-kv-secciones>\n'
     for k in orden:
@@ -570,7 +617,7 @@ def tienda(prods, cols):
     chips = '<button type="button" class="chip" data-filtro="">Todo</button>' + "".join(
         '<button type="button" class="chip" data-filtro="%s">%s</button>' % (e(c["slug"]), e(c["nombre"])) for c in cols)
     h += """<section class="envoltura" style="padding-top:28px">
-  <div class="antetitulo">Tienda</div><h1>Aros hechos a mano</h1>
+  <h1>Aros hechos a mano</h1>
   <p style="color:var(--suave)"><span id="cuenta">{n} productos</span> · envío a todo Chile</p>
   <div class="filtros" role="group" aria-label="Filtrar por colección">{chips}
     <select id="orden" aria-label="Ordenar"><option value="recomendado">Recomendados</option><option value="nuevos">Más nuevos</option><option value="menor">Menor precio</option><option value="mayor">Mayor precio</option></select></div>
@@ -604,7 +651,7 @@ def coleccion(c, cols):
     h += encabezado(cols)
     otras = "".join('<a class="chip" href="/c/%s.html">%s</a>' % (e(o["slug"]), e(o["nombre"])) for o in cols if o["id"] != c["id"])
     h += """<div class="envoltura"><nav class="migas" aria-label="Estás en"><ol><li><a href="/">Inicio</a></li><li><a href="/tienda/">Tienda</a></li><li aria-current="page">{nom}</li></ol></nav>
-  <div class="antetitulo">Colección {nom}</div><h1>{h1}</h1>
+  <h1>{h1}</h1>
   <p style="max-width:720px;color:var(--suave)">{intro}</p>
   <ul class="grilla" style="margin-top:24px">{tarj}</ul>
   <h2 style="margin-top:48px">Otras colecciones</h2><div class="filtros">{otras}</div>
@@ -752,8 +799,8 @@ def html_pagina(s):
 
 def pagina_tema(clave, ruta, actual="", jsonld=None, robots="index, follow"):
     pg = TEMA["paginas"][clave]
-    cuerpo = ('<div class="antetitulo"%s>%s</div><h1%s>%s</h1><div class="pagina-html" data-kv-html="paginas.%s.html">%s</div>'
-              % (kv("paginas.%s.antetitulo" % clave), tx(pg.get("antetitulo")), kv("paginas.%s.titulo" % clave), tx(pg.get("titulo")),
+    cuerpo = ('<h1%s>%s</h1><div class="pagina-html" data-kv-html="paginas.%s.html">%s</div>'
+              % (kv("paginas.%s.titulo" % clave), tx(pg.get("titulo")),
                  clave, html_pagina(pg.get("html"))))
     pagina_texto(ruta, tp(pg.get("seoTitulo") or (pg.get("titulo") + " | " + MARCA)), tp(pg.get("seoDesc") or pg.get("titulo")),
                  cuerpo, cols_global, actual, jsonld, robots)
@@ -791,8 +838,8 @@ def paginas_texto(cols):
     faq_ld = {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
         {"@type": "Question", "name": tp(it["q"]), "acceptedAnswer": {"@type": "Answer", "text": tp(it.get("a"))}} for it in items]}
     pagina_texto("/preguntas-frecuentes.html", tp(pq.get("seoTitulo")), tp(pq.get("seoDesc")),
-                 '<div class="antetitulo"%s>%s</div><h1%s>%s</h1><div class="faq" data-kv-lista="paginas.preguntas.items">' % (
-                     kv("paginas.preguntas.antetitulo"), tx(pq.get("antetitulo")), kv("paginas.preguntas.titulo"), tx(pq.get("titulo"))) +
+                 '<h1%s>%s</h1><div class="faq" data-kv-lista="paginas.preguntas.items">' % (
+                     kv("paginas.preguntas.titulo"), tx(pq.get("titulo"))) +
                  "".join("<details><summary>%s</summary><p>%s</p></details>" % (tx(it["q"]), tx(it.get("a"))) for it in items) +
                  '</div><p style="margin-top:24px">¿Te quedó alguna duda? <a href="/contacto.html">Escríbenos</a>.</p>', cols, "preguntas", faq_ld)
     pagina_tema("nosotros", "/nosotros.html", "nosotros")
@@ -913,7 +960,7 @@ def panel():
     t = {k: v for k, v in TEMA.items()}
     t["paginas"] = {k: v for k, v in TEMA["paginas"].items() if not k.startswith("_x_")}
     json.dump({"tema": t, "defecto": T.TEMA_DEFECTO, "secciones": T.SECCIONES_PORTADA, "generado": date.today().isoformat(),
-               "envio": {"rm": ENV_RM, "regiones": ENV_RESTO}, "whatsapp": WA, "instagram": IG, "facebook": FBK, "correo": CORREO},
+               "envio": {"rm": ENV_RM, "regiones": ENV_RESTO}, "iconos": {k: T.icono(k) for k in T.ICONOS_TEMA}, "whatsapp": WA, "instagram": IG, "facebook": FBK, "correo": CORREO},
               open(DIST + "/admin/tema-actual.json", "w", encoding="utf-8"), ensure_ascii=False)
 
 

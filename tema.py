@@ -19,6 +19,7 @@ MARCA = "Karivé Joyas"
 
 SECCIONES_PORTADA = {
     "hero": "Portada principal",
+    "cinta": "Cinta en movimiento",
     "confianza": "Beneficios",
     "colecciones": "Colecciones",
     "favoritos": "Los más queridos",
@@ -54,7 +55,7 @@ TEMA_DEFECTO = {
         "imagen": "/assets/modelo-portada.jpg",
     },
     "portada": {
-        "orden": ["hero", "confianza", "colecciones", "favoritos", "taller", "nuevos", "especial"],
+        "orden": ["hero", "cinta", "confianza", "colecciones", "favoritos", "taller", "nuevos", "especial"],
         "ocultas": [],
         "hero": {
             "antetitulo": "Joyería artesanal · Santiago, Chile",
@@ -65,14 +66,19 @@ TEMA_DEFECTO = {
             "imagen": "/assets/modelo-portada.jpg",
             "imagenAlt": "Modelo usando aros de flor hechos a mano de Karivé Joyas",
             "sello": "✦ Hecho a mano en Chile",
+            "tarjetaNuevo": True,
         },
-        "confianza": {"items": [
-            {"icono": "🚚", "titulo": "Envíos a todo Chile", "texto": "{envio_rm} RM · {envio_regiones} regiones"},
-            {"icono": "💳", "titulo": "Pago seguro", "texto": "Mercado Pago o transferencia"},
-            {"icono": "🛡️", "titulo": "3 meses de garantía", "texto": "Si llega con falla, lo solucionamos"},
-            {"icono": "✋", "titulo": "Hecho a mano", "texto": "Cada par es único"},
+        "cinta": {"items": [
+            "Hecho a mano en Santiago", "Flores de arcilla", "Argollas de cristal", "Envíos a todo Chile",
+            "Base de acero quirúrgico", "Piezas únicas", "Listos para regalar",
         ]},
-        "colecciones": {"antetitulo": "Colecciones", "titulo": "Encuentra tu estilo", "enlace": "Ver todo →"},
+        "confianza": {"items": [
+            {"icono": "camion", "titulo": "Envíos a todo Chile", "texto": "{envio_rm} RM · {envio_regiones} regiones"},
+            {"icono": "tarjeta", "titulo": "Pago seguro", "texto": "Mercado Pago o transferencia"},
+            {"icono": "escudo", "titulo": "3 meses de garantía", "texto": "Si llega con falla, lo solucionamos"},
+            {"icono": "mano", "titulo": "Hecho a mano", "texto": "Cada par es único"},
+        ]},
+        "colecciones": {"antetitulo": "Colecciones", "titulo": "Encuentra tu estilo", "enlace": "Ver todo →", "imagenes": {}},
         "favoritos": {"antetitulo": "Favoritos", "titulo": "Los más queridos", "enlace": "Ver la tienda →", "cantidad": 8},
         "taller": {
             "antetitulo": "Nuestro taller",
@@ -167,6 +173,32 @@ TEMA_DEFECTO = {
         "extra": [],
     },
 }
+
+
+# íconos de línea para los beneficios (en vez de emojis)
+ICONOS_TEMA = {
+    "camion": '<path d="M3 6.5h11v9H3zM14 9.5h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
+    "tarjeta": '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 14.5h4"/>',
+    "escudo": '<path d="M12 3 5 6v5.5c0 4.2 3 7.6 7 9 4-1.4 7-4.8 7-9V6l-7-3Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
+    "mano": '<path d="M8 12V5.8a1.5 1.5 0 0 1 3 0V11m0-6.5a1.5 1.5 0 0 1 3 0V11m0-4.5a1.5 1.5 0 0 1 3 0V14c0 4-2.7 7-6.5 7-2.7 0-4.3-1.3-5.8-3.6L3.7 14.6a1.6 1.6 0 0 1 2.6-1.8L8 15"/>',
+    "corazon": '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/>',
+    "regalo": '<rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M3 9h18v3H3zM12 9v11M12 9S10.5 4 8 4.5 7.5 9 12 9Zm0 0s1.5-5 4-4.5S16.5 9 12 9Z"/>',
+    "estrella": '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9L12 3.5Z"/>',
+    "flor": '<circle cx="12" cy="12" r="2.4"/><path d="M12 9.6C9.5 6 10 3.5 12 3.5s2.5 2.5 0 6.1Zm0 4.8c2.5 3.6 2 6.1 0 6.1s-2.5-2.5 0-6.1ZM9.6 12C6 14.5 3.5 14 3.5 12S6 9.5 9.6 12Zm4.8 0c3.6-2.5 6.1-2 6.1 0s-2.5 2.5-6.1 0Z"/>',
+    "reloj": '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    "chispa": '<path d="M12 3c.6 4.4 2.6 6.4 7 7-4.4.6-6.4 2.6-7 7-.6-4.4-2.6-6.4-7-7 4.4-.6 6.4-2.6 7-7Z"/>',
+}
+EMOJI_ICONO = {"🚚": "camion", "💳": "tarjeta", "🛡️": "escudo", "🛡": "escudo", "✋": "mano", "💜": "corazon", "🎁": "regalo", "⭐": "estrella", "🌸": "flor", "✨": "chispa"}
+
+
+def icono(nombre):
+    """SVG de un ícono del tema; si viene un emoji antiguo se traduce."""
+    k = EMOJI_ICONO.get(str(nombre or "").strip(), str(nombre or "").strip())
+    d = ICONOS_TEMA.get(k)
+    if not d:
+        return html.escape(str(nombre or ""))
+    return ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
+            'stroke-linejoin="round" aria-hidden="true">%s</svg>' % d)
 
 
 def mezclar(base, encima):

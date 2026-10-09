@@ -169,7 +169,34 @@
       aviso('✓ ' + p.name + ' agregado al carrito');
     }
     carroPintar();
+    await volarAlCarro(id);
     abrirCajon('cajon-carro');
+  }
+
+  /* La foto del producto vuela hasta la bolsa, la bolsa se mueve y el número salta. */
+  function volarAlCarro(id) {
+    const destino = $('#btn-carro');
+    const origen = $('[data-tarjeta="' + id + '"] .tarjeta-foto img') || $('[data-ficha="' + id + '"] .ficha-foto img');
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const saltar = () => { $$('.contador').forEach(c => { c.classList.remove('salta'); void c.offsetWidth; c.classList.add('salta'); });
+      if (destino) { destino.classList.remove('salta'); void destino.offsetWidth; destino.classList.add('salta'); } };
+    if (!origen || !destino || quieto || !origen.animate) { saltar(); return Promise.resolve(); }
+    const a = origen.getBoundingClientRect(), b = destino.getBoundingClientRect();
+    if (a.bottom < 0 || a.top > innerHeight) { saltar(); return Promise.resolve(); }
+    const img = document.createElement('img');
+    img.src = origen.currentSrc || origen.src; img.className = 'vuela'; img.alt = '';
+    const x0 = a.left + a.width / 2 - 32, y0 = a.top + a.height / 2 - 32;
+    const x1 = b.left + b.width / 2 - 32, y1 = b.top + b.height / 2 - 32;
+    img.style.left = x0 + 'px'; img.style.top = y0 + 'px';
+    document.body.appendChild(img);
+    const dx = x1 - x0, dy = y1 - y0;
+    const anim = img.animate([
+      { transform: 'translate(0,0) scale(1.6)', opacity: 0 },
+      { transform: 'translate(0,-10px) scale(1.25)', opacity: 1, offset: .15 },
+      { transform: 'translate(' + dx * .55 + 'px,' + (dy * .55 - 90) + 'px) scale(.85)', opacity: 1, offset: .6 },
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.25)', opacity: .2 }
+    ], { duration: 720, easing: 'cubic-bezier(.5,0,.3,1)' });
+    return anim.finished.catch(() => {}).then(() => { img.remove(); saltar(); return new Promise(r => setTimeout(r, 260)); });
   }
   async function carroPintar() {
     const cont = $('#carro-cuerpo'); if (!cont) return;
@@ -365,6 +392,38 @@
       visita(datos);
     }, 800);
   }
+
+  /* ---------- movimiento de la portada ---------- */
+  window.kvRevela = true;
+  // el título de la portada sube palabra por palabra
+  const h1 = $('.hero h1');
+  if (h1 && !h1.querySelector('.palabra')) {
+    let n = 0;
+    const partir = (nodo) => Array.from(nodo.childNodes).forEach(c => {
+      if (c.nodeType === 3) {
+        const f = document.createDocumentFragment();
+        c.textContent.split(/(\s+)/).forEach(t => {
+          if (!t) return;
+          if (/^\s+$/.test(t)) { f.appendChild(document.createTextNode(t)); return; }
+          const sp = document.createElement('span'); sp.className = 'palabra'; sp.style.setProperty('--p', n++); sp.textContent = t; f.appendChild(sp);
+        });
+        c.replaceWith(f);
+      } else if (c.nodeType === 1 && c.tagName !== 'BR') partir(c);
+    });
+    h1.setAttribute('aria-label', h1.textContent);
+    partir(h1);
+  }
+  // las colecciones entran en cascada al aparecer
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visto'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+    $$('[data-revelar]').forEach(el => io.observe(el));
+    // lo que se mueve solo se pausa cuando no se ve
+    const pausa = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('quieta', !e.isIntersecting)));
+    $$('.cinta, .franja').forEach(el => pausa.observe(el));
+  } else $$('[data-revelar]').forEach(el => el.classList.add('visto'));
+  // encabezado compacto al bajar
+  const cab = $('.cabecera');
+  if (cab) { const rev = () => cab.classList.toggle('bajando', scrollY > 40); addEventListener('scroll', rev, { passive: true }); rev(); }
 
   // lo que usa la página de pago
   window.KV = { productos: productos, ajustes: ajustes, carroItems: carroItems, carro: () => carro, vaciarCarro: () => { carro = {}; carroGuardar(); },

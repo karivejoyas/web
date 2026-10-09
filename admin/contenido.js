@@ -75,7 +75,6 @@
       '<div class="dos-col no-refrescar" id="pg"><div>' +
         '<div class="tarjeta tarjeta-c">' +
           '<label class="campo"><span>Título</span><input id="pg-titulo" value="' + h(pg.titulo || '') + '"></label>' +
-          '<label class="campo"><span>Texto pequeño sobre el título</span><input id="pg-ante" value="' + h(pg.antetitulo || '') + '" placeholder="Ej: Ayuda"></label>' +
           (esFaq ? '<span class="etq">Preguntas y respuestas</span><div id="pg-faq"></div><button class="btn btn-chico" id="pg-faq-mas">' + A.ic.mas + ' Agregar pregunta</button>'
             : '<span class="etq">Contenido</span>' + A.editorRico('pg-html', pg.html) +
               '<p class="ayuda mt">Puedes escribir <code>{envio_rm}</code> y <code>{envio_regiones}</code> para los costos de envío' + (params.clave === 'envios' ? ', y <code>{tabla_envios}</code> para la tabla' : '') + (params.clave === 'contacto' ? ', y <code>{tarjetas_contacto}</code> para los botones de WhatsApp, Instagram y correo' : '') + '. Se reemplazan solos.</p>') +
@@ -110,7 +109,7 @@
     if (esFaq) { pintarFaq(); $('pg-faq-mas').addEventListener('click', () => { faq.push({ q: '', a: '' }); pintarFaq(); revisar(); }); }
 
     const leer = () => {
-      const o = { titulo: $('pg-titulo').value.trim(), antetitulo: $('pg-ante').value.trim(), seoTitulo: $('pg-seot').value.trim(), seoDesc: $('pg-seod').value.trim() };
+      const o = { titulo: $('pg-titulo').value.trim(), seoTitulo: $('pg-seot').value.trim(), seoDesc: $('pg-seod').value.trim() };
       if (esFaq) o.items = faq.map(x => ({ q: x.q.trim(), a: x.a.trim() })); else o.html = A.leerRico(rico);
       if (esExtra) { o.visible = $('pg-visible').checked; o.slug = slug($('pg-slug').value || o.titulo); }
       return o;

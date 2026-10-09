@@ -69,7 +69,8 @@
       sub: (doc.querySelector('.desplegable-panel') || {}).innerHTML || '',
       subMovil: (doc.querySelector('#cajon-menu .sub:not(.sub-ayuda)') || {}).innerHTML || '',
       tabla: (doc.querySelector('.tabla-envios') || {}).outerHTML || '',
-      tarjetas: (doc.querySelector('.contacto-grilla') || {}).outerHTML || ''
+      tarjetas: (doc.querySelector('.contacto-grilla') || {}).outerHTML || '',
+      sep: (doc.querySelector('.cinta-sep') || {}).outerHTML || ''
     });
     const tx = A.textoTema;
     // colores
@@ -85,6 +86,11 @@
       if (typeof v === 'object') { el.innerHTML = tx(v.texto || ''); if (el.tagName === 'A' && v.url) el.setAttribute('href', v.url); }
       else el.innerHTML = tx(v);
     });
+    doc.querySelectorAll('[data-kv-colimg]').forEach(el => {
+      if (!el.dataset.original) el.dataset.original = el.getAttribute('src');
+      const u = A.urlImagen(((obtener(t, 'portada.colecciones.imagenes') || {})[el.dataset.kvColimg]) || '');
+      el.src = u || el.dataset.original;
+    });
     doc.querySelectorAll('[data-kv-img]').forEach(el => { const u = A.urlImagen(obtener(t, el.dataset.kvImg)); if (u) { el.src = u; el.removeAttribute('srcset'); } });
     doc.querySelectorAll('[data-kv-html]').forEach(el => {
       const v = obtener(t, el.dataset.kvHtml); if (v == null) return;
@@ -98,7 +104,8 @@
       'menu': () => (t.menu || []).map(it => menuItem(it, false)).join(''),
       'menu-movil': () => (t.menu || []).map(it => menuItem(it, true)).join(''),
       'menuPie': () => (t.menuPie || []).map(it => '<li><a href="' + h(it.url || '/') + '">' + h(it.texto) + '</a></li>').join(''),
-      'portada.confianza.items': () => (obtener(t, 'portada.confianza.items') || []).map(it => '<div><span class="ic">' + h(it.icono || '') + '</span><span><b>' + tx(it.titulo) + '</b>' + tx(it.texto) + '</span></div>').join(''),
+      'portada.confianza.items': () => (obtener(t, 'portada.confianza.items') || []).map(it => '<div><span class="ic">' + (((A.temaPublicado || {}).iconos || {})[A.claveIcono(it.icono)] || h(it.icono || '')) + '</span><span><b>' + tx(it.titulo) + '</b>' + tx(it.texto) + '</span></div>').join(''),
+      'portada.cinta.items': () => { const f = (obtener(t, 'portada.cinta.items') || []).filter(x => String(x).trim()).map(x => '<span>' + tx(x) + '</span>' + cache.sep).join(''); return f + '<span aria-hidden="true" class="cinta-copia">' + f + '</span>'; },
       'portada.taller.pasos': () => (obtener(t, 'portada.taller.pasos') || []).map((x, i) => '<li><span class="n">' + (i + 1) + '</span><span>' + tx(x) + '</span></li>').join(''),
       'producto.beneficios': () => (obtener(t, 'producto.beneficios') || []).map(x => '<li>' + tx(x) + '</li>').join(''),
       'paginas.preguntas.items': () => (obtener(t, 'paginas.preguntas.items') || []).filter(x => x.q).map(x => '<details><summary>' + tx(x.q) + '</summary><p>' + tx(x.a) + '</p></details>').join('')
@@ -225,13 +232,14 @@
   //  editor con vista en vivo
   // ============================================================
   const SECCIONES = {
-    hero: { nombre: 'Portada principal', ruta: 'portada.hero', campos: [['antetitulo', 'texto', 'Texto pequeño'], ['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton1', 'boton', 'Botón principal'], ['boton2', 'boton', 'Botón secundario'], ['imagen', 'imagen', 'Imagen'], ['imagenAlt', 'texto', 'Descripción de la imagen (para Google)'], ['sello', 'texto', 'Sello sobre la imagen']] },
-    confianza: { nombre: 'Beneficios', ruta: 'portada.confianza', campos: [['items', 'objetos', 'Beneficios', { icono: 'Ícono (emoji)', titulo: 'Título', texto: 'Texto' }]] },
-    colecciones: { nombre: 'Colecciones', ruta: 'portada.colecciones', campos: [['antetitulo', 'texto', 'Texto pequeño'], ['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace']], ayuda: 'Las colecciones, sus fotos y su orden se cambian en Productos → Colecciones.' },
-    favoritos: { nombre: 'Los más queridos', ruta: 'portada.favoritos', campos: [['antetitulo', 'texto', 'Texto pequeño'], ['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántos productos']], ayuda: 'Muestra la lista de «Lo más visto» (Descuentos) y la completa con un producto de cada colección.' },
-    taller: { nombre: 'Nuestro taller', ruta: 'portada.taller', campos: [['antetitulo', 'texto', 'Texto pequeño'], ['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['imagen', 'imagen', 'Imagen'], ['imagenAlt', 'texto', 'Descripción de la imagen'], ['pasos', 'textos', 'Pasos'], ['boton', 'boton', 'Botón']] },
-    nuevos: { nombre: 'Lo nuevo', ruta: 'portada.nuevos', campos: [['antetitulo', 'texto', 'Texto pequeño'], ['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántos productos']], ayuda: 'Muestra los productos subidos más recientemente.' },
-    especial: { nombre: 'Diseños a pedido', ruta: 'portada.especial', campos: [['antetitulo', 'texto', 'Texto pequeño'], ['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton', 'texto', 'Texto del botón'], ['mensaje', 'area', 'Mensaje que se escribe solo en WhatsApp']] }
+    hero: { nombre: 'Portada principal', ruta: 'portada.hero', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton1', 'boton', 'Botón principal'], ['boton2', 'boton', 'Botón secundario'], ['imagen', 'imagen', 'Imagen'], ['imagenAlt', 'texto', 'Descripción de la imagen (para Google)'], ['sello', 'texto', 'Sello sobre la imagen'], ['tarjetaNuevo', 'si', 'Mostrar el último producto subido sobre la foto']] },
+    cinta: { nombre: 'Cinta en movimiento', ruta: 'portada.cinta', campos: [['items', 'textos', 'Frases que pasan']], ayuda: 'Frases cortas. Se desplazan solas y se detienen al pasar el mouse.' },
+    confianza: { nombre: 'Beneficios', ruta: 'portada.confianza', campos: [['items', 'objetos', 'Beneficios', { icono: 'Ícono', titulo: 'Título', texto: 'Texto' }]] },
+    colecciones: { nombre: 'Colecciones', ruta: 'portada.colecciones', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['imagenes', 'fotosCol', 'Foto de cada colección']], ayuda: 'El nombre y el orden de las colecciones se cambian en Productos → Colecciones. Las fotos de aquí son solo para la portada.' },
+    favoritos: { nombre: 'Los más queridos', ruta: 'portada.favoritos', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántos productos']], ayuda: 'Muestra la lista de «Lo más visto» (Descuentos) y la completa con un producto de cada colección.' },
+    taller: { nombre: 'Nuestro taller', ruta: 'portada.taller', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['imagen', 'imagen', 'Imagen'], ['imagenAlt', 'texto', 'Descripción de la imagen'], ['pasos', 'textos', 'Pasos'], ['boton', 'boton', 'Botón']] },
+    nuevos: { nombre: 'Lo nuevo', ruta: 'portada.nuevos', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántos productos']], ayuda: 'Muestra los productos subidos más recientemente.' },
+    especial: { nombre: 'Diseños a pedido', ruta: 'portada.especial', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton', 'texto', 'Texto del botón'], ['mensaje', 'area', 'Mensaje que se escribe solo en WhatsApp']] }
   };
   const GLOBALES = {
     anuncio: { nombre: 'Barra de anuncio', ruta: 'anuncio', campos: [['activo', 'si', 'Mostrar la barra de anuncio'], ['texto', 'texto', 'Texto']], ayuda: 'Escribe **así** para poner una parte en negrita.' },
@@ -353,7 +361,11 @@
     if (ed.sec) { pintarFormulario(panel, ed.sec); return; }
     const P = ed.tema.portada;
     const ocultas = P.ocultas || [];
-    const orden = (P.orden || []).filter(k => SECCIONES[k]).concat(Object.keys(SECCIONES).filter(k => (P.orden || []).indexOf(k) === -1));
+    // secciones nuevas aparecen en su lugar de fábrica (igual que en construir.py)
+    const orden = (P.orden || []).filter(k => SECCIONES[k]);
+    const fab = ((A.temaDefecto() || {}).portada || {}).orden || Object.keys(SECCIONES);
+    fab.forEach((k, i) => { if (SECCIONES[k] && orden.indexOf(k) === -1) { const antes = fab.slice(0, i).filter(x => orden.indexOf(x) !== -1); orden.splice(antes.length ? orden.indexOf(antes[antes.length - 1]) + 1 : 0, 0, k); } });
+    Object.keys(SECCIONES).forEach(k => { if (orden.indexOf(k) === -1) orden.push(k); });
     panel.innerHTML = '<div class="ed-secciones">' +
       '<div class="ed-grupo">Encabezado</div>' + ['anuncio', 'menu'].map(k => filaGlobal(k)).join('') +
       '<div class="ed-grupo">Portada</div>' +
@@ -376,6 +388,19 @@
       pintarPanel(); cambio();
     }));
   }
+  const NOMBRE_ICONO = { camion: 'Camión', tarjeta: 'Tarjeta', escudo: 'Escudo', mano: 'Mano', corazon: 'Corazón', regalo: 'Regalo', estrella: 'Estrella', flor: 'Flor', reloj: 'Reloj', chispa: 'Destello' };
+  const EMOJI_ICONO = { '🚚': 'camion', '💳': 'tarjeta', '🛡️': 'escudo', '🛡': 'escudo', '✋': 'mano', '💜': 'corazon', '🎁': 'regalo', '⭐': 'estrella', '🌸': 'flor', '✨': 'chispa' };
+  A.claveIcono = (v) => EMOJI_ICONO[String(v || '').trim()] || String(v || '').trim();
+  function selectorIcono(ruta, v) {
+    const k = A.claveIcono(v);
+    return '<select class="inp" data-r="' + ruta + '" style="margin-bottom:6px">' + Object.keys(NOMBRE_ICONO).map(x => '<option value="' + x + '"' + (x === k ? ' selected' : '') + '>Ícono: ' + NOMBRE_ICONO[x] + '</option>').join('') + '</select>';
+  }
+  /* foto que hoy usa la tarjeta de la colección en la web */
+  function imgColActual(id) {
+    const d = A.$('#ed-marco') && A.$('#ed-marco').contentDocument;
+    const im = d && d.querySelector('[data-kv-colimg="' + id + '"]');
+    return (im && im.dataset.original) || (im && im.getAttribute('src')) || A.SIN_FOTO;
+  }
   function filaGlobal(k) { return '<div class="ed-sec" data-sec="' + k + '"><span class="nombre">' + h(GLOBALES[k].nombre) + '</span>' + (GLOBALES[k].enlace ? A.ic.externo : '') + '</div>'; }
 
   function pintarFormulario(panel, k) {
@@ -396,12 +421,21 @@
         html += '<div class="campo"><span>' + h(etq) + '</span><div class="ed-img">' + (u ? '<img src="' + h(u) + '" alt="">' : '<div class="ayuda" style="padding:20px;text-align:center">Sin imagen</div>') + '</div>' +
           '<div style="display:flex;gap:6px"><button class="btn btn-chico" data-img="' + ruta + '">' + A.ic.subir + ' Cambiar</button><button class="btn btn-chico btn-plano" data-imgdef="' + ruta + '">Usar la original</button></div></div>';
       }
+      else if (tipo === 'fotosCol') {
+        html += '<span class="etq">' + h(etq) + '</span>' + A.colecciones().map(c => {
+          const r = ruta + '.' + c.id, u = A.urlImagen((v || {})[c.id]);
+          return '<div class="ed-lista-item" style="display:flex;gap:10px;align-items:center"><img src="' + h(u || imgColActual(c.id)) + '" alt="" style="width:56px;height:70px;object-fit:cover;border-radius:8px;background:#F4EEF6">' +
+            '<div style="flex:1;min-width:0"><b style="font-weight:500">' + h(c.nombre) + '</b><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="btn btn-chico" data-img="' + r + '">Cambiar</button>' +
+            (u ? '<button class="btn btn-chico btn-plano" data-imgquitar="' + r + '">Usar la actual</button>' : '') + '</div></div></div>';
+        }).join('');
+      }
       else if (tipo === 'textos' || tipo === 'objetos') {
         const lista = v || [];
         html += '<span class="etq">' + h(etq) + '</span>' + lista.map((it, i) => '<div class="ed-lista-item"><div class="cab">' + (i + 1) +
           '<button class="mini" data-lsub="' + ruta + '|' + i + '"' + (i ? '' : ' disabled') + '>' + A.ic.arriba + '</button><button class="mini" data-lbaja="' + ruta + '|' + i + '"' + (i < lista.length - 1 ? '' : ' disabled') + '>' + A.ic.abajo + '</button><button class="mini" data-lborrar="' + ruta + '|' + i + '" style="color:var(--rojo)">' + A.ic.basura + '</button></div>' +
           (tipo === 'textos' ? '<textarea class="inp" rows="2" data-r="' + ruta + '.' + i + '">' + h(it) + '</textarea>'
-            : Object.keys(sub).map(sk => '<input class="inp" data-r="' + ruta + '.' + i + '.' + sk + '" value="' + h(it[sk] || '') + '" placeholder="' + h(sub[sk]) + '" style="margin-bottom:6px">').join('')) + '</div>').join('') +
+            : Object.keys(sub).map(sk => sk === 'icono' ? selectorIcono(ruta + '.' + i + '.icono', it.icono)
+              : '<input class="inp" data-r="' + ruta + '.' + i + '.' + sk + '" value="' + h(it[sk] || '') + '" placeholder="' + h(sub[sk]) + '" style="margin-bottom:6px">').join('')) + '</div>').join('') +
           '<button class="btn btn-chico" data-lmas="' + ruta + '|' + tipo + '">' + A.ic.mas + ' Agregar</button>';
       }
     });
@@ -433,6 +467,10 @@
     A.$$('[data-img]', panel).forEach(b => b.addEventListener('click', async () => {
       const m = await A.elegirMedio(); if (!m) return;
       poner(ed.tema, b.dataset.img, m); pintarFormulario(panel, k); cambio();
+    }));
+    A.$$('[data-imgquitar]', panel).forEach(b => b.addEventListener('click', () => {
+      const ks = b.dataset.imgquitar.split('.'), id = ks.pop(), m = obtener(ed.tema, ks.join('.')) || {};
+      delete m[id]; poner(ed.tema, ks.join('.'), m); pintarFormulario(panel, k); cambio();
     }));
     A.$$('[data-imgdef]', panel).forEach(b => b.addEventListener('click', () => {
       poner(ed.tema, b.dataset.imgdef, obtener(A.temaDefecto(), b.dataset.imgdef)); pintarFormulario(panel, k); cambio();
