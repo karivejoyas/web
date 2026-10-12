@@ -337,6 +337,10 @@
   }, ['productos', 'settings']);
 
   function imgCol(c) {
+    // primero la foto nueva guardada en Archivos (la que usa la web nueva)
+    const t = ((((A.temaVigente() || {}).portada || {}).colecciones || {}).imagenes || {})[c.id];
+    if (t && A.urlImagen(t)) return A.urlImagen(t);
+    if (t && !A.medios && !imgCol.cargando) { imgCol.cargando = true; A.cargarMedios().then(() => A.repintar()).catch(() => {}); }
     const i = c.imagen || '';
     if (!i) return A.SIN_FOTO;
     return /^data:|^https?:/.test(i) ? i : A.CATALOGO_ANTIGUO + i.replace(/^\//, '');
@@ -347,7 +351,8 @@
     const cols = A.colecciones();
     const orig = nueva ? { id: 'c' + Date.now().toString(36), nombre: '', sub: '', imagen: '', prefijo: '' } : cols.find(c => c.id === params.id);
     if (!orig) { vista.innerHTML = '<div class="pag">' + A.cab('Colección', { volver: 'colecciones' }) + '<div class="tarjeta">' + A.vacio('🔍', 'No encontramos esta colección', '') + '</div></div>'; return; }
-    let imagenNueva = null;
+    let imagenNueva = null;   // archivo elegido, se sube a Archivos al guardar
+    const imgTema = () => ((((A.temaVigente() || {}).portada || {}).colecciones || {}).imagenes || {})[orig.id] || '';
     let orden = A.productos.filter(p => p.category === orig.id).sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0)).map(p => p.id);
     const ordenInicial = orden.slice();
 
@@ -375,8 +380,8 @@
         (nueva ? '' : '<div class="derecha"><button class="btn btn-peligro" id="cf-eliminar">' + A.ic.basura + ' Eliminar colección</button></div>') +
       '</div><div>' +
         '<div class="tarjeta"><div class="tarjeta-cab"><h2>Imagen</h2></div><div class="tarjeta-c">' +
-          '<div class="foto-prod" id="cf-img" role="button" tabindex="0" style="aspect-ratio:4/5">' + (orig.imagen ? '<img src="' + h(imgCol(orig)) + '" alt="" style="object-fit:cover">' : '<div class="sin">' + A.ic.subir + '<br>Subir imagen</div>') + '</div>' +
-          '<p class="ayuda mt" style="margin:8px 0 0">Es la foto de la tarjeta de la colección en la portada.</p>' +
+          '<div class="foto-prod" id="cf-img" role="button" tabindex="0" style="aspect-ratio:4/5">' + (orig.imagen || imgTema() ? '<img id="cf-img-el" src="' + h(imgCol(orig)) + '" alt="" style="object-fit:cover">' : '<div class="sin">' + A.ic.subir + '<br>Subir imagen</div>') + '</div>' +
+          '<p class="ayuda mt" style="margin:8px 0 0">Es la foto de la tarjeta de la colección en la portada de la web nueva. Se guarda en Archivos, así no ocupa espacio en la configuración. El catálogo antiguo mantiene su foto.</p>' +
         '</div></div>' +
         '<div class="tarjeta tarjeta-c"><label class="campo" style="margin:0"><span>Código de los productos</span><input id="cf-pref" value="' + h(orig.prefijo || '') + '" maxlength="4" placeholder="CO" style="max-width:110px;text-transform:uppercase;letter-spacing:.1em"><small>2 a 4 letras. Los productos nuevos de esta colección se numeran así: ' + h((orig.prefijo || 'XX') + '-001') + '.</small></label></div>' +
       '</div></div></div>';
@@ -393,8 +398,12 @@
     if (nueva) A.marcarCambios(guardar, () => A.ir('colecciones'));
     const subir = async () => {
       const f = await A.elegirArchivo(); if (!f) return;
-      try { imagenNueva = await A.comprimir(f, 1000, 0.82); $('cf-img').innerHTML = '<img src="' + imagenNueva + '" alt="" style="object-fit:cover">'; revisar(); } catch (e) { A.toast(e.message, true); }
+      if (!/^image\//.test(f.type)) { A.toast('El archivo no es una imagen', true); return; }
+      imagenNueva = f;
+      $('cf-img').innerHTML = '<img src="' + URL.createObjectURL(f) + '" alt="" style="object-fit:cover">'; revisar();
     };
+    // si ya tiene una foto en Archivos, se muestra esa
+    if (imgTema()) A.cargarMedios().then(() => { const el = $('cf-img-el'); if (el && A.urlImagen(imgTema())) el.src = A.urlImagen(imgTema()); }).catch(() => {});
     $('cf-img').addEventListener('click', subir);
     if ($('cf-eliminar')) $('cf-eliminar').addEventListener('click', async () => {
       const n = A.productos.filter(p => p.category === orig.id).length;
@@ -412,11 +421,17 @@
       const lista = A.colecciones();
       const i = lista.findIndex(c => c.id === orig.id);
       const col = Object.assign({}, i >= 0 ? lista[i] : orig, { nombre: v.nombre, sub: v.sub, prefijo: pref });
-      if (imagenNueva) col.imagen = imagenNueva;
       if (i >= 0) lista[i] = col; else lista.push(col);
-      const peso = A.pesoSettings({ categorias: lista });
-      if (peso > 1040000 && peso > A.pesoSettings()) { A.avisar('No cabe: la configuración de la tienda quedaría muy pesada (' + Math.round(peso / 1024) + ' KB de 1.000 KB). Usa una imagen más liviana o quita la imagen de otra colección.', 'Imagen muy pesada'); return false; }
       try {
+        if (imagenNueva) {
+          if (A.webError === 'permiso') { A.avisar('Falta activar el permiso de Firebase para guardar imágenes (Configuración → Respaldos y permisos).'); return false; }
+          const idMedio = await A.subirMedio(imagenNueva);
+          const tema = A.temaVigente();
+          tema.portada.colecciones = tema.portada.colecciones || {};
+          tema.portada.colecciones.imagenes = Object.assign({}, tema.portada.colecciones.imagenes || {}, { [orig.id]: 'medio:' + idMedio });
+          await A.guardarTemaVivo(tema);
+          imagenNueva = null;
+        }
         await A.ref.settings.set({ categorias: lista }, { merge: true });
         if (v.orden !== base.orden) {
           const ords = ordenInicial.map(id => Number((A.productos.find(p => p.id === id) || {}).order) || 0).sort((a, b) => a - b);
