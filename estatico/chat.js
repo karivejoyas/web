@@ -149,7 +149,6 @@
   }
 
   /* ---------- interfaz ---------- */
-  const ICO_CHAT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.6L4 19.5l1.4-4.6A7.5 7.5 0 1 1 20 11.5Z"/><path d="M12.5 8.2c.3 1.6 1 2.3 2.6 2.6-1.6.3-2.3 1-2.6 2.6-.3-1.6-1-2.3-2.6-2.6 1.6-.3 2.3-1 2.6-2.6Z" fill="currentColor" stroke="none"/></svg>';
   const ICO_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   const ICO_ENV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 20 4l-6 16-3-7-7-1Z"/></svg>';
   const SUGERENCIAS = ['Aros para regalo', 'Algo de 5 mil', '¿Cuánto cuesta el envío?', '¿Cómo compro?'];
@@ -157,17 +156,11 @@
   const btn = document.createElement('button');
   btn.className = 'chat-btn'; btn.type = 'button';
   btn.setAttribute('aria-label', 'Abrir el asistente'); btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'chat-panel');
-  btn.innerHTML = ICO_CHAT + '<span class="chat-btn-txt"><b>Asistente IA</b><small>Pregúntame</small></span>';
-  // burbujas de mensajes (como las del catálogo): una al lado del asistente y,
-  // de vez en cuando, una sobre WhatsApp
+  btn.innerHTML = '<img src="/assets/logo-avatar.png" alt="" width="56" height="56">';
+  // burbujas de mensajes (como las del catálogo), al lado del asistente
   const globo = document.createElement('div');
   globo.className = 'chat-globo'; globo.hidden = true;
   globo.innerHTML = '<button type="button" class="chat-globo-txt"></button><button type="button" class="chat-globo-x" aria-label="No mostrar más mensajes">' + ICO_X + '</button>';
-  const waBtn = document.querySelector('.wa-flota');
-  const waGlobo = document.createElement('a');
-  waGlobo.className = 'wa-globo'; waGlobo.hidden = true; waGlobo.target = '_blank'; waGlobo.rel = 'noopener';
-  waGlobo.href = waBtn ? waBtn.href : 'https://wa.me/' + (CFG.wa || '');
-  waGlobo.textContent = CFG.mensajeWhatsapp || '¿Prefieres hablar con nosotras? Escríbenos por WhatsApp 💬';
   const panel = document.createElement('section');
   panel.className = 'chat-panel'; panel.id = 'chat-panel'; panel.hidden = true;
   panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', CFG.nombre || 'Asistente');
@@ -178,7 +171,7 @@
     '<div class="chat-sug">' + SUGERENCIAS.map(s => '<button type="button">' + esc(s) + '</button>').join('') + '</div></div>' +
     '<form class="chat-fila"><input type="text" placeholder="Escribe tu pregunta…" autocomplete="off" aria-label="Tu pregunta" maxlength="400">' +
     '<button type="submit" aria-label="Enviar">' + ICO_ENV + '</button></form>';
-  document.body.append(btn, globo, waGlobo, panel);
+  document.body.append(btn, globo, panel);
 
   const msgs = $('.chat-msgs', panel), input = $('input', panel), enviarBtn = $('.chat-fila button', panel);
   function agregar(html, cls) {
@@ -216,7 +209,7 @@
   }
   if (window.visualViewport) { visualViewport.addEventListener('resize', ajustar); visualViewport.addEventListener('scroll', ajustar); }
   function abrir() {
-    panel.hidden = false; globo.hidden = true; waGlobo.hidden = true; btn.classList.remove('llama');
+    panel.hidden = false; globo.hidden = true; btn.classList.remove('llama');
     btn.setAttribute('aria-expanded', 'true');
     document.documentElement.classList.add('chat-abierto');
     if (innerWidth <= 640) document.body.style.overflow = 'hidden';
@@ -246,13 +239,9 @@
   let mostrados = +(ses('kv_chat_n') || 0);
   let basta = ses('kv_chat_basta') === '1' || ses('kv_chat_visto') === '1';
   let quitarT = null;
-  function burbuja(tipo) {
+  function burbuja() {
     if (basta || !panel.hidden || mostrados >= 6 || document.hidden || /finalizar-compra/.test(location.pathname)) return;
-    if (tipo === 'wa') {
-      if (!waBtn || waBtn.hidden || getComputedStyle(waBtn).display === 'none') return;
-      globo.hidden = true; waGlobo.hidden = false;
-    } else {
-      waGlobo.hidden = true;
+    {
       const txt = $('.chat-globo-txt', globo);
       txt.innerHTML = '<span class="chat-puntos"><i></i><i></i><i></i></span>';
       globo.hidden = false; btn.classList.add('llama');
@@ -261,7 +250,7 @@
     }
     mostrados++; ses('kv_chat_n', String(mostrados));
     clearTimeout(quitarT);
-    quitarT = setTimeout(() => { globo.hidden = true; waGlobo.hidden = true; }, 9000);
+    quitarT = setTimeout(() => { globo.hidden = true; }, 9000);
   }
-  [[5000, 'chat'], [24000, 'wa'], [45000, 'chat'], [70000, 'chat'], [95000, 'wa']].forEach(([t, tipo]) => setTimeout(() => burbuja(tipo), t));
+  [5000, 30000, 60000, 95000].forEach(t => setTimeout(burbuja, t));
 })();

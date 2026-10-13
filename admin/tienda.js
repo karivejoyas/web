@@ -86,6 +86,7 @@
     const cache = doc.__kv || (doc.__kv = {
       sub: (doc.querySelector('.desplegable-panel') || {}).innerHTML || '',
       subMovil: (doc.querySelector('#cajon-menu .sub:not(.sub-ayuda)') || {}).innerHTML || '',
+      abajo: (doc.querySelector('#cajon-menu .pliegue summary svg') || {}).outerHTML || '',
       tabla: (doc.querySelector('.tabla-envios') || {}).outerHTML || '',
       tarjetas: (doc.querySelector('.contacto-grilla') || {}).outerHTML || '',
       sep: (doc.querySelector('.cinta-sep') || {}).outerHTML || ''
@@ -137,7 +138,7 @@
     });
     // listas
     const menuItem = (it, movil) => it.tipo === 'colecciones'
-      ? (movil ? '<div class="sub">' + cache.subMovil + '</div>' : '<div class="desplegable"><button type="button" aria-expanded="false" aria-haspopup="true">' + h(it.texto) + ' ▾</button><div class="desplegable-panel">' + cache.sub + '</div></div>')
+      ? (movil ? '<details class="pliegue"><summary>' + h(it.texto) + cache.abajo + '</summary><div class="sub">' + cache.subMovil + '</div></details>' : '<div class="desplegable"><button type="button" aria-expanded="false" aria-haspopup="true">' + h(it.texto) + ' ▾</button><div class="desplegable-panel">' + cache.sub + '</div></div>')
       : '<a href="' + h(it.url || '/') + '">' + h(it.texto) + '</a>';
     const LISTAS = {
       'menu': () => (t.menu || []).map(it => menuItem(it, false)).join(''),
@@ -286,13 +287,13 @@
   const GLOBALES = {
     anuncio: { nombre: 'Barra de anuncio', ruta: 'anuncio', campos: [['activo', 'si', 'Mostrar la barra de anuncio'], ['texto', 'texto', 'Texto']], ayuda: 'Escribe **así** para poner una parte en negrita.' },
     menu: { nombre: 'Menú', enlace: 'tienda/navegacion' },
-    pie: { nombre: 'Pie de página', ruta: 'pie', campos: [['texto', 'area', 'Texto sobre la tienda'], ['boletinTitulo', 'texto', 'Título del boletín'], ['boletinTexto', 'texto', 'Texto del boletín'], ['final', 'texto', 'Frase final']] },
+    pie: { nombre: 'Pie de página', ruta: 'pie', campos: [['texto', 'area', 'Texto sobre la tienda'], ['boletinTitulo', 'texto', 'Título del boletín'], ['boletinTexto', 'texto', 'Texto del boletín'], ['final', 'texto', 'Frase final'], ['tiktok', 'texto', 'Enlace de TikTok (opcional; Instagram, Facebook, WhatsApp y correo se cambian en Configuración → General)']] },
     colores: { nombre: 'Colores', ruta: 'colores', campos: [['fondo', 'color', 'Fondo'], ['fondo2', 'color', 'Fondo secundario'], ['texto', 'color', 'Texto'], ['suave', 'color', 'Texto suave'], ['borde', 'color', 'Bordes'], ['principal', 'color', 'Color principal'], ['oscuro', 'color', 'Color oscuro (botones, títulos)'], ['lila', 'color', 'Lila'], ['dorado', 'color', 'Dorado'], ['doradoClaro', 'color', 'Dorado claro']] },
     whatsapp: { nombre: 'Botón de WhatsApp', ruta: '', campos: [['whatsappFlotante', 'si', 'Mostrar el botón flotante de WhatsApp'], ['whatsappRespira', 'si', 'Que respire (se agranda suavecito, para que se note)']], ayuda: 'El número se cambia en Configuración → General.' },
     logo: { nombre: 'Logo', ruta: 'logo', campos: [['imagen', 'imagen', 'Imagen del logo'], ['alto', 'rango', 'Tamaño en el computador', { min: 28, max: 110 }], ['altoMovil', 'rango', 'Tamaño en el celular', { min: 24, max: 80 }], ['altoPie', 'rango', 'Tamaño en el pie de página', { min: 30, max: 120 }]], ayuda: 'Para cambiar la imagen usa un PNG con fondo transparente. Al bajar por la página, en el computador el logo se achica un poco.' },
     efectos: { nombre: 'Efectos y movimiento', ruta: 'efectos', campos: [['portada', 'opciones', 'Efecto de la foto de portada', EFECTOS_PORTADA], ['transicion', 'opciones', 'Al abrir una colección o un producto', TRANSICIONES]], ayuda: 'La transición entre páginas se ve en Chrome, Edge y Safari (iPhone) actualizados; en los demás la página simplemente cambia. Quien tenga activado «reducir movimiento» no ve efectos.' },
     olas: { nombre: 'Olas antes del pie', ruta: 'olas', campos: [['activo', 'si', 'Mostrar las olas'], ['animacion', 'si', 'Que se muevan'], ['rotar', 'si', 'Darlas vuelta (de derecha a izquierda)'], ['alto', 'rango', 'Alto en el computador', { min: 30, max: 220 }], ['altoMovil', 'rango', 'Alto en el celular', { min: 20, max: 160 }], ['color', 'colorOpc', 'Color de las olas']], ayuda: 'Si no eliges color, usan el del pie de página (Colores → Color oscuro).' },
-    chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['mensajes', 'textos', 'Mensajes que aparecen junto al botón (de a uno, máximo 6 por visita)'], ['mensajeWhatsapp', 'texto', 'Mensaje que aparece sobre el botón de WhatsApp']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
+    chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['mensajes', 'textos', 'Mensajes que aparecen junto al botón (de a uno, máximo 6 por visita)']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
     producto: { nombre: 'Ficha de producto', ruta: 'producto', campos: [['beneficios', 'textos', 'Beneficios bajo el botón de compra']] }
   };
   const PAGINAS_PREV = [['/', 'Inicio'], ['/tienda/', 'Tienda'], ['col', 'Una colección'], ['prod', 'Un producto'], ['/nosotros.html', 'Nosotros'], ['/contacto.html', 'Contacto'], ['/envios.html', 'Envíos'], ['/preguntas-frecuentes.html', 'Preguntas frecuentes'], ['/devoluciones.html', 'Cambios y devoluciones']];

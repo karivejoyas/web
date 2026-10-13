@@ -291,7 +291,8 @@ def publicar_fotos(prods):
 
 ICONOS = {
     "buscar": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4" stroke-linecap="round"/></svg>',
-    "carro": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z" stroke-linejoin="round"/><path d="M9 7a3 3 0 0 1 6 0" stroke-linecap="round"/></svg>',
+    "carro": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.3 8h11.4a1 1 0 0 1 1 1.1l-.9 9.9a2.2 2.2 0 0 1-2.2 2H8.4a2.2 2.2 0 0 1-2.2-2l-.9-9.9a1 1 0 0 1 1-1.1Z"/><path d="M9 10.5V7a3 3 0 0 1 6 0v3.5"/></svg>',
+    "abajo": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
     "menu": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>',
     "cerrar": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke-linecap="round"/></svg>',
     "wa": '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3Z"/></svg>',
@@ -379,7 +380,7 @@ def menu_html(cols, movil=False, actual=""):
         t = e(it.get("texto") or "")
         if it.get("tipo") == "colecciones":
             if movil:
-                out.append('<div class="sub">%s</div>' % sub)
+                out.append('<details class="pliegue"><summary>%s%s</summary><div class="sub">%s</div></details>' % (t, ICONOS["abajo"], sub))
             else:
                 out.append('<div class="desplegable"><button type="button" aria-expanded="false" aria-haspopup="true">%s ▾</button>'
                            '<div class="desplegable-panel">%s<a href="/tienda/">Ver todo</a></div></div>' % (t, sub))
@@ -410,7 +411,7 @@ def encabezado(cols, actual=""):
   <div class="cajon-fondo" data-cerrar="cajon-menu"></div>
   <div class="cajon-panel" role="dialog" aria-modal="true" aria-label="Menú">
     <div class="cajon-top"><img class="cajon-logo" src="{logo}" alt="{m}" width="89" height="44" data-kv-logo><button class="icono" data-cerrar="cajon-menu" aria-label="Cerrar menú">{i_cerrar}</button></div>
-    <nav aria-label="Menú del celular"><a href="/">Inicio</a><span data-kv-lista="menu-movil">{menu_movil}</span><div class="sub sub-ayuda">{pie_links}</div></nav>
+    <nav aria-label="Menú del celular"><a href="/">Inicio</a><span data-kv-lista="menu-movil">{menu_movil}</span><details class="pliegue"><summary>Ayuda{i_abajo}</summary><div class="sub sub-ayuda">{pie_links}</div></details></nav>
   </div>
 </div>
 <div class="cajon" id="cajon-carro">
@@ -426,7 +427,7 @@ def encabezado(cols, actual=""):
     <div id="buscar-res"></div></div>
 </div>
 <main id="contenido">
-""".format(i_menu=ICONOS["menu"], i_buscar=ICONOS["buscar"], i_carro=ICONOS["carro"], i_cerrar=ICONOS["cerrar"], m=e(MARCA), logo=e(logo_url()),
+""".format(i_menu=ICONOS["menu"], i_buscar=ICONOS["buscar"], i_carro=ICONOS["carro"], i_cerrar=ICONOS["cerrar"], m=e(MARCA), logo=e(logo_url()), i_abajo=ICONOS["abajo"],
            menu=menu_html(cols, False, actual), menu_movil=menu_html(cols, True), pie_links=pie_links,
            an_kv=kv("anuncio.texto"), an_oculto="" if an.get("activo", True) else " hidden", an_txt=tx(an.get("texto")))
 
@@ -554,7 +555,7 @@ def chat_html():
     if not c.get("activo", True):
         return ""
     datos = {"nombre": c.get("nombre") or "Asistente Karivé", "saludo": c.get("saludo") or "", "invitacion": c.get("invitacion") or "",
-             "mensajes": [str(x) for x in (c.get("mensajes") or []) if str(x).strip()][:8], "mensajeWhatsapp": c.get("mensajeWhatsapp") or "",
+             "mensajes": [str(x) for x in (c.get("mensajes") or []) if str(x).strip()][:8],
              "wa": WA, "ig": IG, "fb": FBK}
     return '\n<script id="kv-chat-datos" type="application/json">%s</script>' % json.dumps(datos, ensure_ascii=False).replace("</", "<\\/")
 
@@ -568,14 +569,14 @@ def pie(cols, scripts=""):
     return """</main>
 {olas}<footer class="pie{con_olas}">
   <div class="envoltura">
-    <div><a class="pie-logo" href="/"><img src="{logo}" alt="{m}" width="105" height="52" loading="lazy"></a>
+    <div class="pie-marca"><a class="pie-logo" href="/"><img src="{logo}" alt="{m}" width="105" height="52" loading="lazy"></a>
       <p style="margin-top:12px"{k_txt}>{txt}</p>
-      <p><a href="{ig}" rel="noopener">Instagram</a> · <a href="{fb}" rel="noopener">Facebook</a> · <a href="https://wa.me/{wa}">WhatsApp</a></p></div>
-    <div><h3>Colecciones</h3><ul>{cols}<li><a href="/tienda/">Ver todo</a></li></ul></div>
-    <div><h3>Ayuda</h3><ul data-kv-lista="menuPie">{ayuda}</ul></div>
-    <div><h3{k_bt}>{bt}</h3><p{k_bx}>{bx}</p>
+      <h3{k_bt}>{bt}</h3><p{k_bx}>{bx}</p>
       <form class="boletin" id="boletin"><input name="correo" type="email" placeholder="Tu correo" aria-label="Tu correo" required><button class="btn btn-oro" type="submit">Suscribirme</button></form>
       <div class="boletin-msg" id="boletin-msg" role="status"></div></div>
+    <div><h3>Colecciones</h3><ul>{cols}<li><a href="/tienda/">Ver todo</a></li></ul></div>
+    <div><h3>Ayuda</h3><ul data-kv-lista="menuPie">{ayuda}</ul></div>
+    <div class="pie-contacto"><h3>Contacto</h3>{contacto}</div>
   </div>
   <div class="pie-final">© {anio} {m} · <span{k_fin}>{fin}</span></div>
 </footer>
@@ -589,7 +590,39 @@ def pie(cols, scripts=""):
            chat_js=('\n<script src="/estatico/chat.js?v=%s" defer></script>' % VERSION) if (TEMA.get("chat") or {}).get("activo", True) else "",
            txt=tx(pi.get("texto")), k_txt=kv("pie.texto"), bt=tx(pi.get("boletinTitulo")), k_bt=kv("pie.boletinTitulo"),
            bx=tx(pi.get("boletinTexto")), k_bx=kv("pie.boletinTexto"), fin=tx(pi.get("final")), k_fin=kv("pie.final"),
-           cols="".join('<li><a href="/c/%s.html">%s</a></li>' % (e(c["slug"]), e(c["nombre"])) for c in cols))
+           cols="".join('<li><a href="/c/%s.html">%s</a></li>' % (e(c["slug"]), e(c["nombre"])) for c in cols),
+           contacto=contacto_pie(pi))
+
+
+def fono_bonito(n):
+    """56922234457 → +56 9 2223 4457"""
+    d = re.sub(r"\D", "", str(n or ""))
+    if len(d) == 11 and d.startswith("569"):
+        return "+56 9 %s %s" % (d[3:7], d[7:])
+    return ("+" + d) if d else ""
+
+
+REDES_ICONOS = {
+    "instagram": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>',
+    "facebook": '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.9.3-1.5 1.5-1.5h1.5V4.4c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v2.4H8v3h2.6V21h2.9Z"/></svg>',
+    "tiktok": '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.6 3c.4 2.2 1.7 3.6 3.9 3.8v3a7 7 0 0 1-3.9-1.2v6.2A5.8 5.8 0 1 1 10.8 9v3.1a2.8 2.8 0 1 0 2.8 2.8V3h3Z"/></svg>',
+    "correo": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>',
+}
+
+
+def contacto_pie(pi):
+    """Contacto del pie: WhatsApp y correo con su ícono, y las redes en círculos."""
+    filas = ""
+    if WA:
+        filas += ('<a class="pie-fila" href="https://wa.me/%s" rel="noopener"><span class="pie-ic">%s</span><span><small>WhatsApp</small><b>%s</b></span></a>'
+                  % (WA, ICONOS["wa"], e(fono_bonito(WA))))
+    if CORREO:
+        filas += ('<a class="pie-fila" href="mailto:%s"><span class="pie-ic">%s</span><span><small>Correo</small><b>%s</b></span></a>'
+                  % (e(CORREO), REDES_ICONOS["correo"], e(CORREO)))
+    redes = [("instagram", "Instagram", IG), ("facebook", "Facebook", FBK), ("tiktok", "TikTok", str(pi.get("tiktok") or "").strip())]
+    circulos = "".join('<a href="%s" target="_blank" rel="noopener" aria-label="%s">%s</a>' % (e(u), n, REDES_ICONOS[k])
+                       for k, n, u in redes if u.startswith("http"))
+    return filas + ('<div class="pie-redes">%s</div>' % circulos if circulos else "")
 
 
 def tarjeta(p, i=0, lazy=True):

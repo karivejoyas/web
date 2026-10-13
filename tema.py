@@ -77,12 +77,10 @@ TEMA_DEFECTO = {
         "saludo": "¡Hola! 💜 Soy la asistente de Karivé Joyas. Te ayudo a encontrar aros, ver precios, envíos o cómo comprar.",
         "invitacion": "",
         "mensajes": [
-            "¿Te ayudo a encontrar tus aros? 💜",
-            "¿Buscas un regalo? Dime para quién y te muestro opciones 🎁",
-            "Dime tu presupuesto y te muestro lo que alcanza ✨",
-            "¿Dudas con el envío o el pago? Pregúntame",
+            "¿Te ayudo? 💜",
+            "¿Buscas un regalo? Te ayudo a elegir 🎁",
+            "Dime tu presupuesto y te muestro opciones ✨",
         ],
-        "mensajeWhatsapp": "¿Prefieres hablar con nosotras? Escríbenos por WhatsApp 💬",
     },
     "seo": {
         "titulo": MARCA + " | Aros artesanales hechos a mano en Chile",
@@ -150,6 +148,7 @@ TEMA_DEFECTO = {
         "boletinTitulo": "Novedades",
         "boletinTexto": "Entérate primero de los modelos nuevos.",
         "final": "Hecho a mano en Chile 💜",
+        "tiktok": "",
     },
     "paginas": {
         "nosotros": {
@@ -240,6 +239,7 @@ def icono(nombre):
 # Textos que cambiaron de fábrica: si el tema guardado todavía tiene el texto
 # antiguo tal cual (o sea, nunca lo editaste), se usa el nuevo.
 TEXTOS_ANTIGUOS = {
+    '¿Te ayudo a encontrar tus aros? 💜': '¿Te ayudo? 💜',
     'Mercado Pago o transferencia': 'Tarjeta de débito o crédito',
     'Paga con tarjeta (Mercado Pago) o transferencia.': 'Paga con tarjeta de débito o crédito (Mercado Pago).',
     '💳 Paga con tarjeta (Mercado Pago) o transferencia': '💳 Paga con tarjeta de débito o crédito (Mercado Pago)',

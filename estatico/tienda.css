@@ -57,7 +57,7 @@ p{margin:0 0 1em}
 .icono{position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:0;background:none;cursor:pointer;color:var(--morado-osc)}
 .icono:hover{background:var(--crema2)}
 .icono svg{width:23px;height:23px}
-.contador{position:absolute;top:4px;right:2px;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:var(--morado-osc);color:var(--dorado-cl);font-size:11px;font-weight:600;line-height:19px;text-align:center}
+.contador{position:absolute;top:3px;right:1px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--dorado-cl);color:var(--morado-osc);border:2px solid var(--crema);font-size:11px;font-weight:600;line-height:16px;text-align:center}
 .contador[hidden]{display:none}
 .hamburguesa{display:inline-flex}
 @media (min-width:900px){.menu{display:flex}.iconos{margin-left:8px}.hamburguesa{display:none}}
@@ -75,8 +75,20 @@ p{margin:0 0 1em}
 .cajon-fondo{position:absolute;inset:0;background:rgba(42,18,62,.45)}
 .cajon-panel{position:absolute;top:0;bottom:0;left:0;width:min(86vw,360px);background:var(--crema);padding:18px 18px 30px;overflow:auto;box-shadow:var(--sombra)}
 .cajon-panel.derecha{left:auto;right:0}
-.cajon-panel nav a{display:block;padding:14px 4px;border-bottom:1px solid var(--borde);text-decoration:none;font-size:17px}
-.cajon-panel nav .sub a{padding-left:18px;font-size:15.5px;color:var(--suave)}
+.cajon-panel nav a,.pliegue summary{display:flex;align-items:center;justify-content:space-between;padding:12px 4px;border-bottom:1px solid var(--borde);text-decoration:none;font-size:16.5px;color:var(--tinta);min-height:48px}
+/* menú del celular: colecciones y ayuda plegadas; se abren al tocarlas */
+.pliegue summary{list-style:none;cursor:pointer}
+.pliegue summary::-webkit-details-marker{display:none}
+.cajon-panel .pliegue summary::after{content:none;display:none}
+.pliegue summary svg{margin-left:auto}
+.pliegue summary svg{width:20px;height:20px;color:var(--suave);transition:transform .3s var(--salida,ease)}
+.pliegue[open] summary svg{transform:rotate(180deg)}
+.pliegue[open] summary{color:var(--morado)}
+.pliegue .sub{padding:4px 0 8px;border-bottom:1px solid var(--borde)}
+.cajon-panel nav .pliegue .sub a{border-bottom:0;min-height:42px;padding:9px 4px 9px 16px;font-size:15.5px;color:var(--suave)}
+.pliegue[open] .sub{animation:baja .3s var(--salida,ease)}
+@keyframes baja{from{opacity:0;transform:translateY(-6px)}}
+
 .cajon-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 
 /* ---- portada ---- */
@@ -182,7 +194,19 @@ p{margin:0 0 1em}
 .pie{background:var(--morado-osc);color:var(--lila);margin-top:40px;font-size:14.5px}
 .pie .envoltura{display:grid;gap:28px;padding:48px 16px 24px}
 @media (min-width:900px){.pie .envoltura{grid-template-columns:1.4fr 1fr 1fr 1.3fr}}
-.pie h3{color:var(--crema);font-size:20px}
+.pie h3{font-family:var(--sans);font-size:12.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--dorado-cl);margin:0 0 14px}
+.pie-marca h3{margin-top:22px}
+/* contacto: ícono en círculo + dato, y las redes en círculos */
+.pie-fila{display:flex;align-items:center;gap:14px;margin-bottom:16px;text-decoration:none}
+.pie-ic,.pie-redes a{flex:0 0 46px;width:46px;height:46px;border-radius:50%;border:1px solid rgba(227,197,114,.35);color:var(--dorado-cl);
+  display:flex;align-items:center;justify-content:center;transition:background-color .25s,border-color .25s,color .25s}
+.pie-ic svg,.pie-redes svg{width:21px;height:21px}
+.pie-fila span:last-child{display:flex;flex-direction:column;min-width:0}
+.pie-fila small{font-size:11.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--dorado-cl)}
+.pie-fila b{font-weight:500;color:var(--crema);font-size:15.5px;overflow-wrap:anywhere}
+.pie-redes{display:flex;gap:12px;margin-top:4px}
+@media (hover:hover){.pie-fila:hover .pie-ic,.pie .pie-redes a:hover{background:var(--dorado-cl);border-color:var(--dorado-cl);color:var(--morado-osc)}.pie-fila:hover b{color:var(--dorado-cl)}}
+@media (max-width:899px){.pie .envoltura{grid-template-columns:1fr 1fr}.pie-marca,.pie-contacto{grid-column:1 / -1}}
 .pie a{text-decoration:none;color:var(--lila)}
 .pie a:hover{color:var(--dorado-cl)}
 .pie ul{list-style:none;padding:0;margin:0}
@@ -268,8 +292,7 @@ p{margin:0 0 1em}
 .opiniones .estrellas{color:var(--dorado);letter-spacing:2px}
 .opinion{background:var(--blanco);border:1px solid var(--borde);border-radius:var(--radio);padding:14px 16px;margin-top:10px}
 .opinion p{margin:6px 0 0;color:var(--suave)}
-.cajon .sub-ayuda{border-top:1px solid var(--borde);margin-top:8px;padding-top:8px}
-.cajon-panel nav .sub-ayuda a{padding-left:4px;font-size:15px}
+
 
 /* ============================================================
    VIDA — una idea: las piezas "atrapan la luz", como una joya.
@@ -546,36 +569,22 @@ html[data-tr="vuela"] .ficha-foto img{view-transition-name:foto}
    ASISTENTE (chat con IA): botón abajo a la izquierda (WhatsApp va a la
    derecha). En el celular el panel ocupa toda la pantalla.
    ============================================================ */
-.chat-btn{position:fixed;left:16px;bottom:16px;z-index:30;height:56px;padding:0 20px 0 14px;border-radius:999px;border:0;cursor:pointer;
-  background:var(--morado);color:var(--crema);display:flex;align-items:center;gap:10px;font:inherit;text-align:left;
-  box-shadow:0 0 0 2px rgba(251,247,241,.85),0 10px 24px rgba(42,18,62,.35);transition:transform .3s var(--resorte),background-color .25s}
-.chat-btn svg{width:28px;height:28px;flex:0 0 28px;color:var(--dorado-cl)}
-.chat-btn-txt{display:flex;flex-direction:column;line-height:1.15}
-.chat-btn-txt b{font-weight:500;font-size:15px}
-.chat-btn-txt small{font-size:12px;color:var(--lila)}
-.chat-btn-txt small::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ADE80;margin-right:5px;vertical-align:1px}
-.chat-btn:active{transform:scale(.96)}
-@media (hover:hover){.chat-btn:hover{transform:translateY(-2px);background:var(--morado-osc)}}
-.chat-btn.llama::after{content:"";position:absolute;top:6px;left:34px;width:11px;height:11px;border-radius:50%;background:var(--dorado-cl);border:2px solid var(--morado)}
+.chat-btn{position:fixed;left:16px;bottom:16px;z-index:30;width:56px;height:56px;padding:0;border-radius:50%;border:0;cursor:pointer;overflow:visible;
+  background:var(--morado);box-shadow:0 0 0 2px rgba(251,247,241,.9),0 8px 20px rgba(42,18,62,.35);transition:transform .3s var(--resorte)}
+.chat-btn img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}
+.chat-btn:active{transform:scale(.94)}
+@media (hover:hover){.chat-btn:hover{transform:scale(1.07)}}
+.chat-btn.llama::after{content:"";position:absolute;top:1px;right:1px;width:13px;height:13px;border-radius:50%;background:#4ADE80;border:2px solid #fff}
 .chat-abierto .chat-btn{opacity:0;pointer-events:none}
 @media (min-width:641px){.chat-abierto .chat-btn{opacity:1;pointer-events:auto}}
-@media (max-width:640px){.chat-btn{height:52px;padding:0 16px 0 12px;gap:8px}.chat-btn svg{width:24px;height:24px;flex-basis:24px}.chat-btn-txt b{font-size:14px}.chat-btn-txt small{font-size:11.5px}.chat-btn.llama::after{left:28px}}
-.chat-globo{position:fixed;left:16px;bottom:84px;z-index:31;display:flex;align-items:flex-start;max-width:min(290px,calc(100vw - 100px));
+.chat-globo{position:fixed;left:16px;bottom:82px;z-index:31;display:flex;align-items:flex-start;max-width:min(290px,calc(100vw - 100px));
   background:var(--blanco);border-radius:18px 18px 18px 6px;box-shadow:0 14px 34px -12px rgba(42,18,62,.45);animation:globo .45s var(--resorte) both}
-.chat-globo[hidden],.wa-globo[hidden]{display:none}
+.chat-globo[hidden]{display:none}
 .chat-globo-txt{border:0;background:none;font:inherit;font-size:14.5px;line-height:1.4;color:var(--tinta);text-align:left;padding:12px 4px 12px 15px;cursor:pointer;min-height:44px}
 .chat-globo-x{flex:0 0 32px;width:32px;height:32px;margin:6px 6px 0 0;border:0;border-radius:50%;background:none;color:var(--suave);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .chat-globo-x svg{width:15px;height:15px}
 @media (hover:hover){.chat-globo-x:hover{background:var(--crema2)}}
-.wa-globo{position:fixed;right:16px;bottom:84px;z-index:31;max-width:min(250px,calc(100vw - 100px));padding:11px 15px;border-radius:18px 18px 6px 18px;
-  background:var(--blanco);color:var(--tinta);font-size:14.5px;line-height:1.4;text-decoration:none;box-shadow:0 14px 34px -12px rgba(42,18,62,.45);animation:globo .45s var(--resorte) both}
 @keyframes globo{from{opacity:0;transform:translateY(10px) scale(.94)}}
-/* WhatsApp: al pasar el mouse dice qué es */
-@media (hover:hover){
-  .wa-flota::after{content:attr(aria-label);position:absolute;right:66px;white-space:nowrap;background:var(--blanco);color:var(--tinta);font-size:14px;padding:8px 13px;border-radius:12px;
-    box-shadow:0 10px 26px -10px rgba(42,18,62,.45);opacity:0;transform:translateX(6px);pointer-events:none;transition:opacity .2s,transform .2s}
-  .wa-flota:hover::after{opacity:1;transform:none}
-}
 .chat-panel{position:fixed;left:16px;bottom:84px;z-index:85;width:min(380px,calc(100vw - 32px));height:min(560px,calc(100dvh - 120px));
   display:flex;flex-direction:column;background:var(--crema);border:1px solid var(--borde);border-radius:22px;overflow:hidden;
   box-shadow:0 30px 70px -24px rgba(42,18,62,.55);transform-origin:bottom left;animation:chat-entra .35s var(--resorte) both}
