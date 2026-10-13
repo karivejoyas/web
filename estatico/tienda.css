@@ -409,6 +409,7 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
   .colecciones .coleccion.grande{grid-column:span 2;grid-row:span 2;aspect-ratio:auto}
   .colecciones .coleccion.grande span{font-size:34px;padding:60px 24px 24px}
   .colecciones .coleccion.ancha{grid-column:span 2;aspect-ratio:33/20}
+  .colecciones .coleccion.ancha img,.colecciones .coleccion.ancha-4 img{object-position:center 22%}
   .colecciones .coleccion.ancha-4{grid-column:span 4;aspect-ratio:32/9}
 }
 @media (max-width:699px){.colecciones .coleccion:last-child:nth-child(even):not(.grande){grid-column:span 2;aspect-ratio:8/5}}
