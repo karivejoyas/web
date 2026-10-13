@@ -382,45 +382,34 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 
 
 /* ============================================================
-   COLECCIONES: galería horizontal. Todas con la misma altura y su
-   propio ancho, así cada foto se ve completa (vertical u horizontal).
-   Al pasar el mouse: la foto se enmarca (paspartú) y aparece
-   "Ver colección" con una línea que se dibuja.
+   COLECCIONES: tarjetas horizontales del mismo tamaño, todas a la
+   vista. La última fila se centra si queda incompleta.
+   Al pasar el mouse: la foto se enmarca (paspartú) y se dibuja la
+   línea de "Ver colección".
    ============================================================ */
-.colecciones{--alto:clamp(300px,42vw,440px);display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:16px;
-  margin-inline:-16px;padding:6px 16px 18px;scrollbar-width:none;overscroll-behavior-x:contain}
-.colecciones::-webkit-scrollbar{display:none}
-.coleccion{flex:0 0 auto;scroll-snap-align:start;display:flex;flex-direction:column;gap:12px;text-decoration:none;color:inherit;outline-offset:6px}
-.coleccion-foto{--h:min(var(--alto),calc(84vw / var(--r,.8)));display:block;height:var(--h);width:calc(var(--h) * var(--r,.8));border-radius:20px;overflow:hidden;background:var(--crema2);
-  transition:background-color .35s var(--salida)}
-.coleccion-foto img{display:block;width:100%;height:100%;object-fit:cover;border-radius:20px;transform-origin:center;
+.colecciones{--cols:2;--gap:14px;display:flex;flex-wrap:wrap;justify-content:center;gap:22px var(--gap)}
+@media (min-width:700px){.colecciones{--cols:3;--gap:18px}}
+@media (min-width:1050px){.colecciones{--cols:4;--gap:20px}}
+.coleccion{flex:0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols));min-width:0;display:flex;flex-direction:column;gap:10px;text-decoration:none;color:inherit;outline-offset:6px}
+.coleccion-foto{display:block;aspect-ratio:3/2;border-radius:18px;overflow:hidden;background:var(--crema2);transition:background-color .35s var(--salida)}
+.coleccion-foto img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 32%;border-radius:18px;
   transition:transform .55s var(--salida),border-radius .55s var(--salida),filter .55s var(--salida)}
-.coleccion-txt{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:2px 12px;padding:0 4px}
-.coleccion-txt b{font-family:var(--serif);font-weight:500;font-size:clamp(22px,2.2vw,27px);line-height:1.1;color:var(--morado-osc)}
-.coleccion-txt small{font-size:13.5px;color:var(--suave);text-align:right}
-.coleccion-txt em{grid-column:1/-1;font-style:normal;font-size:14px;color:var(--morado);position:relative;justify-self:start;padding-bottom:3px;
-  opacity:.75;transition:opacity .3s}
+.coleccion-txt{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 10px;padding:0 2px}
+.coleccion-txt b{font-family:var(--serif);font-weight:500;font-size:clamp(19px,2vw,24px);line-height:1.15;color:var(--morado-osc)}
+.coleccion-txt small{font-size:13px;color:var(--suave)}
+.coleccion-txt em{flex-basis:100%;font-style:normal;font-size:13.5px;color:var(--morado);position:relative;align-self:flex-start;width:max-content;padding-bottom:3px;margin-top:2px}
 .coleccion-txt em::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--dorado);transform:scaleX(.25);transform-origin:left;transition:transform .45s var(--salida)}
 @media (hover:hover){
   .coleccion:hover .coleccion-foto{background:var(--lila)}
-  .coleccion:hover .coleccion-foto img{transform:scale(.93);border-radius:14px;filter:saturate(1.08)}
-  .coleccion:hover .coleccion-txt em{opacity:1}
+  .coleccion:hover .coleccion-foto img{transform:scale(.92);border-radius:12px;filter:saturate(1.08)}
   .coleccion:hover .coleccion-txt em::after{transform:scaleX(1)}
 }
-.coleccion:focus-visible .coleccion-foto img{transform:scale(.93);border-radius:14px}
+.coleccion:focus-visible .coleccion-foto img{transform:scale(.92);border-radius:12px}
 .coleccion:active .coleccion-foto img{transform:scale(.9);transition-duration:.15s}
+@media (max-width:699px){.coleccion-txt small{display:none}.coleccion-txt em{font-size:13px}}
 /* entrada en cascada (única entrada al bajar) */
-.js .coleccion[data-revelar]{opacity:0;transform:translateX(28px);transition:opacity .7s var(--salida),transform .8s var(--salida);transition-delay:calc(var(--i,0) * 70ms)}
+.js .coleccion[data-revelar]{opacity:0;transform:translateY(22px);transition:opacity .7s var(--salida),transform .8s var(--salida);transition-delay:calc(var(--i,0) * 60ms)}
 .js .coleccion[data-revelar].visto,.revelar-todo .coleccion[data-revelar]{opacity:1;transform:none}
-/* flechas (solo en computador y si hay más para ver) */
-.galeria-flechas{display:none;gap:8px;justify-content:flex-end;margin-top:4px}
-.galeria-flechas button{width:46px;height:46px;border-radius:50%;border:1px solid var(--borde);background:var(--blanco);color:var(--morado-osc);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:background-color .2s,color .2s,transform .16s var(--salida),opacity .2s}
-.galeria-flechas button svg{width:20px;height:20px}
-.galeria-flechas button:active{transform:scale(.94)}
-.galeria-flechas button:disabled{opacity:.35;cursor:default}
-@media (hover:hover){.galeria-flechas button:not(:disabled):hover{background:var(--morado-osc);color:var(--crema)}}
-@media (hover:hover) and (min-width:900px){.galeria-flechas.hay-mas{display:flex}}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}

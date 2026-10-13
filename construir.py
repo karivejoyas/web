@@ -544,10 +544,10 @@ def portada(prods, cols, mas_vistos, img_cols):
     def tarjeta_col(i, c):
         img = imagen(img_tema.get(c["id"])) or img_cols.get(c["id"]) or c["_prods"][0]["img"]
         w, hh = medidas_dist(img)
-        return ('<a class="coleccion" href="/c/{s}.html" style="--i:{i};--r:{r}" data-revelar>'
+        return ('<a class="coleccion" href="/c/{s}.html" style="--i:{i}" data-revelar>'
                 '<span class="coleccion-foto"><img src="{img}" alt="{alt}" loading="lazy" width="{w}" height="{hh}" data-kv-colimg="{cid}"></span>'
                 '<span class="coleccion-txt"><b>{n}</b><small>{k} modelos</small><em>Ver colección</em></span></a>').format(
-            s=e(c["slug"]), img=e(img), alt=e(gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0]), w=w, hh=hh, r="%.4f" % (w / hh),
+            s=e(c["slug"]), img=e(img), alt=e(gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0]), w=w, hh=hh,
             n=e(c["nombre"]), k=len(c["_prods"]), cid=e(c["id"]), i=i)
     tarj_cols = "".join(tarjeta_col(i, c) for i, c in enumerate(cols))
     img_seo = imagen(seo.get("imagen")) or "/assets/modelo-portada.jpg"
@@ -576,8 +576,8 @@ def portada(prods, cols, mas_vistos, img_cols):
     def cab(d, ruta, url, extra=""):
         return ('<div class="seccion-cab"><h2%s>%s</h2><a class="ver-todo" href="%s"%s>%s</a></div>'
                 % (kv(ruta + ".titulo"), tx(d.get("titulo")), url, kv(ruta + ".enlace"), tx(d.get("enlace"))))
-    sec["colecciones"] = '<section class="seccion envoltura" id="colecciones">%s<div class="colecciones" data-galeria>%s</div><div class="galeria-flechas"><button type="button" data-desliza="-1" aria-label="Colecciones anteriores">%s</button><button type="button" data-desliza="1" aria-label="Más colecciones">%s</button></div></section>' % (
-        cab(CO, "portada.colecciones", "/tienda/"), tarj_cols, FLECHA_IZQ, FLECHA_DER)
+    sec["colecciones"] = '<section class="seccion envoltura" id="colecciones">%s<div class="colecciones">%s</div></section>' % (
+        cab(CO, "portada.colecciones", "/tienda/"), tarj_cols)
     sec["favoritos"] = '<section class="seccion envoltura">%s<ul class="grilla">%s</ul></section>' % (
         cab(F, "portada.favoritos", "/tienda/"), "".join(tarjeta(p, i) for i, p in enumerate(destacados[:n_fav])))
     sec["taller"] = """<section class="franja">
