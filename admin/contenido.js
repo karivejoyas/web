@@ -167,8 +167,31 @@
     snap.forEach(d => { A.medios[d.id] = d.data(); });
     return A.medios;
   };
+  /* Si la imagen tiene partes transparentes (un logo en PNG), se guarda en
+     PNG para no perder la transparencia; si no, se comprime en JPG. */
+  function pngTransparente(file, max) {
+    return new Promise((res) => {
+      if (!/^image\/(png|webp|gif)$/.test(file.type)) return res(null);
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0, c.width, c.height);
+        const px = g.getImageData(0, 0, c.width, c.height).data;
+        let hay = false;
+        for (let i = 3; i < px.length; i += 16) if (px[i] < 250) { hay = true; break; }
+        res(hay ? c.toDataURL('image/png') : null);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); res(null); };
+      img.src = url;
+    });
+  }
   A.subirMedio = async function (file) {
-    let data = await A.comprimir(file, 1800, 0.85);
+    let data = await pngTransparente(file, 1200);
+    if (data && data.length > 950000) data = await pngTransparente(file, 700);
+    if (!data || data.length > 950000) data = await A.comprimir(file, 1800, 0.85);
     if (data.length > 950000) data = await A.comprimir(file, 1200, 0.78);
     const dim = await new Promise(r => { const i = new Image(); i.onload = () => r([i.width, i.height]); i.onerror = () => r([0, 0]); i.src = data; });
     const id = 'm' + A.id();

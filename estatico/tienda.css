@@ -47,7 +47,9 @@ p{margin:0 0 1em}
 .anuncio b{color:var(--dorado-cl);font-weight:500}
 .cabecera{position:sticky;top:0;z-index:40;background:rgba(251,247,241,.94);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--borde)}
 .cabecera .envoltura{display:flex;align-items:center;gap:12px;min-height:68px}
-.logo img{height:44px;width:auto}
+.logo img{height:var(--logo-hm,38px);width:auto;transition:height .3s var(--salida,ease)}
+@media (min-width:900px){.logo img{height:var(--logo-h,44px)}}
+.cajon-logo{height:var(--logo-hm,38px);width:auto}
 .menu{display:none;gap:4px;margin-left:auto}
 .menu a,.menu button{background:none;border:0;padding:10px 14px;text-decoration:none;font-size:15px;color:var(--tinta);border-radius:8px;cursor:pointer}
 .menu a:hover,.menu button:hover,.menu a[aria-current]{color:var(--morado)}
@@ -185,7 +187,9 @@ p{margin:0 0 1em}
 .pie a:hover{color:var(--dorado-cl)}
 .pie ul{list-style:none;padding:0;margin:0}
 .pie li{padding:4px 0}
-.pie-logo img{height:52px;width:auto;filter:brightness(1.6) saturate(.3)}
+/* el logo va con sus colores originales, sobre una placa crema */
+.pie-logo{display:inline-flex;background:var(--crema);border-radius:18px;padding:10px 18px;box-shadow:0 10px 26px -14px rgba(0,0,0,.5)}
+.pie-logo img{height:var(--logo-pie,52px);width:auto}
 .boletin{display:flex;gap:8px;margin-top:8px}
 .boletin input{flex:1;min-width:0;min-height:46px;border-radius:999px;border:1px solid rgba(207,196,223,.4);background:rgba(255,255,255,.06);color:var(--crema);padding:0 16px}
 .boletin input::placeholder{color:#CFC4DF}
@@ -290,6 +294,8 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 .cabecera .envoltura{transition:min-height .3s var(--salida)}
 .cabecera.bajando{box-shadow:0 6px 24px -10px rgba(42,18,62,.25);background:rgba(251,247,241,.97)}
 @media (min-width:900px){.cabecera.bajando .envoltura{min-height:58px}}
+@media (min-width:900px){.cabecera.bajando .logo img{height:min(var(--logo-h,44px),50px)}}
+.hero-sello{z-index:2}
 .menu a::after{content:"";position:absolute;left:14px;right:14px;bottom:6px;height:1px;background:var(--dorado);transform:scaleX(0);transform-origin:right;transition:transform .3s var(--salida)}
 .menu a{position:relative}
 @media (hover:hover){.menu a:hover::after{transform:scaleX(1);transform-origin:left}}
@@ -317,11 +323,33 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 @keyframes aparece{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .hero-img-marco{position:relative}
 .hero-img{box-shadow:0 30px 60px -28px rgba(42,18,62,.45)}
-.js .hero-img{clip-path:inset(100% 0 0 0 round 24px);animation:descubre 1.1s var(--salida) .2s forwards}
+/* efecto de la foto de portada (Personalizar → Efectos) */
+.js[data-ef-portada="destello"] .hero-img{clip-path:inset(100% 0 0 0 round 24px);animation:descubre 1.1s var(--salida) .2s forwards}
 @keyframes descubre{to{clip-path:inset(0 0 0 0 round 24px)}}
-.js .hero-img img{transform:scale(1.12);animation:asienta 1.6s var(--salida) .2s forwards}
+.js[data-ef-portada="destello"] .hero-img img{transform:scale(1.12);animation:asienta 1.6s var(--salida) .2s forwards}
 @keyframes asienta{to{transform:scale(1)}}
-.js .hero-img::after{animation:destello 1.3s var(--salida) 1.2s both}
+.js[data-ef-portada="destello"] .hero-img::after{animation:destello 1.3s var(--salida) 1.2s both}
+/* movimiento lento */
+[data-ef-portada="lento"] .hero-img img{animation:lento 18s ease-in-out infinite alternate}
+@keyframes lento{from{transform:scale(1) translate(0,0)}to{transform:scale(1.14) translate(-3%,-2%)}}
+[data-ef-portada="lento"] .hero-marco.quieta .hero-img img{animation-play-state:paused}
+/* cortina morada */
+.hero-velo{position:absolute;inset:0;z-index:1;pointer-events:none;background:var(--morado-osc);transform:scaleX(0);transform-origin:left}
+.js[data-ef-portada="cortina"] .hero-velo{animation:velo 1.25s cubic-bezier(.77,0,.18,1) .15s forwards}
+@keyframes velo{0%{transform:scaleX(0);transform-origin:left}45%{transform:scaleX(1);transform-origin:left}55%{transform:scaleX(1);transform-origin:right}100%{transform:scaleX(0);transform-origin:right}}
+.js[data-ef-portada="cortina"] .hero-img img{opacity:0;animation:aparecefoto 1.4s var(--resorte) .7s forwards}
+@keyframes aparecefoto{from{opacity:1;transform:scale(1.18)}to{opacity:1;transform:scale(1)}}
+/* arco que se abre */
+[data-ef-portada="arco"] .hero-img{border-radius:999px 999px 24px 24px}
+.js[data-ef-portada="arco"] .hero-img{animation:arco 1.5s var(--resorte) forwards}
+@keyframes arco{from{clip-path:ellipse(0% 0% at 50% 70%)}to{clip-path:ellipse(80% 95% at 50% 70%)}}
+.js[data-ef-portada="arco"] .hero-img img{animation:aparecefoto 1.8s var(--resorte) forwards}
+[data-ef-portada="arco"] .hero-sello{top:auto;bottom:14px;right:14px}
+@media (max-width:899px){[data-ef-portada="arco"] .hero-sello{right:auto;left:14px}}
+/* profundidad con el mouse (tienda.js mueve las capas) */
+[data-ef-portada="profundidad"] .hero-img-marco{perspective:900px}
+[data-ef-portada="profundidad"] .hero-img,[data-ef-portada="profundidad"] .hero-sello{transition:transform .5s var(--resorte)}
+[data-ef-portada="profundidad"] .hero-img img{transform:scale(1.08);transition:transform .5s var(--resorte)}
 .hero-sello{left:auto;right:14px;top:14px;bottom:auto;background:var(--crema);box-shadow:0 6px 16px -8px rgba(42,18,62,.35)}
 .hero-nuevo{position:absolute;right:10px;bottom:-26px;display:flex;align-items:center;gap:12px;padding:8px 16px 8px 8px;border-radius:18px;background:var(--blanco);
   box-shadow:0 18px 40px -16px rgba(42,18,62,.4);text-decoration:none;max-width:280px;transition:transform .3s var(--salida),box-shadow .3s}
@@ -385,9 +413,31 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 .especial{text-align:center;background:var(--crema2);border-radius:32px;margin-top:40px;margin-bottom:40px;padding-left:24px;padding-right:24px}
 @media (min-width:900px){.especial{max-width:calc(var(--ancho) - 32px)}}
 
-/* WhatsApp */
+/* WhatsApp: respira despacio y suelta un halo, para que se note sin molestar */
 .wa-flota{transition:transform .3s var(--resorte)}
-@media (hover:hover){.wa-flota:hover{transform:scale(1.08) rotate(-6deg)}}
+.wa-flota.respira{animation:respira 3.2s ease-in-out infinite}
+.wa-flota.respira::before{content:"";position:absolute;inset:0;border-radius:50%;background:#25D366;z-index:-1;animation:halo 3.2s var(--salida) infinite}
+@keyframes respira{0%,100%{transform:scale(1)}45%{transform:scale(1.08)}}
+@keyframes halo{0%,20%{transform:scale(1);opacity:.5}75%,100%{transform:scale(1.7);opacity:0}}
+@media (hover:hover){.wa-flota:hover{animation:none;transform:scale(1.08) rotate(-6deg)}.wa-flota:hover::before{animation:none;opacity:0}}
+.chat-abierto .wa-flota{animation-play-state:paused}
+
+/* olas antes del pie (Personalizar → Olas) */
+.olas{position:relative;margin-top:40px;line-height:0;color:var(--ola-color,var(--morado-osc));pointer-events:none}
+.olas svg{display:block;width:100%;height:var(--ola-m,64px);margin-bottom:-1px}
+@media (min-width:900px){.olas svg{height:var(--ola,110px)}}
+.olas use{fill:currentColor}
+.ola1 use{opacity:.35}.ola2 use{opacity:.5}.ola3 use{opacity:.7}
+.ola use{animation:ola 22s cubic-bezier(.55,.5,.45,.5) infinite}
+.ola1 use{animation-delay:-2s;animation-duration:9s}
+.ola2 use{animation-delay:-3s;animation-duration:12s}
+.ola3 use{animation-delay:-4s;animation-duration:15s}
+.ola4 use{animation-delay:-5s;animation-duration:22s}
+@keyframes ola{0%{transform:translate3d(-90px,0,0)}100%{transform:translate3d(85px,0,0)}}
+.olas.quietas use,.olas.quieta use{animation-play-state:paused}
+.olas.al-reves{transform:scaleX(-1)}
+.pie.con-olas{margin-top:0}
+.olas[hidden]+.pie.con-olas{margin-top:40px}
 
 /* ficha */
 .ficha-foto img{transition:transform .8s var(--salida)}
@@ -432,9 +482,119 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 .js .coleccion[data-revelar]{opacity:0;transform:translateY(22px);transition:opacity .7s var(--salida),transform .8s var(--salida);transition-delay:calc(var(--i,0) * 60ms)}
 .js .coleccion[data-revelar].visto,.revelar-todo .coleccion[data-revelar]{opacity:1;transform:none}
 
+/* ============================================================
+   INSTAGRAM: mismas tarjetas que las colecciones, con un botón de play
+   ============================================================ */
+.ig-grilla{--cols:2}
+@media (min-width:700px){.ig-grilla{--cols:3}}
+@media (min-width:1150px){.ig-grilla{--cols:6;--gap:16px}.ig-tarjeta .coleccion-ver{font-size:13px;padding:8px 13px}.ig-tarjeta .coleccion-txt{flex-direction:column;gap:2px}}
+.ig-play{position:absolute;top:12px;right:12px;z-index:1;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:rgba(251,247,241,.88);color:var(--morado-osc);box-shadow:0 6px 16px -8px rgba(42,18,62,.45);transition:transform .4s var(--resorte)}
+.ig-play svg{width:16px;height:16px;margin-left:2px}
+@media (hover:hover){.ig-tarjeta:hover .ig-play{transform:scale(1.12)}}
+.ig-tarjeta .coleccion-txt b{font-family:var(--sans);font-size:14.5px;font-weight:500;line-height:1.35;color:var(--tinta)}
+@media (max-width:699px){.ig-tarjeta .coleccion-txt b{font-size:13.5px}}
+
+/* ============================================================
+   TRANSICIÓN ENTRE PÁGINAS (Personalizar → Efectos). El encabezado y
+   los botones flotantes se quedan quietos; cambia solo el contenido.
+   ============================================================ */
+.cabecera{view-transition-name:cabecera}
+.wa-flota{view-transition-name:wa-flota}
+.chat-btn{view-transition-name:chat-btn}
+::view-transition-group(root){animation-duration:.55s;animation-timing-function:var(--resorte)}
+html[data-tr="profundidad"]::view-transition-old(root){animation:tr-atras .45s var(--resorte) both}
+html[data-tr="profundidad"]::view-transition-new(root){animation:tr-adelante .6s var(--resorte) .06s both}
+@keyframes tr-atras{to{opacity:0;transform:scale(.94);filter:blur(6px)}}
+@keyframes tr-adelante{from{opacity:0;transform:scale(1.05);filter:blur(6px)}}
+html[data-tr="cortina"]::view-transition-old(root){animation:tr-oscurece .75s cubic-bezier(.77,0,.18,1) both}
+html[data-tr="cortina"]::view-transition-new(root){animation:tr-cortina .75s cubic-bezier(.77,0,.18,1) both}
+@keyframes tr-oscurece{to{filter:brightness(.6)}}
+@keyframes tr-cortina{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+html[data-tr="deslizar"]::view-transition-old(root){animation:tr-sale .5s var(--resorte) both}
+html[data-tr="deslizar"]::view-transition-new(root){animation:tr-entra .55s var(--resorte) both}
+html[data-tr="deslizar"][data-dir="atras"]::view-transition-old(root){animation-name:tr-sale-der}
+html[data-tr="deslizar"][data-dir="atras"]::view-transition-new(root){animation-name:tr-entra-izq}
+@keyframes tr-sale{to{opacity:0;transform:translateX(-22%)}}
+@keyframes tr-entra{from{transform:translateX(100%)}}
+@keyframes tr-sale-der{to{opacity:0;transform:translateX(22%)}}
+@keyframes tr-entra-izq{from{transform:translateX(-100%)}}
+html[data-tr="vuela"]::view-transition-old(root),html[data-tr="vuela"]::view-transition-new(root){animation-duration:.3s}
+html[data-tr="vuela"]::view-transition-group(foto){animation-duration:.7s;animation-timing-function:var(--resorte)}
+html[data-tr="vuela"] .ficha-foto img{view-transition-name:foto}
+
 @media (prefers-reduced-motion:reduce){
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
   *,*::before,*::after{animation:none!important;transition:none!important}
   .js .coleccion[data-revelar],.js .hero-txt p,.js .hero-acc,.js .hero-nuevo,.hero h1 .palabra{opacity:1!important;transform:none!important;filter:none!important}
-  .js .hero-img{clip-path:none}
-  .js .hero-img img{transform:none}
+  .js .hero-img{clip-path:none!important}
+  .js .hero-img img{transform:none!important;opacity:1!important}
 }
+
+/* ============================================================
+   ASISTENTE (chat con IA): botón abajo a la izquierda (WhatsApp va a la
+   derecha). En el celular el panel ocupa toda la pantalla.
+   ============================================================ */
+.chat-btn{position:fixed;left:16px;bottom:16px;z-index:30;width:56px;height:56px;border-radius:50%;border:0;cursor:pointer;
+  background:var(--morado);color:var(--crema);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 0 2px rgba(251,247,241,.85),0 8px 20px rgba(42,18,62,.35);transition:transform .3s var(--resorte),background-color .25s}
+.chat-btn svg{width:28px;height:28px}
+.chat-btn:active{transform:scale(.94)}
+@media (hover:hover){.chat-btn:hover{transform:scale(1.07);background:var(--morado-osc)}}
+.chat-btn.llama::after{content:"";position:absolute;top:4px;right:4px;width:12px;height:12px;border-radius:50%;background:var(--dorado-cl);border:2px solid var(--morado-osc)}
+.chat-abierto .chat-btn{opacity:0;pointer-events:none}
+@media (min-width:641px){.chat-abierto .chat-btn{opacity:1;pointer-events:auto}}
+.chat-globo{position:fixed;left:16px;bottom:82px;z-index:30;max-width:230px;padding:11px 15px;border:0;border-radius:18px 18px 18px 6px;cursor:pointer;
+  background:var(--blanco);color:var(--tinta);font:inherit;font-size:14.5px;text-align:left;box-shadow:0 14px 34px -14px rgba(42,18,62,.45);
+  animation:aparece .5s var(--salida) both}
+.chat-panel{position:fixed;left:16px;bottom:84px;z-index:85;width:min(380px,calc(100vw - 32px));height:min(560px,calc(100dvh - 120px));
+  display:flex;flex-direction:column;background:var(--crema);border:1px solid var(--borde);border-radius:22px;overflow:hidden;
+  box-shadow:0 30px 70px -24px rgba(42,18,62,.55);transform-origin:bottom left;animation:chat-entra .35s var(--resorte) both}
+.chat-panel[hidden]{display:none}
+@keyframes chat-entra{from{opacity:0;transform:translateY(12px) scale(.96)}}
+.chat-top{display:flex;align-items:center;gap:10px;padding:12px 12px 12px 14px;background:var(--morado-osc);color:var(--crema)}
+.chat-top img{width:38px;height:38px;border-radius:50%;background:var(--crema);object-fit:cover}
+.chat-top span{display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.2}
+.chat-top b{font-weight:500}
+.chat-top small{font-size:12px;color:var(--lila)}
+.chat-top small::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ADE80;margin-right:6px;vertical-align:1px}
+.chat-x{width:40px;height:40px;border:0;border-radius:50%;background:transparent;color:var(--crema);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.chat-x svg{width:22px;height:22px}
+@media (hover:hover){.chat-x:hover{background:rgba(255,255,255,.12)}}
+.chat-msgs{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:16px 14px;display:flex;flex-direction:column;gap:10px;font-size:15px;line-height:1.45}
+.chat-m{max-width:88%;padding:10px 14px;border-radius:18px;word-wrap:break-word;animation:aparece .3s var(--salida) both}
+.chat-m.bot{align-self:flex-start;background:var(--blanco);border:1px solid var(--borde);border-bottom-left-radius:6px;color:var(--tinta)}
+.chat-m.yo{align-self:flex-end;background:var(--morado);color:#fff;border-bottom-right-radius:6px}
+.chat-m a{color:var(--morado);font-weight:500}
+.chat-sug{display:flex;flex-wrap:wrap;gap:8px}
+.chat-sug button{border:1px solid var(--lila);background:transparent;color:var(--morado-osc);border-radius:999px;padding:7px 13px;font:inherit;font-size:13.5px;cursor:pointer;transition:background-color .2s}
+@media (hover:hover){.chat-sug button:hover{background:var(--crema2)}}
+.chat-prods{display:flex;flex-direction:column;gap:6px;margin:10px 0 6px}
+.chat-prod{display:flex;align-items:center;gap:10px;padding:6px;border-radius:12px;background:var(--crema);text-decoration:none;color:var(--tinta);transition:background-color .2s}
+.chat-m .chat-prod{color:var(--tinta);font-weight:400}
+@media (hover:hover){.chat-prod:hover{background:var(--crema2)}}
+.chat-prod img{width:48px;height:48px;border-radius:9px;object-fit:cover;flex:0 0 48px;background:var(--crema2)}
+.chat-prod span{display:flex;flex-direction:column;min-width:0;font-size:14px;line-height:1.3}
+.chat-prod b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-prod small{color:var(--morado);font-size:13.5px}
+.chat-prod s{color:var(--suave);font-size:12px}
+.chat-puntos{display:inline-flex;gap:4px;padding:4px 0}
+.chat-puntos i{width:7px;height:7px;border-radius:50%;background:var(--lila);animation:punto 1s infinite}
+.chat-puntos i:nth-child(2){animation-delay:.15s}.chat-puntos i:nth-child(3){animation-delay:.3s}
+@keyframes punto{0%,60%,100%{transform:none;opacity:.5}30%{transform:translateY(-4px);opacity:1}}
+.chat-fila{display:flex;gap:8px;padding:10px;border-top:1px solid var(--borde);background:var(--blanco)}
+.chat-fila input{flex:1;min-width:0;border:1px solid var(--borde);border-radius:999px;padding:11px 16px;font:inherit;font-size:16px;background:var(--crema);color:var(--tinta)}
+.chat-fila input:focus{outline:2px solid var(--lila);outline-offset:0;border-color:var(--morado)}
+.chat-fila button{width:46px;height:46px;flex:0 0 46px;border:0;border-radius:50%;background:var(--morado-osc);color:var(--crema);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.chat-fila button svg{width:20px;height:20px}
+.chat-fila button:disabled{opacity:.5}
+@media (max-width:640px){
+  .chat-panel{inset:0 0 auto 0;width:100%;height:100dvh;border-radius:0;border:0;animation-name:chat-sube}
+  @keyframes chat-sube{from{opacity:0;transform:translateY(30px)}}
+  .chat-top{padding-top:max(12px,env(safe-area-inset-top))}
+  .chat-fila{padding-bottom:max(10px,env(safe-area-inset-bottom))}
+}
+/* que los botones flotantes no tapen el final del pie */
+.pie-final{padding-bottom:max(16px,calc(env(safe-area-inset-bottom) + 84px))}
+@media (min-width:900px){.pie-final{padding-bottom:16px}}
+@media print{.chat-btn,.chat-globo,.chat-panel,.wa-flota,.olas{display:none!important}}

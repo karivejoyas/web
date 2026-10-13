@@ -13,7 +13,7 @@ no escribe nada ni cambia ningún producto. La web antigua
 GitHub Actions lo corre con cada cambio y todas las noches
 (.github/workflows/publicar.yml) y publica dist/ en GitHub Pages.
 """
-import base64, csv, html, importlib.util, json, os, re, shutil, sys, urllib.error, urllib.request
+import base64, csv, html, importlib.util, json, os, re, shutil, sys, urllib.error, urllib.parse, urllib.request
 from datetime import date
 
 RAIZ_REPO = os.path.dirname(os.path.abspath(__file__))
@@ -308,14 +308,43 @@ COLOR_VARS = {"fondo": "--crema", "fondo2": "--crema2", "texto": "--tinta", "sua
 def estilo_colores():
     c = TEMA.get("colores") or {}
     pares = ["%s:%s" % (var, c[k]) for k, var in COLOR_VARS.items() if re.match(r"^#[0-9A-Fa-f]{3,8}$", str(c.get(k) or ""))]
+    pares += ["%s:%dpx" % (var, n) for var, n in medidas_tema().items()]
+    ola = str((TEMA.get("olas") or {}).get("color") or "")
+    if re.match(r"^#[0-9A-Fa-f]{3,8}$", ola):
+        pares.append("--ola-color:" + ola)
     return '<style id="kv-colores">:root{%s}</style>' % ";".join(pares)
+
+
+def entero(v, defecto, minimo, maximo):
+    try:
+        return max(minimo, min(maximo, int(float(v))))
+    except (TypeError, ValueError):
+        return defecto
+
+
+def medidas_tema():
+    """Tamaños que se ajustan en Personalizar (logo y olas), en píxeles."""
+    lo, ol = TEMA.get("logo") or {}, TEMA.get("olas") or {}
+    return {"--logo-h": entero(lo.get("alto"), 44, 28, 110), "--logo-hm": entero(lo.get("altoMovil"), 38, 24, 80),
+            "--logo-pie": entero(lo.get("altoPie"), 52, 30, 120),
+            "--ola": entero(ol.get("alto"), 110, 30, 220), "--ola-m": entero(ol.get("altoMovil"), 64, 20, 160)}
+
+
+def efectos():
+    ef = TEMA.get("efectos") or {}
+    por = ef.get("portada") if ef.get("portada") in T.EFECTOS_PORTADA else "destello"
+    tr = ef.get("transicion") if ef.get("transicion") in T.TRANSICIONES else "profundidad"
+    return por, tr
 
 
 def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="index, follow, max-image-preview:large", extra=""):
     url = SITIO + ruta.lstrip("/")
     j = ('<script type="application/ld+json">%s</script>' % json.dumps(jsonld, ensure_ascii=False).replace("</", "<\\/")) if jsonld else ""
+    ef_por, ef_tr = efectos()
+    # transición al pasar de una página a otra (navegadores que la soportan)
+    vt = "" if ef_tr == "ninguna" else '<style id="kv-transicion">@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>\n'
     return """<!doctype html>
-<html lang="es-CL">
+<html lang="es-CL" data-ef-portada="{ef_por}" data-tr="{ef_tr}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -331,12 +360,13 @@ def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="
 <link rel="icon" href="/assets/logo-avatar.png" type="image/png"><link rel="apple-touch-icon" href="/assets/logo-avatar.png"><link rel="manifest" href="/manifest.webmanifest">
 {fuentes}
 <link rel="stylesheet" href="/estatico/tienda.css?v={v}">
-<script>document.documentElement.classList.add('js');setTimeout(function(){{if(!window.kvRevela)document.documentElement.classList.add('revelar-todo')}},2500)</script>
+{vt}<script>document.documentElement.classList.add('js');setTimeout(function(){{if(!window.kvRevela)document.documentElement.classList.add('revelar-todo')}},2500);
+addEventListener('pagereveal',function(e){{var n=window.navigation&&navigation.activation,h=document.documentElement;if(!e.viewTransition||!n||n.navigationType!=='traverse')return;h.dataset.dir='atras';e.viewTransition.finished.finally(function(){{delete h.dataset.dir}})}})</script>
 {colores}
 {j}
 </head>
 """.format(t=e(titulo), d=e(desc), u=e(url), img=e(imagen_url), tipo=tipo, m=e(MARCA), rob=robots, fuentes=FUENTES, v=VERSION, j=j, extra=extra,
-           colores=estilo_colores(), tc=e((TEMA.get("colores") or {}).get("oscuro") or "#2A123E"))
+           colores=estilo_colores(), tc=e((TEMA.get("colores") or {}).get("oscuro") or "#2A123E"), ef_por=ef_por, ef_tr=ef_tr, vt=vt)
 
 
 ACTUAL_URL = {"tienda": "/tienda/", "nosotros": "/nosotros.html", "preguntas": "/preguntas-frecuentes.html", "contacto": "/contacto.html"}
@@ -368,7 +398,7 @@ def encabezado(cols, actual=""):
 <header class="cabecera">
   <div class="envoltura">
     <button class="icono hamburguesa" id="btn-menu" aria-label="Abrir menú">{i_menu}</button>
-    <a class="logo" href="/"><img src="/assets/logo-karive-web.png" alt="{m}" width="89" height="44"></a>
+    <a class="logo" href="/"><img src="{logo}" alt="{m}" width="89" height="44" data-kv-logo></a>
     <nav class="menu" aria-label="Principal" data-kv-lista="menu">{menu}</nav>
     <div class="iconos">
       <button class="icono" id="btn-buscar" aria-label="Buscar">{i_buscar}</button>
@@ -379,7 +409,7 @@ def encabezado(cols, actual=""):
 <div class="cajon" id="cajon-menu" aria-label="Menú">
   <div class="cajon-fondo" data-cerrar="cajon-menu"></div>
   <div class="cajon-panel" role="dialog" aria-modal="true" aria-label="Menú">
-    <div class="cajon-top"><img src="/assets/logo-karive-web.png" alt="{m}" width="89" height="44"><button class="icono" data-cerrar="cajon-menu" aria-label="Cerrar menú">{i_cerrar}</button></div>
+    <div class="cajon-top"><img class="cajon-logo" src="{logo}" alt="{m}" width="89" height="44" data-kv-logo><button class="icono" data-cerrar="cajon-menu" aria-label="Cerrar menú">{i_cerrar}</button></div>
     <nav aria-label="Menú del celular"><a href="/">Inicio</a><span data-kv-lista="menu-movil">{menu_movil}</span><div class="sub sub-ayuda">{pie_links}</div></nav>
   </div>
 </div>
@@ -396,20 +426,148 @@ def encabezado(cols, actual=""):
     <div id="buscar-res"></div></div>
 </div>
 <main id="contenido">
-""".format(i_menu=ICONOS["menu"], i_buscar=ICONOS["buscar"], i_carro=ICONOS["carro"], i_cerrar=ICONOS["cerrar"], m=e(MARCA),
+""".format(i_menu=ICONOS["menu"], i_buscar=ICONOS["buscar"], i_carro=ICONOS["carro"], i_cerrar=ICONOS["cerrar"], m=e(MARCA), logo=e(logo_url()),
            menu=menu_html(cols, False, actual), menu_movil=menu_html(cols, True), pie_links=pie_links,
            an_kv=kv("anuncio.texto"), an_oculto="" if an.get("activo", True) else " hidden", an_txt=tx(an.get("texto")))
+
+
+# ------------------------------------------------------------------ Instagram
+IG_HOSTS = (".cdninstagram.com", ".fbcdn.net")
+MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
+
+def bajar(url, destino):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (KariveWeb)"})
+    with urllib.request.urlopen(req, timeout=40) as r:
+        open(destino, "wb").write(r.read())
+
+
+def instagram():
+    """Últimas publicaciones de Instagram para la portada.
+    Llegan desde el publicador (web.gs las manda al pedir la publicación, en
+    IG_DATOS). Si esta vez no vienen, se reutilizan las de la web publicada
+    (instagram.json y sus miniaturas), así nunca se pierden."""
+    os.makedirs(DIST + "/assets/ig", exist_ok=True)
+    nuevos = []
+    try:
+        nuevos = json.loads(os.environ.get("IG_DATOS") or "[]")
+    except ValueError:
+        print("IG_DATOS no es JSON válido; se usan las publicaciones anteriores.")
+    lista = []
+    for it in nuevos if isinstance(nuevos, list) else []:
+        ident = re.sub(r"[^0-9A-Za-z_]", "", str(it.get("id") or ""))[:40]
+        img, url = str(it.get("img") or ""), str(it.get("url") or "")
+        host = urllib.parse.urlparse(img).hostname or ""
+        if not ident or not img.startswith("https://") or not host.endswith(IG_HOSTS) or not url.startswith("https://www.instagram.com/"):
+            continue
+        destino = DIST + "/assets/ig/%s.jpg" % ident
+        try:
+            bajar(img, destino)
+            if gen.Image:
+                im = gen.Image.open(destino).convert("RGB")
+                if im.width > 640:
+                    im = im.resize((640, round(im.height * 640 / im.width)), gen.Image.LANCZOS)
+                im.save(destino[:-4] + ".webp", "WEBP", quality=80, method=6)
+                os.remove(destino)
+                destino = destino[:-4] + ".webp"
+        except Exception as ex:
+            print("No se pudo bajar la miniatura de Instagram %s: %s" % (ident, ex))
+            continue
+        lista.append({"id": ident, "tipo": str(it.get("tipo") or ""), "url": url, "img": "/" + destino[len(DIST) + 1:],
+                      "texto": str(it.get("texto") or "")[:220], "fecha": str(it.get("fecha") or "")[:25]})
+    if not lista:
+        for base in [os.environ.get("SITIO_ACTUAL") or "", "https://nueva.karivejoyas.cl/", SITIO]:
+            if not base:
+                continue
+            base = base.rstrip("/") + "/"
+            try:
+                with urllib.request.urlopen(base + "instagram.json", timeout=30) as r:
+                    viejos = json.load(r).get("publicaciones") or []
+                for it in viejos:
+                    ruta = str(it.get("img") or "")
+                    if not re.match(r"^/assets/ig/[0-9A-Za-z_]+\.(webp|jpg)$", ruta):
+                        continue
+                    bajar(base + ruta.lstrip("/"), DIST + ruta)
+                    lista.append(it)
+                if lista:
+                    break
+            except Exception:
+                continue
+    json.dump({"publicaciones": lista}, open(DIST + "/instagram.json", "w"), ensure_ascii=False)
+    print("instagram: %d publicaciones" % len(lista))
+    return lista
+
+
+def fecha_corta(iso):
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})", iso or "")
+    return "%d %s" % (int(m.group(3)), MESES[int(m.group(2)) - 1]) if m else ""
+
+
+def ig_html(IGD, pubs):
+    """Tarjetas con los últimos videos (o publicaciones) de Instagram, con el
+    mismo estilo que las colecciones."""
+    n = entero(IGD.get("cantidad"), 6, 1, 12)
+    videos = [x for x in pubs if x.get("tipo") in ("VIDEO", "REELS")]
+    elegidas = (videos if len(videos) >= min(n, 3) else pubs)[:n]
+    if not elegidas:
+        return ""
+    def titulo(t):
+        t = re.split(r"[\n.!?]", re.sub(r"#\S+", "", t or "").strip())[0].strip()
+        return (t[:52].rsplit(" ", 1)[0] + "…") if len(t) > 55 else (t or "Ver en Instagram")
+    tarj = "".join(
+        '<a class="coleccion ig-tarjeta" href="{u}" target="_blank" rel="noopener" style="--i:{i}" data-revelar>'
+        '<span class="coleccion-foto"><img src="{img}" alt="{alt}" loading="lazy" width="480" height="600">{play}'
+        '<span class="coleccion-ver" aria-hidden="true">Ver en Instagram {fl}</span></span>'
+        '<span class="coleccion-txt"><b>{t}</b><small>{f}</small></span></a>'.format(
+            u=e(x["url"]), img=e(x["img"]), alt=e(titulo(x.get("texto"))), t=e(titulo(x.get("texto"))), f=e(fecha_corta(x.get("fecha"))), i=i,
+            fl=FLECHA_DER, play=IG_PLAY if x.get("tipo") in ("VIDEO", "REELS") else "")
+        for i, x in enumerate(elegidas))
+    return ('<section class="seccion envoltura" id="instagram"><div class="seccion-cab"><h2%s>%s</h2><a class="ver-todo" href="%s" target="_blank" rel="noopener"%s>%s</a></div>'
+            '<div class="colecciones ig-grilla">%s</div></section>'
+            % (kv("portada.instagram.titulo"), tx(IGD.get("titulo")), e(IG), kv("portada.instagram.enlace"), tx(IGD.get("enlace")), tarj))
+
+
+IG_PLAY = ('<span class="ig-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></span>')
+
+
+def logo_url():
+    return imagen((TEMA.get("logo") or {}).get("imagen")) or "/assets/logo-karive-web.png"
+
+
+OLA = "M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z"
+
+
+def olas_html():
+    """Olas animadas justo antes del pie (Personalizar → Olas antes del pie)."""
+    o = TEMA.get("olas") or {}
+    return ('<div class="olas%s%s" aria-hidden="true" data-kv-si="olas.activo"%s><svg viewBox="0 24 150 28" preserveAspectRatio="none">'
+            '<defs><path id="kv-ola" d="%s"/></defs>'
+            '<g class="ola ola1"><use href="#kv-ola" x="48" y="0"/></g><g class="ola ola2"><use href="#kv-ola" x="48" y="3"/></g>'
+            '<g class="ola ola3"><use href="#kv-ola" x="48" y="5"/></g><g class="ola ola4"><use href="#kv-ola" x="48" y="7"/></g></svg></div>\n'
+            % ("" if o.get("animacion", True) else " quietas", " al-reves" if o.get("rotar") else "",
+               "" if o.get("activo", True) else " hidden", OLA))
+
+
+def chat_html():
+    """Datos del asistente (el botón y el panel los arma chat.js)."""
+    c = TEMA.get("chat") or {}
+    if not c.get("activo", True):
+        return ""
+    datos = {"nombre": c.get("nombre") or "Asistente Karivé", "saludo": c.get("saludo") or "", "invitacion": c.get("invitacion") or "",
+             "wa": WA, "ig": IG, "fb": FBK}
+    return '\n<script id="kv-chat-datos" type="application/json">%s</script>' % json.dumps(datos, ensure_ascii=False).replace("</", "<\\/")
 
 
 def pie(cols, scripts=""):
     pi = TEMA.get("pie") or {}
     ayuda = "".join('<li><a href="%s">%s</a></li>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in TEMA.get("menuPie") or [])
-    flota = ('<a class="wa-flota" href="https://wa.me/%s" aria-label="Escríbenos por WhatsApp" rel="noopener" data-kv-si="whatsappFlotante">%s</a>' % (WA, ICONOS["wa"])) \
-        if TEMA.get("whatsappFlotante", True) else ('<a class="wa-flota" hidden href="https://wa.me/%s" aria-label="Escríbenos por WhatsApp" data-kv-si="whatsappFlotante">%s</a>' % (WA, ICONOS["wa"]))
+    flota = '<a class="wa-flota%s" href="https://wa.me/%s" aria-label="Escríbenos por WhatsApp" rel="noopener" data-kv-si="whatsappFlotante"%s>%s</a>' % (
+        " respira" if TEMA.get("whatsappRespira", True) else "", WA, "" if TEMA.get("whatsappFlotante", True) else " hidden", ICONOS["wa"])
+    flota += chat_html()
     return """</main>
-<footer class="pie">
+{olas}<footer class="pie{con_olas}">
   <div class="envoltura">
-    <div><a class="pie-logo" href="/"><img src="/assets/logo-karive-web.png" alt="{m}" width="105" height="52" loading="lazy"></a>
+    <div><a class="pie-logo" href="/"><img src="{logo}" alt="{m}" width="105" height="52" loading="lazy"></a>
       <p style="margin-top:12px"{k_txt}>{txt}</p>
       <p><a href="{ig}" rel="noopener">Instagram</a> · <a href="{fb}" rel="noopener">Facebook</a> · <a href="https://wa.me/{wa}">WhatsApp</a></p></div>
     <div><h3>Colecciones</h3><ul>{cols}<li><a href="/tienda/">Ver todo</a></li></ul></div>
@@ -422,10 +580,12 @@ def pie(cols, scripts=""):
 </footer>
 {flota}
 <script src="/estatico/comun.js?v={v}" defer></script>
-<script src="/estatico/tienda.js?v={v}" defer></script>{scripts}
+<script src="/estatico/tienda.js?v={v}" defer></script>{scripts}{chat_js}
 </body>
 </html>
 """.format(m=e(MARCA), ig=e(IG), fb=e(FBK), wa=WA, anio=date.today().year, v=VERSION, scripts=scripts, flota=flota, ayuda=ayuda,
+           olas=olas_html(), con_olas=" con-olas" if (TEMA.get("olas") or {}).get("activo", True) else "", logo=e(logo_url()),
+           chat_js=('\n<script src="/estatico/chat.js?v=%s" defer></script>' % VERSION) if (TEMA.get("chat") or {}).get("activo", True) else "",
            txt=tx(pi.get("texto")), k_txt=kv("pie.texto"), bt=tx(pi.get("boletinTitulo")), k_bt=kv("pie.boletinTitulo"),
            bx=tx(pi.get("boletinTexto")), k_bx=kv("pie.boletinTexto"), fin=tx(pi.get("final")), k_fin=kv("pie.final"),
            cols="".join('<li><a href="/c/%s.html">%s</a></li>' % (e(c["slug"]), e(c["nombre"])) for c in cols))
@@ -514,7 +674,7 @@ def boton(b, clase, ruta):
     return '<a class="btn %s" href="%s"%s>%s</a>' % (clase, e(b.get("url") or "/"), kv(ruta), e(b.get("texto") or ""))
 
 
-def portada(prods, cols, mas_vistos, img_cols):
+def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     P = TEMA["portada"]
     vis = [p for p in prods if p["hay"]]
     porid = {p["id"]: p for p in vis}
@@ -564,7 +724,7 @@ def portada(prods, cols, mas_vistos, img_cols):
     <p{k3}>{txt}</p>
     <div class="hero-acc">{b1}{b2}</div>
   </div>
-  <div class="hero-img-marco"><div class="hero-img destello"><img src="{img}" alt="{alt}" width="860" height="645" fetchpriority="high" data-kv-img="portada.hero.imagen"><span class="hero-sello"{k4}>{sello}</span></div>{nuevo}</div>
+  <div class="hero-img-marco"><div class="hero-img destello"><img src="{img}" alt="{alt}" width="860" height="645" fetchpriority="high" data-kv-img="portada.hero.imagen"><span class="hero-velo" aria-hidden="true"></span><span class="hero-sello"{k4}>{sello}</span></div>{nuevo}</div>
 </div></section>""".format(nuevo=tarjeta_nuevo(nuevo, H.get("tarjetaNuevo", True)),k1=kv("portada.hero.antetitulo"), ante=tx(H.get("antetitulo")), k2=kv("portada.hero.titulo"), tit=tx(H.get("titulo")),
                      k3=kv("portada.hero.texto"), txt=tx(H.get("texto")), b1=boton(H.get("boton1"), "btn-1", "portada.hero.boton1"),
                      b2=boton(H.get("boton2"), "btn-2", "portada.hero.boton2"), img=e(imagen(H.get("imagen")) or "/assets/modelo-portada.jpg"),
@@ -603,6 +763,9 @@ def portada(prods, cols, mas_vistos, img_cols):
 </section>""".format(k1=kv("portada.especial.antetitulo"), ante=tx(ES.get("antetitulo")), k2=kv("portada.especial.titulo"), tit=tx(ES.get("titulo")),
                      k3=kv("portada.especial.texto"), txt=tx(ES.get("texto")), wa=WA, wat=gen.urllib.parse.quote(ES.get("mensaje") or ""),
                      i_wa=ICONOS["wa"], k4=kv("portada.especial.boton"), bt=tx(ES.get("boton")))
+    ig = ig_html(P.get("instagram") or {}, list(ig_pubs))
+    if ig:
+        sec["instagram"] = ig
     orden = [k for k in (P.get("orden") or []) if k in sec]
     fabrica = T.TEMA_DEFECTO["portada"]["orden"]
     for k in fabrica:
@@ -1003,7 +1166,7 @@ def main():
     prods, cols, mas_vistos = cargar()
     publicar_fotos(prods)
     img_cols = imagenes_colecciones()
-    portada(prods, cols, mas_vistos, img_cols)
+    portada(prods, cols, mas_vistos, img_cols, instagram())
     tienda(prods, cols)
     for c in cols:
         coleccion(c, cols)

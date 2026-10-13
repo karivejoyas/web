@@ -419,8 +419,36 @@
     $$('[data-revelar]').forEach(el => io.observe(el));
     // lo que se mueve solo se pausa cuando no se ve
     const pausa = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('quieta', !e.isIntersecting)));
-    $$('.cinta, .franja').forEach(el => pausa.observe(el));
+    $$('.cinta, .franja, .olas, .hero-marco').forEach(el => pausa.observe(el));
   } else $$('[data-revelar]').forEach(el => el.classList.add('visto'));
+  // efecto "profundidad con el mouse" en la foto de portada: las capas se
+  // mueven a distintas velocidades (en celular queda quieta)
+  const marco = $('.hero-img-marco');
+  if (marco && matchMedia('(hover:hover) and (prefers-reduced-motion:no-preference)').matches) {
+    const capas = () => [$('.hero-img', marco), $('.hero-img img', marco), $('.hero-sello', marco), $('.hero-nuevo', marco)];
+    marco.addEventListener('pointermove', e => {
+      if (document.documentElement.dataset.efPortada !== 'profundidad' || e.pointerType !== 'mouse') return;
+      const r = marco.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+      const [foto, img, sello, nuevo] = capas();
+      if (foto) foto.style.transform = 'rotateY(' + (x * 6) + 'deg) rotateX(' + (-y * 6) + 'deg)';
+      if (img) img.style.transform = 'scale(1.08) translate(' + (-x * 18) + 'px,' + (-y * 18) + 'px)';
+      if (sello) sello.style.transform = 'translate(' + (x * 22) + 'px,' + (y * 22) + 'px)';
+      if (nuevo) nuevo.style.transform = 'translate(' + (x * 30) + 'px,' + (y * 30) + 'px)';
+    });
+    marco.addEventListener('pointerleave', () => capas().forEach(el => { if (el) el.style.transform = ''; }));
+  }
+  // transición entre páginas: "la foto vuela" marca la foto que se tocó
+  // (lo de "deslizar" al volver atrás está en el <head>)
+  addEventListener('pageswap', e => {
+    if (!e.viewTransition || document.documentElement.dataset.tr !== 'vuela') return;
+    $$('[style*="view-transition-name"]').forEach(el => { if (el.tagName === 'IMG') el.style.viewTransitionName = ''; });
+    const destino = e.activation && e.activation.entry && e.activation.entry.url;
+    if (!destino) return;
+    const ruta = new URL(destino).pathname;
+    const a = $$('a.tarjeta-foto, a.hero-nuevo').find(x => x.pathname === ruta);
+    const img = a && $('img', a);
+    if (img && !$('.ficha-foto img')) img.style.viewTransitionName = 'foto';
+  });
   // encabezado compacto al bajar
   const cab = $('.cabecera');
   if (cab) { const rev = () => cab.classList.toggle('bajando', scrollY > 40); addEventListener('scroll', rev, { passive: true }); rev(); }

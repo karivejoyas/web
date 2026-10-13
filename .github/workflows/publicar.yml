@@ -15,6 +15,11 @@ on:
     - cron: '30 9 * * *'      # 05:30 / 06:30 en Chile: siempre publica
     - cron: '*/10 * * * *'    # revisión: publica solo si cambiaron los datos
   workflow_dispatch:
+    inputs:
+      instagram:
+        description: 'Últimas publicaciones de Instagram (las manda web.gs)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -65,6 +70,8 @@ jobs:
       - name: Instalar Pillow (fotos WebP)
         run: pip install --quiet pillow
       - name: Armar la web desde el catálogo
+        env:
+          IG_DATOS: ${{ inputs.instagram }}
         run: python3 construir.py
       - name: Revisar que salió completa
         run: |

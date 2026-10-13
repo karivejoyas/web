@@ -26,6 +26,24 @@ SECCIONES_PORTADA = {
     "taller": "Nuestro taller",
     "nuevos": "Lo nuevo",
     "especial": "Diseños a pedido",
+    "instagram": "Instagram",
+}
+
+# opciones de los efectos (Personalizar → Efectos)
+EFECTOS_PORTADA = {
+    "destello": "Destello (la foto se descubre y la cruza una luz)",
+    "lento": "Movimiento lento (la foto se acerca despacio, siempre)",
+    "cortina": "Cortina morada",
+    "arco": "Arco que se abre",
+    "profundidad": "Profundidad con el mouse",
+    "ninguno": "Sin efecto",
+}
+TRANSICIONES = {
+    "profundidad": "Profundidad (la página se aleja y la nueva llega desde adelante)",
+    "vuela": "La foto vuela (la foto del producto viaja a la ficha)",
+    "cortina": "Cortina que sube",
+    "deslizar": "Deslizar de lado",
+    "ninguna": "Sin transición",
 }
 
 TEMA_DEFECTO = {
@@ -49,13 +67,23 @@ TEMA_DEFECTO = {
         {"texto": "Contacto", "url": "/contacto.html"},
     ],
     "whatsappFlotante": True,
+    "whatsappRespira": True,
+    "logo": {"alto": 44, "altoMovil": 38, "altoPie": 52},
+    "efectos": {"portada": "destello", "transicion": "profundidad"},
+    "olas": {"activo": True, "animacion": True, "alto": 110, "altoMovil": 64, "color": ""},
+    "chat": {
+        "activo": True,
+        "nombre": "Asistente Karivé",
+        "saludo": "¡Hola! 💜 Soy la asistente de Karivé Joyas. Te ayudo a encontrar aros, ver precios, envíos o cómo comprar.",
+        "invitacion": "¿Te ayudo a encontrar tus aros? 💜",
+    },
     "seo": {
         "titulo": MARCA + " | Aros artesanales hechos a mano en Chile",
         "descripcion": "Aros artesanales hechos a mano en Santiago: flores de arcilla, argollas de cristal, corazones, conchas y charms. Compra online con envío a todo Chile.",
         "imagen": "/assets/modelo-portada.jpg",
     },
     "portada": {
-        "orden": ["hero", "cinta", "confianza", "colecciones", "favoritos", "taller", "nuevos", "especial"],
+        "orden": ["hero", "cinta", "confianza", "colecciones", "favoritos", "taller", "nuevos", "instagram", "especial"],
         "ocultas": [],
         "hero": {
             "antetitulo": "Joyería artesanal · Santiago, Chile",
@@ -94,6 +122,7 @@ TEMA_DEFECTO = {
             "boton": {"texto": "Conoce Karivé", "url": "/nosotros.html"},
         },
         "nuevos": {"antetitulo": "Recién llegados", "titulo": "Lo nuevo del taller", "enlace": "Ver lo nuevo →", "cantidad": 8},
+        "instagram": {"antetitulo": "Instagram", "titulo": "Lo último en nuestro Instagram", "enlace": "Síguenos →", "cantidad": 6},
         "especial": {
             "antetitulo": "¿Buscas un diseño especial?",
             "titulo": "Hacemos tus colores favoritos",

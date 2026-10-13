@@ -63,6 +63,15 @@
 
   /* Aplica un tema a una página de la web ya cargada (la vista previa del
      editor). Usa las marcas data-kv que pone construir.py. */
+  /* Orden de las secciones de la portada; las que se agregaron después de
+     guardar el tema van en su lugar de fábrica (igual que en construir.py). */
+  function ordenPortada(P) {
+    const fab = ((A.temaDefecto() || {}).portada || {}).orden || Object.keys(SECCIONES);
+    const orden = (P.orden || []).filter(k => fab.indexOf(k) !== -1 || SECCIONES[k]);
+    fab.forEach((k, i) => { if (orden.indexOf(k) === -1) { const antes = fab.slice(0, i).filter(x => orden.indexOf(x) !== -1); orden.splice(antes.length ? orden.indexOf(antes[antes.length - 1]) + 1 : 0, 0, k); } });
+    Object.keys(SECCIONES).forEach(k => { if (orden.indexOf(k) === -1) orden.push(k); });
+    return orden;
+  }
   A.aplicarTema = function (doc, t) {
     if (!doc || !doc.documentElement) return;
     const cache = doc.__kv || (doc.__kv = {
@@ -78,7 +87,28 @@
     const MAP = { fondo: '--crema', fondo2: '--crema2', texto: '--tinta', suave: '--suave', borde: '--borde', principal: '--morado', oscuro: '--morado-osc', lila: '--lila', dorado: '--dorado', doradoClaro: '--dorado-cl' };
     let st = doc.getElementById('kv-colores');
     if (!st) { st = doc.createElement('style'); st.id = 'kv-colores'; doc.head.appendChild(st); }
-    st.textContent = ':root{' + Object.keys(MAP).filter(k => /^#[0-9a-f]{3,8}$/i.test(c[k] || '')).map(k => MAP[k] + ':' + c[k]).join(';') + '}';
+    const lo = t.logo || {}, ol = t.olas || {};
+    const px = (v, d, mi, ma) => Math.max(mi, Math.min(ma, Math.round(Number(v) || d)));
+    const medidas = ['--logo-h:' + px(lo.alto, 44, 28, 110) + 'px', '--logo-hm:' + px(lo.altoMovil, 38, 24, 80) + 'px', '--logo-pie:' + px(lo.altoPie, 52, 30, 120) + 'px',
+      '--ola:' + px(ol.alto, 110, 30, 220) + 'px', '--ola-m:' + px(ol.altoMovil, 64, 20, 160) + 'px'];
+    if (/^#[0-9a-f]{3,8}$/i.test(ol.color || '')) medidas.push('--ola-color:' + ol.color);
+    st.textContent = ':root{' + Object.keys(MAP).filter(k => /^#[0-9a-f]{3,8}$/i.test(c[k] || '')).map(k => MAP[k] + ':' + c[k]).concat(medidas).join(';') + '}';
+    // efectos: si cambió el de la portada, se vuelve a correr para verlo
+    const ef = t.efectos || {}, raiz = doc.documentElement;
+    const efP = EFECTOS_PORTADA[ef.portada] ? ef.portada : 'destello';
+    if (raiz.dataset.efPortada !== efP) {
+      raiz.dataset.efPortada = 'ninguno'; void raiz.offsetWidth; raiz.dataset.efPortada = efP;
+      doc.querySelectorAll('.hero-img, .hero-img img, .hero-sello, .hero-nuevo').forEach(el => { el.style.transform = ''; });
+    }
+    raiz.dataset.tr = TRANSICIONES[ef.transicion] ? ef.transicion : 'profundidad';
+    // logo, olas, WhatsApp y asistente
+    const logo = A.urlImagen(lo.imagen);
+    doc.querySelectorAll('[data-kv-logo], .pie-logo img').forEach(el => { if (!el.dataset.original) el.dataset.original = el.getAttribute('src'); el.src = logo || el.dataset.original; });
+    const olas = doc.querySelector('.olas');
+    if (olas) { olas.classList.toggle('quietas', ol.animacion === false); olas.classList.toggle('al-reves', !!ol.rotar); }
+    const pie = doc.querySelector('.pie'); if (pie) pie.classList.toggle('con-olas', ol.activo !== false);
+    const wa = doc.querySelector('.wa-flota'); if (wa) wa.classList.toggle('respira', t.whatsappRespira !== false);
+    doc.querySelectorAll('.chat-btn, .chat-globo').forEach(el => { el.style.display = (t.chat || {}).activo === false ? 'none' : ''; });
     // textos y botones
     doc.querySelectorAll('[data-kv]').forEach(el => {
       const v = obtener(t, el.dataset.kv);
@@ -117,7 +147,7 @@
     const cont = doc.querySelector('[data-kv-secciones]');
     if (cont && t.portada) {
       const ocultas = t.portada.ocultas || [];
-      (t.portada.orden || []).forEach(k => { const s = cont.querySelector(':scope > [data-kv-sec="' + k + '"]'); if (s) cont.appendChild(s); });
+      ordenPortada(t.portada).forEach(k => { const s = cont.querySelector(':scope > [data-kv-sec="' + k + '"]'); if (s) cont.appendChild(s); });
       cont.querySelectorAll(':scope > [data-kv-sec]').forEach(s => { s.hidden = ocultas.indexOf(s.dataset.kvSec) !== -1; });
       ['favoritos', 'nuevos'].forEach(k => {
         const n = Number(obtener(t, 'portada.' + k + '.cantidad')) || 8;
@@ -239,14 +269,21 @@
     favoritos: { nombre: 'Los más queridos', ruta: 'portada.favoritos', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántos productos']], ayuda: 'Muestra la lista de «Lo más visto» (Descuentos) y la completa con un producto de cada colección.' },
     taller: { nombre: 'Nuestro taller', ruta: 'portada.taller', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['imagen', 'imagen', 'Imagen'], ['imagenAlt', 'texto', 'Descripción de la imagen'], ['pasos', 'textos', 'Pasos'], ['boton', 'boton', 'Botón']] },
     nuevos: { nombre: 'Lo nuevo', ruta: 'portada.nuevos', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántos productos']], ayuda: 'Muestra los productos subidos más recientemente.' },
+    instagram: { nombre: 'Instagram', ruta: 'portada.instagram', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántas publicaciones (máximo 12)']], ayuda: 'Muestra tus últimos videos (reels) de Instagram con el mismo estilo de las colecciones. Se actualizan solos cuando subes uno nuevo (Apps → Instagram).' },
     especial: { nombre: 'Diseños a pedido', ruta: 'portada.especial', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton', 'texto', 'Texto del botón'], ['mensaje', 'area', 'Mensaje que se escribe solo en WhatsApp']] }
   };
+  const EFECTOS_PORTADA = { destello: 'Destello: la foto se descubre y la cruza una luz', lento: 'Movimiento lento: la foto se acerca despacio, siempre', cortina: 'Cortina morada que la descubre', arco: 'Arco que se abre', profundidad: 'Profundidad: se mueve con el mouse', ninguno: 'Sin efecto' };
+  const TRANSICIONES = { profundidad: 'Profundidad: la página se aleja y la nueva llega desde adelante', vuela: 'La foto vuela del producto a su ficha', cortina: 'Cortina: la página nueva sube desde abajo', deslizar: 'Deslizar de lado', ninguna: 'Sin transición' };
   const GLOBALES = {
     anuncio: { nombre: 'Barra de anuncio', ruta: 'anuncio', campos: [['activo', 'si', 'Mostrar la barra de anuncio'], ['texto', 'texto', 'Texto']], ayuda: 'Escribe **así** para poner una parte en negrita.' },
     menu: { nombre: 'Menú', enlace: 'tienda/navegacion' },
     pie: { nombre: 'Pie de página', ruta: 'pie', campos: [['texto', 'area', 'Texto sobre la tienda'], ['boletinTitulo', 'texto', 'Título del boletín'], ['boletinTexto', 'texto', 'Texto del boletín'], ['final', 'texto', 'Frase final']] },
     colores: { nombre: 'Colores', ruta: 'colores', campos: [['fondo', 'color', 'Fondo'], ['fondo2', 'color', 'Fondo secundario'], ['texto', 'color', 'Texto'], ['suave', 'color', 'Texto suave'], ['borde', 'color', 'Bordes'], ['principal', 'color', 'Color principal'], ['oscuro', 'color', 'Color oscuro (botones, títulos)'], ['lila', 'color', 'Lila'], ['dorado', 'color', 'Dorado'], ['doradoClaro', 'color', 'Dorado claro']] },
-    whatsapp: { nombre: 'Botón de WhatsApp', ruta: '', campos: [['whatsappFlotante', 'si', 'Mostrar el botón flotante de WhatsApp']], ayuda: 'El número se cambia en Configuración → General.' },
+    whatsapp: { nombre: 'Botón de WhatsApp', ruta: '', campos: [['whatsappFlotante', 'si', 'Mostrar el botón flotante de WhatsApp'], ['whatsappRespira', 'si', 'Que respire (se agranda suavecito, para que se note)']], ayuda: 'El número se cambia en Configuración → General.' },
+    logo: { nombre: 'Logo', ruta: 'logo', campos: [['imagen', 'imagen', 'Imagen del logo'], ['alto', 'rango', 'Tamaño en el computador', { min: 28, max: 110 }], ['altoMovil', 'rango', 'Tamaño en el celular', { min: 24, max: 80 }], ['altoPie', 'rango', 'Tamaño en el pie de página', { min: 30, max: 120 }]], ayuda: 'Para cambiar la imagen usa un PNG con fondo transparente. Al bajar por la página, en el computador el logo se achica un poco.' },
+    efectos: { nombre: 'Efectos y movimiento', ruta: 'efectos', campos: [['portada', 'opciones', 'Efecto de la foto de portada', EFECTOS_PORTADA], ['transicion', 'opciones', 'Al abrir una colección o un producto', TRANSICIONES]], ayuda: 'La transición entre páginas se ve en Chrome, Edge y Safari (iPhone) actualizados; en los demás la página simplemente cambia. Quien tenga activado «reducir movimiento» no ve efectos.' },
+    olas: { nombre: 'Olas antes del pie', ruta: 'olas', campos: [['activo', 'si', 'Mostrar las olas'], ['animacion', 'si', 'Que se muevan'], ['rotar', 'si', 'Darlas vuelta (de derecha a izquierda)'], ['alto', 'rango', 'Alto en el computador', { min: 30, max: 220 }], ['altoMovil', 'rango', 'Alto en el celular', { min: 20, max: 160 }], ['color', 'colorOpc', 'Color de las olas']], ayuda: 'Si no eliges color, usan el del pie de página (Colores → Color oscuro).' },
+    chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['invitacion', 'texto', 'Burbuja de invitación (aparece una vez por visita)']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
     producto: { nombre: 'Ficha de producto', ruta: 'producto', campos: [['beneficios', 'textos', 'Beneficios bajo el botón de compra']] }
   };
   const PAGINAS_PREV = [['/', 'Inicio'], ['/tienda/', 'Tienda'], ['col', 'Una colección'], ['prod', 'Un producto'], ['/nosotros.html', 'Nosotros'], ['/contacto.html', 'Contacto'], ['/envios.html', 'Envíos'], ['/preguntas-frecuentes.html', 'Preguntas frecuentes'], ['/devoluciones.html', 'Cambios y devoluciones']];
@@ -289,6 +326,10 @@
         const sec = e.target.closest('[data-kv-sec]');
         if (sec) { abrirSeccion(sec.dataset.kvSec); return; }
         if (e.target.closest('.anuncio')) abrirSeccion('anuncio');
+        else if (e.target.closest('.logo')) abrirSeccion('logo');
+        else if (e.target.closest('.olas')) abrirSeccion('olas');
+        else if (e.target.closest('.chat-btn')) abrirSeccion('chat');
+        else if (e.target.closest('.wa-flota')) abrirSeccion('whatsapp');
         else if (e.target.closest('.pie')) abrirSeccion('pie');
       }, true);
       const css = doc.createElement('style');
@@ -362,18 +403,15 @@
     const P = ed.tema.portada;
     const ocultas = P.ocultas || [];
     // secciones nuevas aparecen en su lugar de fábrica (igual que en construir.py)
-    const orden = (P.orden || []).filter(k => SECCIONES[k]);
-    const fab = ((A.temaDefecto() || {}).portada || {}).orden || Object.keys(SECCIONES);
-    fab.forEach((k, i) => { if (SECCIONES[k] && orden.indexOf(k) === -1) { const antes = fab.slice(0, i).filter(x => orden.indexOf(x) !== -1); orden.splice(antes.length ? orden.indexOf(antes[antes.length - 1]) + 1 : 0, 0, k); } });
-    Object.keys(SECCIONES).forEach(k => { if (orden.indexOf(k) === -1) orden.push(k); });
+    const orden = ordenPortada(P).filter(k => SECCIONES[k]);
     panel.innerHTML = '<div class="ed-secciones">' +
-      '<div class="ed-grupo">Encabezado</div>' + ['anuncio', 'menu'].map(k => filaGlobal(k)).join('') +
+      '<div class="ed-grupo">Encabezado</div>' + ['anuncio', 'logo', 'menu'].map(k => filaGlobal(k)).join('') +
       '<div class="ed-grupo">Portada</div>' +
       orden.map((k, i) => '<div class="ed-sec' + (ocultas.indexOf(k) !== -1 ? ' oculta' : '') + '" data-sec="' + k + '"><span class="nombre">' + h(SECCIONES[k].nombre) + '</span>' +
         '<button class="mini" data-sub="' + i + '" title="Subir"' + (i ? '' : ' disabled') + '>' + A.ic.arriba + '</button><button class="mini" data-baja="' + i + '" title="Bajar"' + (i < orden.length - 1 ? '' : ' disabled') + '>' + A.ic.abajo + '</button>' +
         '<button class="mini" data-ojo="' + k + '" title="' + (ocultas.indexOf(k) !== -1 ? 'Mostrar' : 'Ocultar') + '">' + (ocultas.indexOf(k) !== -1 ? A.ic.ojoNo : A.ic.ojo) + '</button></div>').join('') +
-      '<div class="ed-grupo">Pie de página</div>' + filaGlobal('pie') +
-      '<div class="ed-grupo">Configuración del tema</div>' + ['colores', 'whatsapp', 'producto'].map(filaGlobal).join('') +
+      '<div class="ed-grupo">Pie de página</div>' + ['olas', 'pie'].map(filaGlobal).join('') +
+      '<div class="ed-grupo">Configuración del tema</div>' + ['efectos', 'colores', 'whatsapp', 'chat', 'producto'].map(filaGlobal).join('') +
       '<div class="ed-grupo">Páginas</div><a class="ed-sec" href="#/contenido/paginas" style="text-decoration:none;color:inherit"><span class="nombre">Nosotros, Envíos, Preguntas…</span>' + A.ic.externo + '</a>' +
       '</div>';
     A.$$('[data-sec]', panel).forEach(f => f.addEventListener('click', (e) => { if (!e.target.closest('button')) abrirSeccion(f.dataset.sec); }));
@@ -414,6 +452,10 @@
       else if (tipo === 'area') html += '<label class="campo"><span>' + h(etq) + '</span><textarea data-r="' + ruta + '" rows="4">' + h(v || '') + '</textarea></label>';
       else if (tipo === 'numero') html += '<label class="campo"><span>' + h(etq) + '</span><input data-r="' + ruta + '" data-num="1" type="number" min="1" max="24" value="' + h(v || 8) + '" style="max-width:100px"></label>';
       else if (tipo === 'si') html += A.interruptor('si-' + c, v !== false && v != null ? !!v : false, h(etq), ' data-r="' + ruta + '" data-si="1"');
+      else if (tipo === 'opciones') html += '<label class="campo"><span>' + h(etq) + '</span><select class="inp" data-r="' + ruta + '">' + Object.keys(sub).map(o => '<option value="' + o + '"' + (o === v ? ' selected' : '') + '>' + h(sub[o]) + '</option>').join('') + '</select></label>';
+      else if (tipo === 'rango') html += '<label class="campo"><span>' + h(etq) + ' <b class="rango-v">' + h(v || sub.min) + ' px</b></span><input type="range" data-r="' + ruta + '" data-num="1" data-min="' + sub.min + '" data-max="' + sub.max + '" min="' + sub.min + '" max="' + sub.max + '" value="' + h(v || sub.min) + '"></label>';
+      else if (tipo === 'colorOpc') html += '<label class="color-campo"><input type="color" data-r="' + ruta + '" value="' + h(v || '#2A123E') + '"><span>' + h(etq) + '</span><code>' + h(v || 'el del pie') + '</code></label>' +
+        '<button class="btn btn-chico btn-plano" data-colorquitar="' + ruta + '" style="margin:-4px 0 12px">Usar el color del pie</button>';
       else if (tipo === 'color') html += '<label class="color-campo"><input type="color" data-r="' + ruta + '" value="' + h(v || '#ffffff') + '"><span>' + h(etq) + '</span><code>' + h(v || '') + '</code></label>';
       else if (tipo === 'boton') html += '<div class="campo"><span>' + h(etq) + '</span><input class="inp" data-r="' + ruta + '.texto" value="' + h((v || {}).texto || '') + '" placeholder="Texto" style="margin-bottom:6px"><input class="inp" data-r="' + ruta + '.url" value="' + h((v || {}).url || '') + '" placeholder="Enlace (ej: /tienda/)"></div>';
       else if (tipo === 'imagen') {
@@ -447,9 +489,10 @@
       const ev = inp.type === 'checkbox' ? 'change' : 'input';
       inp.addEventListener(ev, () => {
         let v = inp.dataset.si ? inp.checked : inp.value;
-        if (inp.dataset.num) v = Math.max(1, Math.min(24, A.num(v) || 1));
+        if (inp.dataset.num) v = Math.max(+(inp.dataset.min || 1), Math.min(+(inp.dataset.max || 24), A.num(v) || 1));
         poner(ed.tema, inp.dataset.r.replace(/^\./, ''), v);
         if (inp.type === 'color') inp.parentNode.querySelector('code').textContent = v;
+        if (inp.type === 'range') inp.parentNode.querySelector('.rango-v').textContent = v + ' px';
         cambio();
       });
     });
@@ -464,6 +507,7 @@
       const l = obtener(ed.tema, r) || []; l.push(tipo === 'textos' ? '' : {}); poner(ed.tema, r, l);
       pintarFormulario(panel, k); cambio();
     }));
+    A.$$('[data-colorquitar]', panel).forEach(b => b.addEventListener('click', () => { poner(ed.tema, b.dataset.colorquitar, ''); pintarFormulario(panel, k); cambio(); }));
     A.$$('[data-img]', panel).forEach(b => b.addEventListener('click', async () => {
       const m = await A.elegirMedio(); if (!m) return;
       poner(ed.tema, b.dataset.img, m); pintarFormulario(panel, k); cambio();
