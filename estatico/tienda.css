@@ -97,14 +97,6 @@ p{margin:0 0 1em}
 .seccion-cab p{color:var(--suave);margin:0;max-width:560px}
 .ver-todo{font-size:15px;color:var(--morado);text-decoration:none;font-weight:500}
 
-.colecciones{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.coleccion{position:relative;display:block;border-radius:var(--radio);overflow:hidden;aspect-ratio:4/5;background:var(--crema2);text-decoration:none}
-.coleccion img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
-.coleccion:hover img{transform:scale(1.04)}
-.coleccion span{position:absolute;inset:auto 0 0 0;padding:40px 14px 14px;background:linear-gradient(transparent,rgba(42,18,62,.78));color:#fff;font-family:var(--serif);font-size:22px;line-height:1.1}
-.coleccion small{display:block;font-family:var(--sans);font-size:12.5px;opacity:.85;margin-top:2px}
-@media (min-width:700px){.colecciones{grid-template-columns:repeat(3,1fr)}}
-@media (min-width:1050px){.colecciones{grid-template-columns:repeat(4,1fr)}}
 
 /* ---- tarjetas de producto ---- */
 .grilla{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px;list-style:none;margin:0;padding:0}
@@ -272,8 +264,8 @@ p{margin:0 0 1em}
    VIDA — una idea: las piezas "atrapan la luz", como una joya.
    · Portada: el título sube palabra por palabra, la foto se descubre
      y un destello la cruza una vez (el momento principal).
-   · Al pasar el mouse por fotos de productos y colecciones, el mismo
-     destello las recorre; al agregar al carrito la foto vuela a la bolsa.
+   · Al pasar el mouse por fotos de productos, el mismo destello las
+     recorre (las colecciones tienen su propio efecto: se enmarcan); al agregar al carrito la foto vuela a la bolsa.
    · Curvas de salida rápidas; todo se apaga con "reducir movimiento".
    ============================================================ */
 :root{--salida:cubic-bezier(.23,1,.32,1);--resorte:cubic-bezier(.16,1,.3,1)}
@@ -356,20 +348,6 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 .confianza span.ic svg{width:24px;height:24px}
 @media (hover:hover){.confianza>div:hover span.ic{transform:rotate(-10deg) scale(1.08);background:var(--dorado-cl)}}
 
-/* colecciones: entran en cascada (única entrada al bajar) */
-.js .coleccion[data-revelar]{opacity:0;transform:translateY(24px) scale(.98);transition:opacity .7s var(--salida),transform .8s var(--salida);transition-delay:calc(var(--i,0) * 70ms)}
-.js .coleccion[data-revelar].visto,.revelar-todo .coleccion[data-revelar]{opacity:1;transform:none}
-.coleccion img{transition:transform .8s var(--salida)}
-.coleccion span{transition:transform .4s var(--salida)}
-.coleccion-flecha{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;background:var(--crema);color:var(--morado-osc);display:flex;align-items:center;justify-content:center;font-style:normal;opacity:0;transform:scale(.6) rotate(-45deg);transition:opacity .25s,transform .35s var(--resorte)}
-.coleccion-flecha svg{width:18px;height:18px}
-@media (hover:hover){
-  .coleccion.visto,.revelar-todo .coleccion{transition:transform .4s var(--salida),box-shadow .4s,opacity .7s}
-  .coleccion:hover{transform:translateY(-6px);box-shadow:0 24px 40px -20px rgba(42,18,62,.55)}
-  .coleccion:hover img{transform:scale(1.07)}
-  .coleccion:hover span{transform:translateY(-6px)}
-  .coleccion:hover .coleccion-flecha{opacity:1;transform:none}
-}
 
 /* tarjetas de producto */
 .tarjeta-foto{transition:box-shadow .35s var(--salida),transform .35s var(--salida)}
@@ -402,17 +380,47 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 .ficha-foto img{transition:transform .8s var(--salida)}
 @media (hover:hover){.ficha-foto:hover img{transform:scale(1.04)}}
 
-/* mosaico de colecciones */
-@media (max-width:1049px){.colecciones{grid-template-columns:repeat(2,1fr)}.colecciones .coleccion.grande{grid-column:span 2;aspect-ratio:16/10}}
-@media (min-width:1050px){
-  .colecciones{grid-template-columns:repeat(4,1fr);gap:16px}
-  .colecciones .coleccion.grande{grid-column:span 2;grid-row:span 2;aspect-ratio:auto}
-  .colecciones .coleccion.grande span{font-size:34px;padding:60px 24px 24px}
-  .colecciones .coleccion.ancha{grid-column:span 2;aspect-ratio:33/20}
-  .colecciones .coleccion.ancha img,.colecciones .coleccion.ancha-4 img{object-position:center 22%}
-  .colecciones .coleccion.ancha-4{grid-column:span 4;aspect-ratio:32/9}
+
+/* ============================================================
+   COLECCIONES: galería horizontal. Todas con la misma altura y su
+   propio ancho, así cada foto se ve completa (vertical u horizontal).
+   Al pasar el mouse: la foto se enmarca (paspartú) y aparece
+   "Ver colección" con una línea que se dibuja.
+   ============================================================ */
+.colecciones{--alto:clamp(300px,42vw,440px);display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:16px;
+  margin-inline:-16px;padding:6px 16px 18px;scrollbar-width:none;overscroll-behavior-x:contain}
+.colecciones::-webkit-scrollbar{display:none}
+.coleccion{flex:0 0 auto;scroll-snap-align:start;display:flex;flex-direction:column;gap:12px;text-decoration:none;color:inherit;outline-offset:6px}
+.coleccion-foto{--h:min(var(--alto),calc(84vw / var(--r,.8)));display:block;height:var(--h);width:calc(var(--h) * var(--r,.8));border-radius:20px;overflow:hidden;background:var(--crema2);
+  transition:background-color .35s var(--salida)}
+.coleccion-foto img{display:block;width:100%;height:100%;object-fit:cover;border-radius:20px;transform-origin:center;
+  transition:transform .55s var(--salida),border-radius .55s var(--salida),filter .55s var(--salida)}
+.coleccion-txt{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:2px 12px;padding:0 4px}
+.coleccion-txt b{font-family:var(--serif);font-weight:500;font-size:clamp(22px,2.2vw,27px);line-height:1.1;color:var(--morado-osc)}
+.coleccion-txt small{font-size:13.5px;color:var(--suave);text-align:right}
+.coleccion-txt em{grid-column:1/-1;font-style:normal;font-size:14px;color:var(--morado);position:relative;justify-self:start;padding-bottom:3px;
+  opacity:.75;transition:opacity .3s}
+.coleccion-txt em::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--dorado);transform:scaleX(.25);transform-origin:left;transition:transform .45s var(--salida)}
+@media (hover:hover){
+  .coleccion:hover .coleccion-foto{background:var(--lila)}
+  .coleccion:hover .coleccion-foto img{transform:scale(.93);border-radius:14px;filter:saturate(1.08)}
+  .coleccion:hover .coleccion-txt em{opacity:1}
+  .coleccion:hover .coleccion-txt em::after{transform:scaleX(1)}
 }
-@media (max-width:699px){.colecciones .coleccion:last-child:nth-child(even):not(.grande){grid-column:span 2;aspect-ratio:8/5}}
+.coleccion:focus-visible .coleccion-foto img{transform:scale(.93);border-radius:14px}
+.coleccion:active .coleccion-foto img{transform:scale(.9);transition-duration:.15s}
+/* entrada en cascada (única entrada al bajar) */
+.js .coleccion[data-revelar]{opacity:0;transform:translateX(28px);transition:opacity .7s var(--salida),transform .8s var(--salida);transition-delay:calc(var(--i,0) * 70ms)}
+.js .coleccion[data-revelar].visto,.revelar-todo .coleccion[data-revelar]{opacity:1;transform:none}
+/* flechas (solo en computador y si hay más para ver) */
+.galeria-flechas{display:none;gap:8px;justify-content:flex-end;margin-top:4px}
+.galeria-flechas button{width:46px;height:46px;border-radius:50%;border:1px solid var(--borde);background:var(--blanco);color:var(--morado-osc);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:background-color .2s,color .2s,transform .16s var(--salida),opacity .2s}
+.galeria-flechas button svg{width:20px;height:20px}
+.galeria-flechas button:active{transform:scale(.94)}
+.galeria-flechas button:disabled{opacity:.35;cursor:default}
+@media (hover:hover){.galeria-flechas button:not(:disabled):hover{background:var(--morado-osc);color:var(--crema)}}
+@media (hover:hover) and (min-width:900px){.galeria-flechas.hay-mas{display:flex}}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}

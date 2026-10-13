@@ -90,6 +90,8 @@
       if (!el.dataset.original) el.dataset.original = el.getAttribute('src');
       const u = A.urlImagen(((obtener(t, 'portada.colecciones.imagenes') || {})[el.dataset.kvColimg]) || '');
       el.src = u || el.dataset.original;
+      // la galería usa la proporción de cada foto: se ajusta al cargar la nueva
+      el.onload = () => { const a = el.closest('.coleccion'); if (a && el.naturalHeight) a.style.setProperty('--r', (el.naturalWidth / el.naturalHeight).toFixed(4)); };
     });
     doc.querySelectorAll('[data-kv-img]').forEach(el => { const u = A.urlImagen(obtener(t, el.dataset.kvImg)); if (u) { el.src = u; el.removeAttribute('srcset'); } });
     doc.querySelectorAll('[data-kv-html]').forEach(el => {

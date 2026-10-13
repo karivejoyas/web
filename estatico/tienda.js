@@ -421,6 +421,20 @@
     const pausa = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('quieta', !e.isIntersecting)));
     $$('.cinta, .franja').forEach(el => pausa.observe(el));
   } else $$('[data-revelar]').forEach(el => el.classList.add('visto'));
+  // galería de colecciones: flechas en computador
+  $$('[data-galeria]').forEach(g => {
+    const caja = g.parentElement.querySelector('.galeria-flechas'); if (!caja) return;
+    const [ant, sig] = caja.querySelectorAll('[data-desliza]');
+    const estado = () => {
+      const max = g.scrollWidth - g.clientWidth - 2;
+      caja.classList.toggle('hay-mas', max > 0);
+      ant.disabled = g.scrollLeft <= 2; sig.disabled = g.scrollLeft >= max;
+    };
+    caja.querySelectorAll('[data-desliza]').forEach(b => b.addEventListener('click', () => {
+      g.scrollBy({ left: +b.dataset.desliza * g.clientWidth * 0.8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }));
+    g.addEventListener('scroll', estado, { passive: true }); addEventListener('resize', estado); estado();
+  });
   // encabezado compacto al bajar
   const cab = $('.cabecera');
   if (cab) { const rev = () => cab.classList.toggle('bajando', scrollY > 40); addEventListener('scroll', rev, { passive: true }); rev(); }
