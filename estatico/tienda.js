@@ -74,38 +74,48 @@
     window.kvEnvioCosto = function (region) { return region === KV_REGION_RM ? rm : reg; };
   }
 
-  /* ---------- productos: los de la página + precios y stock al día ---------- */
+  /* ---------- productos ----------
+     La lista sale de /productos.json (lo publicado, que se rehace a los pocos
+     minutos de cada cambio). Solo se le pregunta a la base por los productos
+     que importan en ese momento —la ficha que estás viendo y lo que hay en el
+     carrito—, de a uno: así cada visita gasta unas pocas lecturas y no 130. */
   let productosProm = null;
   function productos() {
-    if (productosProm) return productosProm;
-    productosProm = (async () => {
-      const base = await fetch('/productos.json', { cache: 'no-cache' }).then(r => r.json());
-      const lista = base.productos || [];
-      try {
-        const mask = CAMPOS_PROD.map(c => 'mask.fieldPaths=' + c).join('&');
-        const vivos = {};
-        let tok = '';
-        do {
-          const r = await fetch(FS + '/catalog/products/items?pageSize=300&' + mask + (tok ? '&pageToken=' + encodeURIComponent(tok) : ''));
-          if (!r.ok) throw new Error('productos ' + r.status);
-          const d = await r.json();
-          (d.documents || []).forEach(doc => {
-            const p = {}; Object.keys(doc.fields || {}).forEach(k => { p[k] = fsValor(doc.fields[k]); });
-            vivos[doc.name.split('/').pop()] = p;
-          });
-          tok = d.nextPageToken || '';
-        } while (tok);
-        // lo de la base manda: precio, oferta, visible y cantidad pueden haber cambiado hoy
-        lista.forEach(p => {
-          const v = vivos[p.id];
-          if (!v) { p.stock = false; return; }
-          ['name', 'price', 'priceOffer', 'stock', 'cantidad', 'detail'].forEach(k => { if (k in v) p[k] = v[k]; else if (k === 'cantidad') delete p.cantidad; });
-        });
-      } catch (e) { console.warn('Precios al día no disponibles; uso los publicados:', e); }
-      try { await ajustes(); } catch (e) {}
-      return lista;
-    })();
+    if (!productosProm) productosProm = fetch('/productos.json', { cache: 'no-cache' }).then(r => r.json())
+      .then(d => d.productos || []).catch(err => { productosProm = null; throw err; });
     return productosProm;
+  }
+  const VIVOS_KEY = 'kv_vivos';
+  function vivosGuardados() { try { return JSON.parse(sessionStorage.getItem(VIVOS_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  /* Precio, oferta y stock al día de unos productos (por id). */
+  async function productosAlDia(ids) {
+    const lista = await productos();
+    ids = Array.from(new Set((ids || []).filter(Boolean)));
+    const cache = vivosGuardados(), ahora = Date.now();
+    const faltan = ids.filter(id => !cache[id] || ahora - cache[id].t > 3 * 60e3);
+    if (faltan.length) {
+      try {
+        const raiz = FS.split('/documents')[0].replace('https://firestore.googleapis.com/v1/', '') + '/documents/catalog/products/items/';
+        const r = await fetch(FS + ':batchGet', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ documents: faltan.map(id => raiz + id), mask: { fieldPaths: CAMPOS_PROD } }) });
+        if (!r.ok) throw new Error('productos ' + r.status);
+        (await r.json()).forEach(x => {
+          if (x.found) {
+            const p = {}; Object.keys(x.found.fields || {}).forEach(k => { p[k] = fsValor(x.found.fields[k]); });
+            cache[x.found.name.split('/').pop()] = { t: ahora, p: p };
+          } else if (x.missing) cache[x.missing.split('/').pop()] = { t: ahora, p: null };
+        });
+        try { sessionStorage.setItem(VIVOS_KEY, JSON.stringify(cache)); } catch (e) {}
+      } catch (e) { console.warn('Precios al día no disponibles; uso los publicados:', e); }
+    }
+    ids.forEach(id => {
+      const p = lista.find(x => x.id === id), c = cache[id];
+      if (!p || !c) return;
+      if (!c.p) { p.stock = false; return; }
+      ['name', 'price', 'priceOffer', 'stock', 'cantidad', 'detail'].forEach(k => { if (k in c.p) p[k] = c.p[k]; else if (k === 'cantidad') delete p.cantidad; });
+    });
+    try { await ajustes(); } catch (e) {}
+    return lista;
   }
 
   /* ---------- utilidades de pantalla ---------- */
@@ -147,7 +157,7 @@
   }
   carroContador();
   async function carroItems() {
-    const lista = await productos();
+    const lista = await productosAlDia(Object.keys(carro));
     return Object.keys(carro).map(id => {
       const p = lista.find(x => x.id === id && kvEnStock(x));
       if (!p) return null;
@@ -156,7 +166,7 @@
     }).filter(x => x && x.qty > 0);
   }
   async function agregar(id, n) {
-    const lista = await productos();
+    const lista = await productosAlDia([id]);
     const p = lista.find(x => x.id === id);
     if (!p || !kvEnStock(p)) { aviso('Este producto ya no está disponible'); return; }
     const tope = kvStockCantidad(p);
@@ -212,7 +222,7 @@
       '<div class="cantidad"><button type="button" data-qty="-1" data-id="' + it.p.id + '" aria-label="Quitar uno">−</button><span>' + it.qty + '</span>' +
       '<button type="button" data-qty="1" data-id="' + it.p.id + '" aria-label="Agregar uno">+</button></div></div>').join('') +
       '</div><div class="carro-pie"><div class="fila total"><span>Subtotal</span><span>' + formatCLP(sub) + '</span></div>' +
-      '<p class="nota">Envío: $2.990 en la Región Metropolitana · $3.990 al resto de Chile. Si tienes un cupón, lo aplicas al pagar.</p>' +
+      '<p class="nota">Envío: ' + formatCLP(kvEnvioCosto(KV_REGION_RM)) + ' en la Región Metropolitana · ' + formatCLP(kvEnvioCosto('')) + ' al resto de Chile. Si tienes un cupón, lo aplicas al pagar.</p>' +
       '<a class="btn btn-1 btn-bloque" href="/finalizar-compra.html">Finalizar compra</a>' +
       '<button type="button" class="btn btn-2 btn-bloque" style="margin-top:8px" data-cerrar="cajon-carro">Seguir comprando</button></div></div>';
     cont.querySelectorAll('[data-qty]').forEach(b => b.addEventListener('click', async () => {
@@ -245,7 +255,7 @@
       const n = Math.max(1, (parseInt(num.textContent, 10) || 1) + parseInt(b.dataset.mas, 10));
       num.textContent = n;
     }));
-    productos().then(lista => {
+    productosAlDia([id]).then(lista => {
       const p = lista.find(x => x.id === id);
       if (!p) return;
       const precio = $('#ficha-precio'); if (precio) precio.innerHTML = precioHtml(p);
@@ -263,8 +273,11 @@
     });
   }
 
-  /* ---------- tarjetas: precio y "agotado" al día ---------- */
-  if ($('[data-tarjeta]')) productos().then(lista => {
+  /* ---------- tarjetas: precio y "agotado" según lo publicado (y lo ya
+     consultado en esta visita); el precio final se confirma en el carrito ---------- */
+  if ($('[data-tarjeta]')) Promise.all([productos(), ajustes().catch(() => null)]).then(([lista]) => {
+    const cache = vivosGuardados();
+    lista.forEach(p => { const c = cache[p.id]; if (c && c.p) Object.assign(p, c.p); else if (c && !c.p) p.stock = false; });
     $$('[data-tarjeta]').forEach(t => {
       const p = lista.find(x => x.id === t.dataset.tarjeta);
       if (!p) return;
@@ -454,6 +467,6 @@
   if (cab) { const rev = () => cab.classList.toggle('bajando', scrollY > 40); addEventListener('scroll', rev, { passive: true }); rev(); }
 
   // lo que usa la página de pago
-  window.KV = { productos: productos, ajustes: ajustes, carroItems: carroItems, carro: () => carro, vaciarCarro: () => { carro = {}; carroGuardar(); },
+  window.KV = { productos: productos, productosAlDia: productosAlDia, ajustes: ajustes, carroItems: carroItems, carro: () => carro, vaciarCarro: () => { carro = {}; carroGuardar(); },
                 fsCrear: fsCrear, fsActualizar: fsActualizar, aviso: aviso, precioDe: precioDe, visita: visita };
 })();

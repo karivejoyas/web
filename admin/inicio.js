@@ -158,7 +158,7 @@
           '<div class="resumen-fila"><span>Ocultos o sin stock</span><b>' + (A.productos.length - visibles.length) + '</b></div>' +
           '<div class="resumen-fila"><span>Colecciones</span><b>' + A.colecciones().length + '</b></div>' +
           '<div class="resumen-fila"><span>Suscriptores</span><b>' + new Set(A.suscritos.map(s => String(s.correo || '').toLowerCase())).size + '</b></div>' +
-          (A.generadoWeb ? '<p class="ayuda mt" style="margin:10px 0 0">La web se publicó por última vez el ' + h(A.generadoWeb.split('-').reverse().join('-')) + '. Los cambios aparecen solos en unos 5 a 8 minutos.</p>' : '') +
+          (A.generadoWeb ? '<p class="ayuda mt" style="margin:10px 0 0">La web se publicó por última vez el ' + h(A.generadoWeb.split('-').reverse().join('-')) + '. Los cambios aparecen solos en unos 15 a 20 minutos.</p>' : '') +
         '</div>' +
       '</div></div>' +
     '</div>';

@@ -89,7 +89,7 @@
         (esExtra ? '<div class="tarjeta tarjeta-c"><h2 style="margin-bottom:10px">Visibilidad</h2>' + A.interruptor('pg-visible', pg.visible !== false, 'Publicada') +
           '<label class="campo"><span>Dirección</span><div class="campo-pre"><span>/paginas/</span><input id="pg-slug" value="' + h(slug(pg.slug || pg.titulo || '')) + '"></div></label></div>' :
           '<div class="tarjeta tarjeta-c"><h2 style="margin-bottom:6px">Dirección</h2><p class="ayuda" style="margin:0">karivejoyas.cl' + h(url) + '</p></div>') +
-        '<div class="tarjeta tarjeta-c"><p class="ayuda" style="margin:0">Al guardar, la página se actualiza en la web en unos 5 a 8 minutos.</p></div>' +
+        '<div class="tarjeta tarjeta-c"><p class="ayuda" style="margin:0">Al guardar, la página se actualiza en la web en unos 15 a 20 minutos.</p></div>' +
       '</div></div></div>';
 
     const $ = (id) => A.$('#' + id, vista);

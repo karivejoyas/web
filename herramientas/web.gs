@@ -3,7 +3,7 @@
 //  Vuelve a publicar la web apenas cambia algo: los productos (bot de
 //  Telegram o panel), la configuración (cupones, colecciones, envíos…) o
 //  los textos y diseño de la web (panel nuevo → Tienda online). Aparece en
-//  la web en unos 5 a 8 minutos, sin esperar la actualización de la noche.
+//  la web en unos 15 a 20 minutos, sin esperar la actualización de la noche.
 //  También trae tus últimos videos de Instagram para la portada (usa el mismo
 //  acceso a Instagram que ya tiene el publicador; no hay que configurar nada).
 //
@@ -15,7 +15,7 @@
 //  1) Propiedades del script → agregar  GH_TOKEN  = el token de GitHub
 //     (permiso "Actions: lectura y escritura" solo sobre el repositorio web).
 //  2) Arriba elige "webConfigurar" y aprieta ▶ Ejecutar.
-//     Deja programada la revisión cada 5 minutos y publica una vez.
+//     Deja programada la revisión cada 15 minutos y publica una vez.
 // ============================================================
 
 var WEB_REPO = 'karivejoyas/web';
@@ -80,15 +80,17 @@ function webPublicarAhora() {
   return ok;
 }
 
-/* Ejecútala UNA vez: programa la revisión cada 5 minutos y prueba todo. */
+/* Ejecútala UNA vez: programa la revisión cada 15 minutos y prueba todo.
+   (Cada revisión lee todos los productos; cada 15 minutos gasta una parte
+   chica de la cuota gratis diaria de la base, que es de 50.000 lecturas.) */
 function webConfigurar() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'webVigilar') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('webVigilar').timeBased().everyMinutes(5).create();
+  ScriptApp.newTrigger('webVigilar').timeBased().everyMinutes(15).create();
   var firma = webFirmaProductos();
   if (firma) PropertiesService.getScriptProperties().setProperty('WEB_FIRMA', firma);
-  Logger.log(firma ? '✅ Revisión cada 5 minutos programada (' + firma.split('|')[0] + ' productos).' : '⚠️ No pude leer los productos ahora; igual quedó programada.');
+  Logger.log(firma ? '✅ Revisión cada 15 minutos programada (' + firma.split('|')[0] + ' productos).' : '⚠️ No pude leer los productos ahora; igual quedó programada.');
   webProbarInstagram();
   webPublicarAhora();
 }

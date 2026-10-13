@@ -2,10 +2,9 @@
 #
 # Cuándo corre:
 #  - con cada cambio en el repositorio y a mano ("Run workflow" o web.gs);
-#  - todas las noches, siempre;
-#  - cada 10 minutos solo REVISA: compara la firma de los datos (productos,
-#    configuración y tema) con la de la web publicada, y publica solo si cambió
-#    algo (un producto del bot, un cupón, una foto de colección…).
+#  - todas las noches, siempre.
+#  Los cambios del día (un producto del bot, un cupón, una foto…) los detecta
+#  web.gs (Apps Script) cada 15 minutos y pide la publicación.
 name: Publicar web
 
 on:
@@ -13,7 +12,6 @@ on:
     branches: [main]
   schedule:
     - cron: '30 9 * * *'      # 05:30 / 06:30 en Chile: siempre publica
-    - cron: '*/10 * * * *'    # revisión: publica solo si cambiaron los datos
   workflow_dispatch:
     inputs:
       instagram:

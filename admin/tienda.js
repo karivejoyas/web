@@ -175,7 +175,7 @@
       '<div class="tarjeta"><div class="tema-actual"><div class="tema-mini" id="tm-mini"><iframe src="/" title="Vista del tema" tabindex="-1" loading="lazy"></iframe></div>' +
         '<div class="tema-info"><span class="ins verde" style="align-self:flex-start">Tema actual</span><h3>' + h(A.nombreTemaVivo()) + '</h3>' +
           '<p class="ayuda" style="margin:0">' + (w.actualizado ? 'Guardado ' + h(A.hace(w.actualizado)) : 'Diseño original de la web nueva') + '</p>' + paleta(t) +
-          '<p class="ayuda" style="margin:0">Los cambios que guardes aparecen en la web en unos 5 a 8 minutos.</p>' +
+          '<p class="ayuda" style="margin:0">Los cambios que guardes aparecen en la web en unos 15 a 20 minutos.</p>' +
           '<div class="acciones"><a class="btn btn-primario" href="#/tienda/editor">Personalizar</a><button class="btn" id="tm-duplicar">' + A.ic.copiar + ' Duplicar</button>' +
             '<button class="btn" id="tm-mas" aria-label="Más acciones">' + A.ic.puntos + '</button></div></div></div></div>' +
       '<div class="tarjeta lista-temas"><div class="tarjeta-cab"><h2>Biblioteca de temas</h2><div class="acciones"><button class="btn btn-chico" id="tm-subir">' + A.ic.subir + ' Subir tema</button></div></div>' +
@@ -378,7 +378,7 @@
       else await A.guardarTemaVivo(ed.tema);
       ed.inicial = JSON.stringify(ed.tema);
       A.limpiarCambios();
-      A.toast(ed.id ? 'Copia guardada ✓' : 'Guardado ✓ La web se actualiza en unos 5 a 8 minutos.');
+      A.toast(ed.id ? 'Copia guardada ✓' : 'Guardado ✓ La web se actualiza en unos 15 a 20 minutos.');
       if (b) b.textContent = 'Guardar';
       return true;
     } catch (e) { A.errorGuardar(e); if (b) { b.disabled = false; b.textContent = 'Guardar'; } return false; }
