@@ -969,6 +969,9 @@ def panel():
 def main():
     if os.path.exists(DIST):
         shutil.rmtree(DIST)
+    sys.path.insert(0, "herramientas")
+    import firma as F
+    firma_datos = F.firma()          # se toma ANTES de leer los datos: si algo cambia mientras se arma, la próxima revisión lo nota
     ajustes_tienda()
     os.makedirs(DIST + "/estatico", exist_ok=True)
     for f in os.listdir(EST):
@@ -990,6 +993,7 @@ def main():
     paginas_texto(cols)
     archivos_buscadores(prods, cols)
     panel()
+    open(DIST + "/firma.txt", "w").write(firma_datos + "\n")
     total = sum(len(fs) for _, _, fs in os.walk(DIST))
     print("productos: %d | colecciones: %d | archivos en %s: %d" % (len(prods), len(cols), DIST, total))
 

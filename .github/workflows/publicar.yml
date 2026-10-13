@@ -1,13 +1,19 @@
 # Arma la web desde el catálogo en vivo (Firestore) y la publica en GitHub Pages.
-# Corre con cada cambio en el repositorio, todas las noches (para tomar productos,
-# precios y stock nuevos) y a mano desde la pestaña Actions ("Run workflow").
+#
+# Cuándo corre:
+#  - con cada cambio en el repositorio y a mano ("Run workflow" o web.gs);
+#  - todas las noches, siempre;
+#  - cada 10 minutos solo REVISA: compara la firma de los datos (productos,
+#    configuración y tema) con la de la web publicada, y publica solo si cambió
+#    algo (un producto del bot, un cupón, una foto de colección…).
 name: Publicar web
 
 on:
   push:
     branches: [main]
   schedule:
-    - cron: '30 9 * * *'     # 05:30 / 06:30 en Chile
+    - cron: '30 9 * * *'      # 05:30 / 06:30 en Chile: siempre publica
+    - cron: '*/10 * * * *'    # revisión: publica solo si cambiaron los datos
   workflow_dispatch:
 
 permissions:
@@ -20,7 +26,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    outputs:
+      publicar: ${{ steps.firma.outputs.publicar }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: herramientas
+      - id: firma
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ] || [ "${{ github.event.schedule }}" = "30 9 * * *" ]; then
+            echo "publicar=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          ahora=$(python3 herramientas/firma.py || echo "")
+          sitio=$(gh api "repos/${{ github.repository }}/pages" --jq .html_url 2>/dev/null || echo "")
+          publicada=$(curl -fsSL "${sitio%/}/firma.txt?t=$(date +%s)" 2>/dev/null | tr -d '\n' || echo "")
+          echo "ahora:     $ahora"
+          echo "publicada: $publicada"
+          if [ -z "$ahora" ]; then echo "No se pudo leer la base; se revisa la próxima vez."; echo "publicar=false" >> "$GITHUB_OUTPUT"
+          elif [ "$ahora" != "$publicada" ]; then echo "Cambiaron los datos: se publica."; echo "publicar=true" >> "$GITHUB_OUTPUT"
+          else echo "Sin cambios."; echo "publicar=false" >> "$GITHUB_OUTPUT"; fi
+
   publicar:
+    needs: revisar
+    if: needs.revisar.outputs.publicar == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
