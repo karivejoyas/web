@@ -626,25 +626,4 @@
     A.cargarMedios().then(() => { if (String(seo.imagen).indexOf('medio:') === 0) $('pf-img').src = A.urlImagen(seo.imagen); }).catch(() => {});
   }, ['web']);
 
-  // ============================================================
-  //  apps
-  // ============================================================
-  A.pagina('apps', function (vista) {
-    const viejo = A.CATALOGO_ANTIGUO + 'admin.html';
-    const app = (ic, t, d, enlace, txt) => '<div class="tarjeta app-tarjeta"><div class="app-ic">' + ic + '</div><div class="t"><b>' + t + '</b><small>' + d + '</small></div>' + enlace.replace('%T', txt || 'Abrir') + '</div>';
-    const ext = (u) => '<a class="btn" href="' + u + '" target="_blank" rel="noopener">%T ' + A.ic.externo + '</a>';
-    vista.innerHTML = '<div class="pag">' + A.cab('Apps') +
-      '<p class="pag-sub">Herramientas que por ahora siguen en el panel antiguo. Se abren en otra pestaña con la misma contraseña, y funcionan igual que siempre.</p>' +
-      app('🛒', 'Mercado Libre', 'Publicar, precios, stock, ventas, duplicados y calidad de los avisos.', ext(viejo), 'Abrir') +
-      app('📷', 'Instagram y Facebook', 'Generar imágenes de los productos y publicar en tus redes.', ext(viejo), 'Abrir') +
-      app('✨', 'Asistente IA', 'Descripciones y respuestas con inteligencia artificial.', ext(viejo), 'Abrir') +
-      app('🗂️', 'Catálogo antiguo', 'karivejoyas.github.io/catalogo: sigue publicado y conectado a los mismos productos.', ext(A.CATALOGO_ANTIGUO), 'Ver') +
-      '<h2 style="font-size:15px;margin:22px 0 10px">Para Google</h2>' +
-      app('🛍️', 'Google Merchant Center', 'Archivo de productos para Google Shopping. Se actualiza solo.', '<button class="btn" data-copiar="' + location.origin + '/catalogo-google.csv">%T</button>', 'Copiar enlace') +
-      app('🔎', 'Google Search Console', 'Mapa del sitio para que Google encuentre todas las páginas.', '<button class="btn" data-copiar="' + location.origin + '/sitemap.xml">%T</button>', 'Copiar enlace') +
-    '</div>';
-    A.$$('[data-copiar]', vista).forEach(b => b.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(b.dataset.copiar); A.toast('Enlace copiado: ' + b.dataset.copiar); } catch (e) { window.prompt('Copia el enlace:', b.dataset.copiar); }
-    }));
-  }, []);
 })();

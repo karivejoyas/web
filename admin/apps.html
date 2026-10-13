@@ -1,0 +1,370 @@
+<!-- Apps del panel (Mercado Libre, Instagram y Facebook, Asistente IA).
+     Vienen del panel antiguo; las usa apps.js. -->
+  <div class="apps-viejas" data-app="instagram">
+    <section class="adm-seccion">
+      <h2 class="adm-seccion-titulo">Publicar en Instagram y Facebook</h2>
+      <p class="adm-seccion-sub">Marca uno o varios productos (varios = un carrusel, máx. 10). Con la barra de abajo — siempre visible — abres la vista previa para revisar y editar la descripción antes de publicar.</p>
+      <div class="adm-barra-sup">
+        <span class="cat-contador" id="adm-ig-contador"></span>
+        <button id="adm-ig-todas" class="adm-btn-borde">⬇ Descargar todas las imágenes</button>
+      </div>
+      <div id="adm-ig-lista"></div>
+    </section>
+    <section class="adm-seccion">
+      <label class="adm-etiqueta">Hashtags (toca para activar o desactivar — los de colección ✦ se agregan según los productos elegidos)</label>
+      <div id="adm-ig-tags" class="ig-tags"></div>
+      <div class="ig-tag-extra">
+        <input id="adm-ig-tag-nuevo" class="adm-input" placeholder="#agregarOtroHashtag" style="max-width:240px;" />
+        <button id="adm-ig-tag-add" class="adm-btn-borde">+ Agregar</button>
+      </div>
+    </section>
+    <div class="ig-stickybar">
+      <span id="adm-ig-selcount" class="cat-contador">0 productos seleccionados</span>
+      <div class="ig-stickybar-btns">
+        <button id="adm-ig-deseleccionar" class="adm-btn-borde" hidden>Deseleccionar todos</button>
+        <button id="adm-ig-preview" class="adm-btn-solido" disabled>👁 Vista previa de la publicación</button>
+      </div>
+    </div>
+    <section class="adm-seccion" id="ig-sec-config">
+      <h2 class="adm-seccion-titulo">Plantilla de la descripción</h2>
+      <p class="adm-seccion-sub">Este es el texto que aparece <b>por defecto en la vista previa</b> (y en el botón 📋 Texto). Edítalo a tu gusto y <b>Guarda</b>: las próximas vistas previas saldrán así. Marcadores que puedes usar o <b>borrar</b>:</p>
+      <ul class="adm-ayuda">
+        <li><b>{productos}</b> → lista de los productos con su precio y código</li>
+        <li><b>{nombres}</b> → solo los nombres, sin precios</li>
+        <li><b>{hashtags}</b> → los hashtags activos</li>
+      </ul>
+      <p class="adm-seccion-sub">Ejemplo: si <b>no quieres precios</b>, cambia <b>{productos}</b> por <b>{nombres}</b> (o bórralo). Si <b>no quieres hashtags</b>, borra <b>{hashtags}</b>.</p>
+      <textarea id="adm-ig-caption" class="adm-input" rows="9" style="font-family:'Jost',sans-serif;"></textarea>
+      <div class="adm-guardar-fila">
+        <button id="adm-ig-guardar" class="adm-btn-solido">Guardar plantilla</button>
+        <button id="adm-ig-reset" class="adm-btn-borde">Volver a la de por defecto</button>
+        <span id="adm-ig-ok" class="adm-guardado" hidden>✓ Guardado</span>
+      </div>
+    </section>
+    <div style="height:60px;"></div>
+  </div>
+
+
+  <div class="apps-viejas" data-app="mercadolibre">
+    <section class="adm-seccion">
+      <h2 class="adm-seccion-titulo">Publicar en Mercado Libre</h2>
+      <p class="adm-seccion-sub">Marca uno o varios productos y revisa, antes de publicar, exactamente cómo va a quedar cada aviso: título, precio, stock y descripción. Los productos <b>ya publicados</b> aparecen marcados y no se vuelven a subir.</p>
+      <div class="adm-barra-sup">
+        <span class="cat-contador" id="adm-ml-contador"></span>
+        <button id="adm-ml-sincronizar" class="adm-btn-borde">🔗 Reconocer lo ya publicado</button>
+        <button id="adm-ml-refrescar" class="adm-btn-borde">↻ Revisar estado</button>
+      </div>
+      <div id="adm-ml-estado-lista" class="ml-estado"></div>
+      <div id="adm-ml-lista"></div>
+    </section>
+
+    <div class="ig-stickybar">
+      <span id="adm-ml-selcount" class="cat-contador">0 productos seleccionados</span>
+      <div class="ig-stickybar-btns">
+        <button id="adm-ml-deseleccionar" class="adm-btn-borde" hidden>Deseleccionar todos</button>
+        <button id="adm-ml-revisar" class="adm-btn-solido" disabled>👁 Revisar antes de publicar</button>
+      </div>
+    </div>
+
+    <section class="adm-seccion" id="ml-sec-revision" hidden>
+      <h2 class="adm-seccion-titulo">Revisión</h2>
+      <p class="adm-seccion-sub">Esto es lo que se va a mandar a Mercado Libre. Puedes corregir el título de cada uno aquí mismo — se usa solo para esta publicación y <b>no cambia nada de tu producto</b>.</p>
+      <div class="adm-barra-sup">
+        <span class="cat-contador" id="adm-ml-ia-estado"></span>
+        <label class="ml-stock-todos">Stock para todos: <input id="adm-ml-stock-todos-n" class="adm-input" type="number" min="1" step="1" value="3" /></label>
+        <button id="adm-ml-stock-todos" class="adm-btn-borde">Aplicar a todos</button>
+        <button id="adm-ml-ia" class="adm-btn-borde">✨ Variar las descripciones con IA</button>
+      </div>
+      <div id="adm-ml-revision"></div>
+      <div class="ml-acciones">
+        <button id="adm-ml-probar" class="adm-btn-borde">🧪 Probar sin publicar</button>
+        <button id="adm-ml-publicar" class="adm-btn-solido">🚀 Publicar en Mercado Libre</button>
+      </div>
+      <p class="adm-seccion-sub" style="margin-top:10px;">«Probar sin publicar» le pregunta a Mercado Libre si los datos están correctos <b>sin crear ningún aviso</b>. Conviene usarlo la primera vez.</p>
+      <div class="ml-aviso-validar">⚠ <b>La comprobación de Mercado Libre se equivoca en esta cuenta.</b> Dice «User has not mode me1» aunque los datos estén bien: ya comprobamos que esos mismos productos <b>se publican sin problema</b>. Si ves ese error, ignóralo y publica.</div>
+      <div id="adm-ml-estado" class="ml-estado"></div>
+    </section>
+
+    <section class="adm-seccion" id="ml-sec-ventas">
+      <h2 class="adm-seccion-titulo">Mis ventas en Mercado Libre</h2>
+      <div class="adm-barra-sup">
+        <span class="cat-contador" id="adm-ml-ventas-contador">Aprieta el botón para traer tus ventas.</span>
+        <button id="adm-ml-ver-ventas" class="adm-btn-solido">↻ Ver mis ventas</button>
+      </div>
+      <div id="adm-ml-ventas"></div>
+    </section>
+
+    <section class="adm-seccion" id="ml-sec-publicadas">
+      <h2 class="adm-seccion-titulo">Mis publicaciones</h2>
+      <p class="adm-seccion-sub">Precio y stock se pueden cambiar aquí mismo, y también pausar o volver a activar un aviso. Los cambios van directo a Mercado Libre — <b>no tocan tu catálogo</b>.</p>
+      <div class="adm-barra-sup">
+        <span class="cat-contador" id="adm-ml-pubs-contador">Aprieta el botón para traer tus publicaciones.</span>
+        <button id="adm-ml-borrar" class="adm-btn-borde ml-btn-cerrar" hidden>🗑 Borrar los cerrados</button>
+        <button id="adm-ml-a-clasica" class="adm-btn-borde">💰 Pasar todas a Clásica</button>
+        <button id="adm-ml-ver-pubs" class="adm-btn-solido">↻ Ver mis publicaciones</button>
+      </div>
+      <div id="adm-ml-dup-barra" class="ml-dup-barra" hidden></div>
+      <div class="adm-guardar-fila" style="margin:14px 0;">
+        <button id="adm-ml-sku-ver" class="adm-btn-borde">🏷 Ponerle su código a cada aviso</button>
+        <button id="adm-ml-sku-aplicar" class="adm-btn-solido" hidden>Grabar los códigos</button>
+        <span id="adm-ml-sku-estado" class="cat-contador"></span>
+      </div>
+      <div id="adm-ml-sku-plan"></div>
+      <div class="adm-guardar-fila" style="margin:14px 0;">
+        <button id="adm-ml-precios-ver" class="adm-btn-borde">💲 Ver qué precios cambiarían</button>
+        <button id="adm-ml-precios-aplicar" class="adm-btn-solido" hidden>Aplicar los precios nuevos</button>
+        <span id="adm-ml-precios-estado" class="cat-contador"></span>
+      </div>
+      <div id="adm-ml-precios-plan"></div>
+      <div id="adm-ml-pubs"></div>
+    </section>
+
+    <section class="adm-seccion" id="ml-sec-calidad">
+      <h2 class="adm-seccion-titulo">Calidad de tus avisos</h2>
+      <p class="adm-seccion-sub">Mercado Libre le pone una nota a cada aviso y muestra «objetivos» sin explicar bien cuáles. Esto los lee y te dice <b>por dónde conviene partir</b> para que se muestren más.</p>
+      <div class="adm-barra-sup">
+        <span class="cat-contador"></span>
+        <button id="adm-ml-completar" class="adm-btn-solido">✨ Completar las características de todos</button>
+        <button id="adm-ml-calidad-ver" class="adm-btn-borde">🔍 Revisar la calidad</button>
+      </div>
+      <div id="adm-ml-calidad"></div>
+
+      <h3 class="ml-cfg-tit">Comprobar un aviso</h3>
+      <p class="adm-seccion-sub">Mira un aviso <b>tal como lo tiene Mercado Libre ahora</b>, con sus características y su última fecha de cambio. Sirve para comprobar con tus propios ojos que lo que hace el panel llegó de verdad.</p>
+      <div class="adm-guardar-fila">
+        <input id="adm-ml-aviso-id" class="adm-input" placeholder="MLC4474760054 (o déjalo vacío para ver el primero)" style="max-width:320px;" />
+        <button id="adm-ml-ver-aviso" class="adm-btn-borde">👁 Ver cómo está</button>
+      </div>
+      <div id="adm-ml-aviso"></div>
+    </section>
+
+    <section class="adm-seccion" id="ml-sec-config">
+      <h2 class="adm-seccion-titulo">Configuración</h2>
+
+      <h3 class="ml-cfg-tit">Precio</h3>
+      <p class="adm-seccion-sub" style="margin:0 0 10px;">Mercado Libre te descuenta el despacho aunque diga que lo paga quien compra, y ese cobro es casi el mismo para un aro barato que para uno caro. Por eso acá publicas más caro que en tu catálogo. <b>El precio de tu catálogo no cambia.</b></p>
+      <div class="ml-precio-campos">
+        <label>Sumar a cada precio <input id="adm-ml-recargo-fijo" class="adm-input" type="number" min="0" step="100" value="0" /></label>
+        <label>…y además un <input id="adm-ml-recargo-pct" class="adm-input" type="number" min="0" max="200" step="1" value="0" /> %</label>
+        <label>Precio mínimo <input id="adm-ml-precio-min" class="adm-input" type="number" min="0" step="100" value="0" /></label>
+        <label>Terminación
+          <select id="adm-ml-redondeo" class="adm-input">
+            <option value="">Dejarlo tal cual</option>
+            <option value="990">Terminar en 990</option>
+            <option value="500">Múltiplos de 500</option>
+            <option value="100">Múltiplos de 100</option>
+          </select>
+        </label>
+      </div>
+      <div id="adm-ml-precio-muestra" class="ml-precio-muestra"></div>
+
+      <h3 class="ml-cfg-tit">Publicación</h3>
+      <div class="ml-precio-campos">
+        <label>Tipo
+          <select id="adm-ml-tipo" class="adm-input">
+            <option value="gold_special">Clásica — comisión más baja</option>
+            <option value="gold_pro">Premium — con cuotas sin interés</option>
+          </select>
+        </label>
+        <label>Stock por defecto <input id="adm-ml-cantidad" class="adm-input" type="number" min="1" step="1" /></label>
+      </div>
+      <p class="adm-seccion-sub" style="margin:8px 0 0;">Premium <b>no da más visibilidad</b> que Clásica: cobra cerca del doble de comisión y lo que agrega son cuotas sin interés para quien compra.</p>
+
+      <div class="adm-guardar-fila" style="margin-top:20px;">
+        <button id="adm-ml-guardar-cfg" class="adm-btn-solido">Guardar</button>
+        <span id="adm-ml-cfg-ok" class="adm-guardado" hidden>✓ Guardado</span>
+      </div>
+
+      <details class="ml-avanzado">
+        <summary>Ajustes avanzados — normalmente no hay que tocarlos</summary>
+        <div class="ml-avanzado-body">
+          <label class="adm-etiqueta">Categoría de Mercado Libre</label>
+          <div class="adm-guardar-fila" style="margin:0 0 6px;">
+            <input id="adm-ml-categoria" class="adm-input" placeholder="MLC…" autocomplete="off" style="max-width:200px;" />
+            <button id="adm-ml-buscarcat" class="adm-btn-borde">Buscar</button>
+            <span id="adm-ml-catnombre" class="cat-contador"></span>
+          </div>
+
+          <label class="adm-etiqueta">Marca</label>
+          <input id="adm-ml-marca" class="adm-input" placeholder="Karivé Joyas" />
+          <label class="adm-etiqueta">Material</label>
+          <input id="adm-ml-material" class="adm-input" placeholder="Acero quirúrgico" />
+
+          <label class="adm-etiqueta">Forma de envío</label>
+          <select id="adm-ml-envio" class="adm-input">
+            <option value="">Que lo decida Mercado Libre (recomendado)</option>
+            <option value="me2">Mercado Envíos</option>
+            <option value="not_specified">Lo acuerdo yo con la compradora</option>
+            <option value="custom">Envío propio con costo fijo</option>
+          </select>
+
+          <label class="adm-check-linea"><input type="checkbox" id="adm-ml-enviogratis" /> <span>Ofrecer envío gratis (lo pagas tú)</span></label>
+          <p class="adm-seccion-sub" style="margin:4px 0 0;">⚠ Con productos bajo $10.000 el envío cuesta más que la venta y Mercado Libre rechaza la publicación.</p>
+
+          <label class="adm-check-linea"><input type="checkbox" id="adm-ml-oferta" /> <span>Usar el precio de oferta como base, en vez del normal</span></label>
+
+          <label class="adm-etiqueta" style="margin-top:18px;">Tipo de cierre de tus aros</label>
+          <select id="adm-ml-cierre" class="adm-input">
+            <option value="">No lo declaro</option>
+            <option value="Presión">Presión</option>
+            <option value="Gancho">Gancho</option>
+            <option value="Argolla">Argolla</option>
+            <option value="Broquel">Broquel</option>
+            <option value="Rosca">Rosca</option>
+          </select>
+          <label class="adm-check-linea"><input type="checkbox" id="adm-ml-hipo" /> <span>Declarar mis aros como hipoalergénicos</span></label>
+          <p class="adm-seccion-sub" style="margin:4px 0 0;">Estas dos respuestas se aplican a <b>todo tu catálogo</b>. Declara hipoalergénico solo si el acero quirúrgico va en la parte que toca la oreja: es una afirmación sobre la salud de quien compra.</p>
+
+          <div class="adm-guardar-fila" style="margin-top:16px;">
+            <button id="adm-ml-guardar-avz" class="adm-btn-solido">Guardar avanzados</button>
+            <span id="adm-ml-avz-ok" class="adm-guardado" hidden>✓ Guardado</span>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="adm-seccion">
+      <h2 class="adm-seccion-titulo">Título y descripción</h2>
+      <p class="adm-seccion-sub">Mercado Libre corta los títulos en <b>60 caracteres</b>. El título parte con el nombre del producto y se le agregan estas palabras mientras quepan.</p>
+      <label class="adm-etiqueta">Palabras que se agregan al título (separadas por coma)</label>
+      <input id="adm-ml-extras" class="adm-input" placeholder="Acero Quirúrgico, Mujer, Hechos A Mano" />
+      <label class="adm-etiqueta" style="margin-top:14px;">Descripción estándar</label>
+      <p class="adm-seccion-sub">Marcadores: <b>{nombre}</b> · <b>{medida}</b> · <b>{codigo}</b> · <b>{coleccion}</b> · <b>{precio}</b></p>
+      <textarea id="adm-ml-desc" class="adm-input" rows="9" style="font-family:'Jost',sans-serif;"></textarea>
+      <div class="adm-guardar-fila">
+        <button id="adm-ml-guardar-txt" class="adm-btn-solido">Guardar</button>
+        <button id="adm-ml-reset-txt" class="adm-btn-borde">Volver a la de por defecto</button>
+        <span id="adm-ml-txt-ok" class="adm-guardado" hidden>✓ Guardado</span>
+      </div>
+    </section>
+
+    <section class="adm-seccion">
+      <h2 class="adm-seccion-titulo">Conexión</h2>
+      <div id="adm-ml-cuenta-resumen" class="ml-estado"></div>
+      <details class="ml-avanzado">
+        <summary>Datos de la cuenta y herramientas de revisión</summary>
+        <div class="ml-avanzado-body">
+          <p class="adm-seccion-sub">Se usa el mismo publicador de Google que Instagram y Facebook. 🔒 Las claves se guardan <b>dentro del publicador</b>, nunca en la base pública del catálogo.</p>
+          <label class="adm-etiqueta">Client ID</label>
+          <input id="adm-ml-clientid" class="adm-input" placeholder="1234567890123456" autocomplete="off" />
+          <label class="adm-etiqueta">Client Secret</label>
+          <input id="adm-ml-secret" class="adm-input" placeholder="••••••••" autocomplete="off" />
+          <div class="adm-guardar-fila">
+            <button id="adm-ml-guardar-cred" class="adm-btn-solido">Guardar en el publicador</button>
+            <span id="adm-ml-cred-ok" class="adm-guardado" hidden>✓ Guardado</span>
+          </div>
+          <div class="adm-guardar-fila" style="margin-top:14px;">
+            <button id="adm-ml-conectar" class="adm-btn-borde">Conectar mi cuenta</button>
+            <button id="adm-ml-estado-cuenta" class="adm-btn-borde">Ver estado</button>
+            <button id="adm-ml-diagnostico" class="adm-btn-borde">Revisar mi cuenta</button>
+            <button id="adm-ml-envio-ok" class="adm-btn-borde">Copiar el envío que funciona</button>
+            <button id="adm-ml-plantilla" class="adm-btn-borde">Ver el molde</button>
+            <button id="adm-ml-probar" class="adm-btn-borde">Probar sin publicar</button>
+          </div>
+          <div id="adm-ml-cuenta" class="ml-estado"></div>
+          <div class="adm-guardar-fila" id="adm-ml-receta-fila" hidden>
+            <button id="adm-ml-usar-receta" class="adm-btn-solido">✓ Usar esta configuración</button>
+            <span id="adm-ml-receta-ok" class="adm-guardado" hidden>✓ Guardado</span>
+          </div>
+        </div>
+      </details>
+    </section>
+    <div style="height:60px;"></div>
+  </div>
+
+  <!-- ===== ASISTENTE IA ===== -->
+
+  <div class="apps-viejas" data-app="ia">
+    <section class="adm-seccion">
+      <h2 class="adm-seccion-titulo">Asistente IA</h2>
+      <p class="adm-seccion-sub">Pregúntale lo que quieras sobre tu catálogo: precios, ideas de promociones, qué publicar, textos para clientas… Conoce tus productos reales.</p>
+      <div id="ia-chat" class="ia-chat">
+        <div class="ia-msg ia-bot">¡Hola! 💜 Soy el asistente de Karivé Joyas. Pregúntame lo que quieras sobre tu catálogo — por ejemplo: «¿cuáles son mis 5 productos más caros?» o «dame ideas para promocionar los charms».</div>
+      </div>
+      <div class="ia-fila">
+        <input id="ia-preg" class="adm-input" placeholder="Escribe tu pregunta…" />
+        <button id="ia-enviar" class="adm-btn-solido">Enviar</button>
+      </div>
+    </section>
+    <section class="adm-seccion">
+      <h2 class="adm-seccion-titulo">Claves de IA</h2>
+      <p class="adm-seccion-sub">Consíguelas gratis: <b>OpenRouter</b> en openrouter.ai/settings/keys · <b>Gemini</b> en aistudio.google.com/apikey · <b>Groq</b> en console.groq.com/keys. El orden de uso es: <b>OpenRouter primero</b> y, si se agota su límite, los respaldos. 🔒 Al guardar quedan en este navegador y también <b>escondidas dentro de tu publicador de Google</b>: el <b>chat de la web</b> (y el del catálogo) las usa desde allá (nadie puede verlas con F12) y <b>aparecerán solas</b> en cualquier otro navegador donde configures la conexión con tu clave secreta.</p>
+      <div class="adm-contacto">
+        <label class="adm-etiqueta">Clave de OpenRouter (principal)</label>
+        <input id="ia-key-or" class="adm-input" placeholder="sk-or-…" autocomplete="off" />
+        <label class="adm-etiqueta">Clave de Google Gemini (respaldo)</label>
+        <input id="ia-key-gemini" class="adm-input" placeholder="AIza…" autocomplete="off" />
+        <label class="adm-etiqueta">Clave de Groq (respaldo)</label>
+        <input id="ia-key-groq" class="adm-input" placeholder="gsk_…" autocomplete="off" />
+        <div class="adm-fondo-tipos">
+          <label><input type="radio" name="ia-pref" value="gemini" /> Si OpenRouter falla: Gemini primero</label>
+          <label><input type="radio" name="ia-pref" value="groq" /> Si OpenRouter falla: Groq primero</label>
+        </div>
+        <div class="adm-guardar-fila">
+          <button id="ia-guardar" class="adm-btn-solido">Guardar claves</button>
+          <span id="ia-keys-ok" class="adm-guardado" hidden>✓ Guardado en este navegador</span>
+        </div>
+      </div>
+    </section>
+    <section class="adm-seccion">
+      <h2 class="adm-seccion-titulo">Uso de las IAs</h2>
+      <p class="adm-seccion-sub">Solicitudes hechas <b>hoy desde este navegador</b> (Gemini y Groq no permiten consultar el saldo por internet, así que ese conteo es local y aproximado). Para <b>OpenRouter</b> sí se consulta el estado real de tu clave.</p>
+      <div id="ia-uso" class="ia-uso"></div>
+      <div class="adm-guardar-fila" style="margin-top:12px;">
+        <button id="ia-uso-refrescar" class="adm-btn-borde">🔄 Actualizar</button>
+      </div>
+    </section>
+    <div style="height:60px;"></div>
+  </div>
+
+  <!-- ===== DISEÑO Y COLORES ===== -->
+
+<div class="apps-viejas apps-modales">
+  <div class="ig-modal" id="ig-modal" hidden>
+    <div class="ig-m-backdrop" data-role="ig-close"></div>
+    <div class="ig-m-card">
+      <button class="ig-m-x" data-role="ig-close" aria-label="Cerrar">✕</button>
+      <h3 class="ig-m-titulo">Vista previa de la publicación</h3>
+      <div class="ig-m-fotos" id="ig-m-fotos"></div>
+      <label class="adm-etiqueta">Descripción (puedes editarla antes de publicar)</label>
+      <textarea id="ig-m-caption" class="adm-input" rows="10" style="font-family:'Jost',sans-serif;"></textarea>
+      <div class="adm-guardar-fila" style="margin-top:8px;">
+        <button id="ig-m-ia-desc" class="adm-btn-borde">✨ Descripción con IA</button>
+        <button id="ig-m-ia-tags" class="adm-btn-borde">#️⃣ Hashtags con IA</button>
+      </div>
+      <div class="ia-fila" style="margin-top:4px;max-width:none;">
+        <input id="ig-m-ia-pedido" class="adm-input" placeholder="Pídele un cambio a la IA… ej: hazla más corta y con tono elegante" />
+        <button id="ig-m-ia-aplicar" class="adm-btn-borde" style="white-space:nowrap;">✨ Aplicar</button>
+      </div>
+      <div id="ig-m-sugeridos" class="ig-tags" style="margin:0;"></div>
+      <div class="adm-fondo-tipos" id="ig-m-destino" style="margin-top:6px;">
+        <label><input type="radio" name="ig-m-dest" value="ambas" checked /> Instagram y Facebook</label>
+        <label><input type="radio" name="ig-m-dest" value="ig" /> Solo Instagram</label>
+        <label><input type="radio" name="ig-m-dest" value="fb" /> Solo Facebook</label>
+      </div>
+      <div class="adm-guardar-fila">
+        <button id="ig-m-publicar" class="adm-btn-solido">🚀 Publicar en Instagram y Facebook</button>
+        <button class="adm-btn-borde" data-role="ig-close">Cancelar</button>
+      </div>
+      <div id="ig-m-progreso" class="ig-m-progreso" hidden>
+        <div class="ig-m-progreso-barra"><span id="ig-m-progreso-fill"></span></div>
+        <div class="ig-m-progreso-txt"><span id="ig-m-progreso-etapa">Preparando…</span><span id="ig-m-progreso-pct">0%</span></div>
+      </div>
+      <div id="ig-m-estado" class="ig-m-estado"></div>
+    </div>
+  </div>
+
+  <!-- popup: la IA principal falló, ¿usar la de respaldo? -->
+  <div class="ia-pop" id="ia-pop" hidden>
+    <div class="ia-pop-back"></div>
+    <div class="ia-pop-card">
+      <div class="ia-pop-titulo" id="ia-pop-tit">⚠ La IA no pudo responder</div>
+      <div class="ia-pop-msg" id="ia-pop-msg"></div>
+      <div class="ia-pop-btns">
+        <button class="adm-btn-solido" id="ia-pop-si">Sí, usar el respaldo</button>
+        <button class="adm-btn-borde" id="ia-pop-no">No, cancelar</button>
+      </div>
+    </div>
+  </div>
+
+</div>

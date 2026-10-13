@@ -528,7 +528,7 @@
     const secciones = [['Inicio', ''], ['Pedidos', 'pedidos'], ['Carritos abandonados', 'pedidos/pendientes'], ['Productos', 'productos'], ['Colecciones', 'colecciones'], ['Inventario', 'inventario'],
       ['Clientes', 'clientes'], ['Suscriptores', 'clientes/suscriptores'], ['Descuentos y cupones', 'descuentos'], ['Páginas', 'contenido/paginas'], ['Archivos', 'contenido/archivos'],
       ['Opiniones', 'contenido/opiniones'], ['Informes', 'informes'], ['Vista en tiempo real', 'informes/vivo'], ['Temas', 'tienda'], ['Personalizar tema', 'tienda/editor'],
-      ['Navegación (menús)', 'tienda/navegacion'], ['Preferencias (SEO)', 'tienda/preferencias'], ['Apps: Mercado Libre, Instagram', 'apps'], ['Configuración general', 'config/general'],
+      ['Navegación (menús)', 'tienda/navegacion'], ['Preferencias (SEO)', 'tienda/preferencias'], ['Mercado Libre', 'apps/mercadolibre'], ['Instagram y Facebook', 'apps/instagram'], ['Asistente IA', 'apps/ia'], ['Apps', 'apps'], ['Configuración general', 'config/general'],
       ['Pagos y Mercado Pago', 'config/pagos'], ['Transferencia bancaria', 'config/pagos'], ['Envíos', 'config/envios'], ['Notificaciones y correos', 'config/notificaciones'],
       ['Dominios', 'config/dominios'], ['Respaldos y copias', 'config/respaldos']]
       .filter(s => A.sinTildes(s[0]).indexOf(q) !== -1).slice(0, 5);
