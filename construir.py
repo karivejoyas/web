@@ -441,7 +441,7 @@ def tarjeta(p, i=0, lazy=True):
         etiqueta = '<span class="etiqueta">Últimas</span>'
     precio = pesos(p["vigente"]) + (("<s>%s</s>" % pesos(p["precio"])) if p["rebajado"] else "")
     return ('<li class="tarjeta" data-tarjeta="{id}" data-col="{col}" data-precio="{pv}" data-i="{i}" data-n="{n}" style="--i:{im}">'
-            '<a class="tarjeta-foto destello" href="{url}"><img src="{img}" alt="{alt}" width="480" height="480"{lz}>{et}<span class="tarjeta-ver" aria-hidden="true">Ver detalle</span></a>'
+            '<a class="tarjeta-foto" href="{url}"><img src="{img}" alt="{alt}" width="480" height="480"{lz}>{et}<span class="tarjeta-ver" aria-hidden="true">Ver detalle ' + FLECHA_DER + '</span></a>'
             '<div class="tarjeta-txt"><a class="tarjeta-nombre" href="{url}">{nom}</a><span class="precio">{precio}</span>'
             '<div class="agregar"><button type="button" class="btn btn-2" data-agregar="{id}"{dis}>{txt}</button></div></div></li>').format(
         id=e(p["id"]), col=e(p["col"]["slug"]), pv=p["vigente"], i=i, im=i % 4, n=p["creado"][:19].replace("-", "").replace(":", "").replace("T", ""),

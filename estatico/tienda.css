@@ -264,8 +264,8 @@ p{margin:0 0 1em}
    VIDA — una idea: las piezas "atrapan la luz", como una joya.
    · Portada: el título sube palabra por palabra, la foto se descubre
      y un destello la cruza una vez (el momento principal).
-   · Al pasar el mouse por fotos de productos, el mismo destello las
-     recorre (las colecciones tienen su propio efecto: se enmarcan); al agregar al carrito la foto vuela a la bolsa.
+   · Al pasar el mouse por productos y colecciones: la foto se acerca,
+     sube un velo morado y aparece el botón "Ver…"; al agregar al carrito la foto vuela a la bolsa.
    · Curvas de salida rápidas; todo se apaga con "reducir movimiento".
    ============================================================ */
 :root{--salida:cubic-bezier(.23,1,.32,1);--resorte:cubic-bezier(.16,1,.3,1)}
@@ -349,15 +349,28 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 @media (hover:hover){.confianza>div:hover span.ic{transform:rotate(-10deg) scale(1.08);background:var(--dorado-cl)}}
 
 
-/* tarjetas de producto */
-.tarjeta-foto{transition:box-shadow .35s var(--salida),transform .35s var(--salida)}
-.tarjeta-foto img{transition:transform .8s var(--salida)}
-.tarjeta-ver{position:absolute;left:50%;bottom:12px;transform:translate(-50%,10px);opacity:0;background:var(--crema);color:var(--morado-osc);font-size:13px;padding:7px 14px;border-radius:999px;white-space:nowrap;box-shadow:0 6px 16px -8px rgba(42,18,62,.4);transition:opacity .25s,transform .3s var(--salida)}
+/* tarjetas de producto: mismo efecto que las colecciones (la foto se
+   acerca, sube un velo morado y aparece "Ver detalle") */
+.tarjeta-foto{box-shadow:0 1px 2px rgba(42,18,62,.06);transition:box-shadow .45s var(--salida),transform .45s var(--salida)}
+.tarjeta-foto img{transition:transform 1.1s var(--salida)}
+.tarjeta-foto::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to top,rgba(42,18,62,.68) 0%,rgba(42,18,62,.22) 40%,transparent 64%);
+  opacity:0;transition:opacity .45s var(--salida)}
+.tarjeta-foto .etiqueta{z-index:2}
+.tarjeta-ver{position:absolute;left:50%;bottom:14px;z-index:2;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+  padding:8px 15px;border-radius:999px;background:var(--crema);color:var(--morado-osc);font-size:13.5px;font-weight:500;
+  opacity:0;transform:translate(-50%,14px);transition:opacity .35s var(--salida),transform .45s var(--salida)}
+.tarjeta-ver svg{width:15px;height:15px;transition:transform .35s var(--salida)}
 @media (hover:hover){
-  .tarjeta:hover .tarjeta-foto{transform:translateY(-4px);box-shadow:0 20px 34px -18px rgba(42,18,62,.5)}
-  .tarjeta:hover .tarjeta-foto img{transform:scale(1.06)}
+  .tarjeta:hover .tarjeta-foto{transform:translateY(-4px);box-shadow:0 22px 38px -20px rgba(42,18,62,.55)}
+  .tarjeta:hover .tarjeta-foto img{transform:scale(1.07)}
+  .tarjeta:hover .tarjeta-foto::after{opacity:1}
   .tarjeta:hover .tarjeta-ver{opacity:1;transform:translate(-50%,0)}
+  .tarjeta:hover .tarjeta-ver svg{transform:translateX(3px)}
+  .tarjeta:hover .tarjeta-nombre{color:var(--morado)}
 }
+.tarjeta-foto:focus-visible::after,.tarjeta-foto:focus-visible .tarjeta-ver{opacity:1}
+.tarjeta-foto:focus-visible .tarjeta-ver{transform:translate(-50%,0)}
+.tarjeta-foto:active{transform:scale(.98);transition-duration:.15s}
 
 /* taller: sello que gira despacio */
 .franja-img{position:relative}
