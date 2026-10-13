@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prueba de efectos · Karivé Joyas</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/assets/logo-avatar.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/estatico/tienda.css">
+<style>
+/* Página solo para comparar efectos. No es parte de la tienda. */
+:root{view-transition-name:none}
+body{background:var(--crema)}
+.demo{max-width:1180px;margin:0 auto;padding:28px 16px 80px}
+.demo h1{font-size:clamp(30px,5vw,44px);margin-bottom:6px}
+.demo>p{color:var(--suave);max-width:680px}
+.bloque{margin-top:40px}
+.bloque h2{font-size:clamp(24px,3.4vw,32px);margin-bottom:6px}
+.bloque>p{color:var(--suave);margin:0 0 14px;max-width:700px}
+.opciones{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.opciones button{min-height:44px;padding:8px 16px;border-radius:999px;border:1px solid var(--borde);background:var(--blanco);cursor:pointer;font-size:14.5px;color:var(--tinta);transition:background-color .2s,color .2s,border-color .2s}
+.opciones button[aria-pressed="true"]{background:var(--morado-osc);border-color:var(--morado-osc);color:var(--crema)}
+.opciones .repetir{border-style:dashed;color:var(--morado)}
+.explica{font-size:14.5px;color:var(--suave);min-height:44px;margin:0 0 14px;max-width:760px}
+.explica b{color:var(--tinta);font-weight:500}
+
+/* ---------- 1. foto principal ---------- */
+.heroprueba{display:grid;gap:22px;align-items:center;background:var(--blanco);border:1px solid var(--borde);border-radius:24px;padding:22px;overflow:hidden}
+@media (min-width:860px){.heroprueba{grid-template-columns:1fr 1.1fr;padding:34px}}
+.heroprueba h3{font-family:var(--serif);font-weight:500;font-size:clamp(30px,4.4vw,46px);line-height:1.1;margin:0 0 10px;color:var(--morado-osc)}
+.heroprueba p{color:var(--suave);margin:0}
+.hp-marco{position:relative;perspective:900px}
+.hp-foto{position:relative;aspect-ratio:4/3;border-radius:24px;overflow:hidden;background:var(--crema2);box-shadow:0 30px 60px -28px rgba(42,18,62,.45)}
+.hp-foto img{width:100%;height:100%;object-fit:cover;display:block}
+.hp-sello{position:absolute;right:14px;top:14px;background:var(--crema);border-radius:999px;padding:7px 14px;font-size:13px;color:var(--morado-osc);box-shadow:0 6px 16px -8px rgba(42,18,62,.35);z-index:2}
+.hp-chip{position:absolute;left:-10px;bottom:22px;display:flex;align-items:center;gap:10px;background:var(--blanco);border-radius:16px;padding:8px 14px 8px 8px;box-shadow:0 18px 40px -16px rgba(42,18,62,.4);z-index:2;font-size:13.5px;color:var(--suave)}
+.hp-chip img{width:46px;height:46px;border-radius:10px;object-fit:cover}
+.hp-chip b{display:block;color:var(--tinta);font-weight:500}
+.hp-velo{position:absolute;inset:0;background:var(--morado-osc);z-index:1;pointer-events:none;transform:scaleX(0);transform-origin:left}
+
+/* a. Movimiento lento (Ken Burns) */
+.ef-kenburns .hp-foto img{animation:kb 16s ease-in-out infinite alternate}
+@keyframes kb{from{transform:scale(1) translate(0,0)}to{transform:scale(1.14) translate(-3%,-2%)}}
+/* b. Cortina morada */
+.ef-cortina .hp-velo{animation:velo 1.25s cubic-bezier(.77,0,.18,1) forwards}
+@keyframes velo{0%{transform:scaleX(0);transform-origin:left}45%{transform:scaleX(1);transform-origin:left}55%{transform:scaleX(1);transform-origin:right}100%{transform:scaleX(0);transform-origin:right}}
+.ef-cortina .hp-foto img{opacity:0;animation:aparecefoto 1.4s cubic-bezier(.22,1,.36,1) .55s forwards}
+@keyframes aparecefoto{from{opacity:1;transform:scale(1.18)}to{opacity:1;transform:scale(1)}}
+/* c. Arco que se abre */
+.ef-arco .hp-foto{border-radius:999px 999px 24px 24px;animation:arco 1.5s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes arco{from{clip-path:ellipse(0% 0% at 50% 70%)}to{clip-path:ellipse(80% 95% at 50% 70%)}}
+.ef-arco .hp-foto img{animation:aparecefoto 1.8s cubic-bezier(.22,1,.36,1) forwards}
+@media (min-width:860px){.ef-arco .hp-foto{aspect-ratio:5/5.2;max-width:460px;margin-left:auto}}
+/* d. Profundidad con el mouse */
+.ef-profundidad .hp-foto,.ef-profundidad .hp-sello,.ef-profundidad .hp-chip{transition:transform .5s cubic-bezier(.22,1,.36,1)}
+.ef-profundidad .hp-foto img{transform:scale(1.08);transition:transform .5s cubic-bezier(.22,1,.36,1)}
+/* e. Destello (el actual) */
+.ef-destello .hp-foto{clip-path:inset(100% 0 0 0 round 24px);animation:descubre 1.1s cubic-bezier(.23,1,.32,1) .1s forwards}
+.ef-destello .hp-foto img{transform:scale(1.12);animation:asientad 1.6s cubic-bezier(.23,1,.32,1) .1s forwards}
+@keyframes asientad{to{transform:scale(1)}}
+.ef-destello .hp-foto::after{content:"";position:absolute;inset:-20% auto -20% -60%;width:45%;background:linear-gradient(105deg,transparent,rgba(255,250,235,.55) 50%,transparent);transform:skewX(-14deg);animation:destello 1.3s cubic-bezier(.23,1,.32,1) 1.1s both}
+/* aparición de la tarjeta y el sello en todos */
+.heroprueba.corre .hp-chip,.heroprueba.corre .hp-sello{animation:sube .7s cubic-bezier(.22,1,.36,1) 1s both}
+@keyframes sube{from{opacity:0;transform:translateY(14px)}}
+
+/* ---------- 2. abrir colección / producto ---------- */
+.pantalla{view-transition-name:pantalla;background:var(--crema);border:1px solid var(--borde);border-radius:24px;overflow:hidden;min-height:520px;contain:paint}
+.pantalla-barra{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--morado-osc);color:var(--crema);font-size:13px}
+.pantalla-barra i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.35)}
+.pantalla-barra span{flex:1;text-align:center;background:rgba(255,255,255,.12);border-radius:999px;padding:3px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vista{padding:20px}
+.vista h3{font-family:var(--serif);font-weight:500;font-size:clamp(26px,4vw,38px);color:var(--morado-osc);margin:0 0 4px}
+.vista .sub{color:var(--suave);font-size:14.5px;margin:0 0 16px}
+.v-cols{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media (min-width:760px){.v-cols{grid-template-columns:repeat(4,1fr)}}
+.v-col{border:0;background:none;padding:0;text-align:left;cursor:pointer;font:inherit}
+.v-col span{display:block;aspect-ratio:4/5;border-radius:16px;overflow:hidden;background:var(--crema2)}
+.v-col img{width:100%;height:100%;object-fit:cover;display:block}
+.v-col b{display:block;font-family:var(--serif);font-weight:500;font-size:21px;color:var(--morado-osc);margin-top:6px}
+.v-banner{height:clamp(120px,22vw,200px);border-radius:18px;overflow:hidden;margin:4px 0 16px;background:var(--crema2)}
+.v-banner img{width:100%;height:100%;object-fit:cover;object-position:center 30%;display:block}
+.v-grilla{display:grid;grid-template-columns:repeat(2,1fr);gap:16px 12px}
+@media (min-width:760px){.v-grilla{grid-template-columns:repeat(4,1fr)}}
+.v-prod{border:0;background:none;padding:0;text-align:left;cursor:pointer;font:inherit;color:inherit}
+.v-prod span.f{display:block;aspect-ratio:1;border-radius:14px;overflow:hidden;background:var(--crema2)}
+.v-prod img{width:100%;height:100%;object-fit:cover;display:block}
+.v-prod b{display:block;font-weight:400;font-size:14.5px;margin-top:6px;line-height:1.3}
+.v-prod em{font-style:normal;color:var(--morado-osc);font-weight:500}
+.volver{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--morado);cursor:pointer;font:inherit;padding:6px 0;margin-bottom:10px}
+.volver svg{width:18px;height:18px}
+.v-ficha{display:grid;gap:22px}
+@media (min-width:760px){.v-ficha{grid-template-columns:1.1fr 1fr;align-items:start}}
+.v-ficha .foto{aspect-ratio:1;border-radius:20px;overflow:hidden;background:var(--crema2)}
+.v-ficha .foto img{width:100%;height:100%;object-fit:cover;display:block}
+.v-ficha .cod{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--suave)}
+.v-ficha .precio{font-size:26px;margin:6px 0 12px}
+.v-ficha .btn{width:100%;margin-bottom:10px}
+.v-ficha ul{list-style:none;padding:0;margin:14px 0 0;color:var(--suave);font-size:14.5px}
+.v-ficha li{padding:7px 0;border-bottom:1px dashed var(--borde)}
+/* lo que aparece en la página nueva, en cascada (todas las opciones) */
+.entra>*{animation:entra .6s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--n,0) * 55ms + 120ms)}
+@keyframes entra{from{opacity:0;transform:translateY(16px)}}
+
+/* transiciones entre "páginas" (View Transitions) */
+::view-transition-group(*){animation-duration:.6s;animation-timing-function:cubic-bezier(.22,1,.36,1)}
+/* B. Cortina */
+html[data-tr="cortina"]::view-transition-old(pantalla){animation:tr-oscurece .9s cubic-bezier(.77,0,.18,1) both}
+html[data-tr="cortina"]::view-transition-new(pantalla){animation:tr-cortina .9s cubic-bezier(.77,0,.18,1) both}
+@keyframes tr-oscurece{to{filter:brightness(.55)}}
+@keyframes tr-cortina{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+/* D. Profundidad */
+html[data-tr="profundidad"]::view-transition-old(pantalla){animation:tr-atras .55s cubic-bezier(.22,1,.36,1) both}
+html[data-tr="profundidad"]::view-transition-new(pantalla){animation:tr-adelante .7s cubic-bezier(.22,1,.36,1) .1s both}
+@keyframes tr-atras{to{opacity:0;transform:scale(.92);filter:blur(6px)}}
+@keyframes tr-adelante{from{opacity:0;transform:scale(1.06);filter:blur(6px)}}
+/* E. Deslizar */
+html[data-tr="deslizar"]::view-transition-old(pantalla){animation:tr-sale .55s cubic-bezier(.22,1,.36,1) both}
+html[data-tr="deslizar"]::view-transition-new(pantalla){animation:tr-entra .6s cubic-bezier(.22,1,.36,1) both}
+html[data-tr="deslizar"][data-dir="atras"]::view-transition-old(pantalla){animation-name:tr-sale-der}
+html[data-tr="deslizar"][data-dir="atras"]::view-transition-new(pantalla){animation-name:tr-entra-izq}
+@keyframes tr-sale{to{opacity:0;transform:translateX(-25%)}}
+@keyframes tr-entra{from{transform:translateX(100%)}}
+@keyframes tr-sale-der{to{opacity:0;transform:translateX(25%)}}
+@keyframes tr-entra-izq{from{transform:translateX(-100%)}}
+/* A y C se arman con código (la foto que vuela y el círculo desde el toque) */
+html[data-tr="vuela"]::view-transition-old(pantalla),html[data-tr="vuela"]::view-transition-new(pantalla){animation-duration:.35s}
+html[data-tr="vuela"]::view-transition-group(foto){animation-duration:.75s;animation-timing-function:cubic-bezier(.22,1,.36,1)}
+html[data-tr="circulo"]::view-transition-old(pantalla){animation:none}
+html[data-tr="circulo"]::view-transition-new(pantalla){animation:none}
+
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+.aviso-nav{font-size:13.5px;background:var(--crema2);border-radius:12px;padding:10px 14px;color:var(--suave)}
+</style>
+</head>
+<body>
+<div class="demo">
+  <a href="/" style="text-decoration:none;color:var(--morado)">← Volver a la tienda</a>
+  <h1>Prueba de efectos</h1>
+  <p>Página solo para elegir. Toca cada opción para verla; puedes repetirla las veces que quieras. Pruébala también en el celular.</p>
+
+  <section class="bloque">
+    <h2>1. Foto principal de la portada</h2>
+    <p>Lo primero que se ve al entrar a la tienda.</p>
+    <div class="opciones" id="op-hero">
+      <button data-ef="kenburns">A · Movimiento lento</button>
+      <button data-ef="cortina">B · Cortina morada</button>
+      <button data-ef="arco">C · Arco que se abre</button>
+      <button data-ef="profundidad">D · Profundidad con el mouse</button>
+      <button data-ef="destello">E · Destello (el actual)</button>
+      <button class="repetir" id="hero-repetir">↻ Repetir</button>
+    </div>
+    <p class="explica" id="hero-explica"></p>
+    <div class="heroprueba" id="heroprueba">
+      <div><h3>Aros hechos a mano, uno por uno</h3><p>Flores de arcilla, argollas de cristal, corazones y conchitas con base de acero.</p></div>
+      <div class="hp-marco" id="hp-marco">
+        <div class="hp-foto" id="hp-foto"><img id="hp-img" src="/assets/modelo-portada.jpg" alt=""><div class="hp-velo"></div></div>
+        <span class="hp-sello">✦ Hecho a mano en Chile</span>
+        <span class="hp-chip" id="hp-chip"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloque">
+    <h2>2. Al abrir una colección o un producto</h2>
+    <p>Elige un efecto y navega dentro del recuadro: toca una colección y después un producto. Usa «Volver» para ver el efecto de regreso.</p>
+    <div class="opciones" id="op-tr">
+      <button data-tr="vuela">A · La foto vuela y crece</button>
+      <button data-tr="cortina">B · Cortina que sube</button>
+      <button data-tr="circulo">C · Círculo desde el toque</button>
+      <button data-tr="profundidad">D · Profundidad</button>
+      <button data-tr="deslizar">E · Deslizar como app</button>
+    </div>
+    <p class="explica" id="tr-explica"></p>
+    <p class="aviso-nav" id="aviso-nav" hidden>Tu navegador no tiene estos efectos (pasa en Firefox y en iPhone con iOS antiguo). Ahí la tienda simplemente cambia de página normal, sin romper nada. Pruébalo en Chrome, Edge o un iPhone actualizado.</p>
+    <div class="pantalla" id="pantalla">
+      <div class="pantalla-barra"><i></i><i></i><span id="pantalla-url">karivejoyas.cl</span></div>
+      <div class="vista" id="vista"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const h = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const clp = (n) => '$' + Math.round(n || 0).toLocaleString('es-CL');
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const flecha = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>';
+
+  // ---------- 1. foto principal ----------
+  const TXT_HERO = {
+    kenburns: '<b>Movimiento lento:</b> la foto se acerca y se desplaza muy despacio, todo el tiempo, como en los documentales. Tranquilo y elegante; da sensación de vida sin distraer.',
+    cortina: '<b>Cortina morada:</b> una franja morada cruza la foto y al retirarse la deja ver, que se acomoda desde un poco más cerca. Muy de marca, tipo revista de moda.',
+    arco: '<b>Arco que se abre:</b> la foto aparece dentro de un arco (como una ventana o un espejo antiguo) que se abre desde el centro. Original y muy "boutique".',
+    profundidad: '<b>Profundidad con el mouse:</b> al mover el mouse sobre la foto, ésta y las etiquetas se mueven a distintas velocidades, como si tuvieran capas. En el celular queda quieta. Pasa el mouse para probarlo.',
+    destello: '<b>Destello (el actual):</b> la foto se descubre desde abajo y un brillo la cruza una vez.'
+  };
+  const hero = $('#heroprueba'), marco = $('#hp-marco');
+  let efHero = 'cortina';
+  function correrHero() {
+    hero.className = 'heroprueba';
+    void hero.offsetWidth;
+    hero.classList.add('ef-' + efHero, 'corre');
+    $('#hero-explica').innerHTML = TXT_HERO[efHero];
+    document.querySelectorAll('#op-hero [data-ef]').forEach(b => b.setAttribute('aria-pressed', b.dataset.ef === efHero));
+    ['#hp-foto', '.hp-sello', '#hp-chip'].forEach(s => { const el = $(s); el.style.transform = ''; });
+    $('#hp-img').style.transform = '';
+  }
+  document.querySelectorAll('#op-hero [data-ef]').forEach(b => b.addEventListener('click', () => { efHero = b.dataset.ef; correrHero(); }));
+  $('#hero-repetir').addEventListener('click', correrHero);
+  marco.addEventListener('pointermove', (e) => {
+    if (efHero !== 'profundidad' || e.pointerType !== 'mouse' || quieto) return;
+    const r = marco.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+    $('#hp-foto').style.transform = 'rotateY(' + (x * 6) + 'deg) rotateX(' + (-y * 6) + 'deg)';
+    $('#hp-img').style.transform = 'scale(1.08) translate(' + (-x * 18) + 'px,' + (-y * 18) + 'px)';
+    $('.hp-sello').style.transform = 'translate(' + (x * 22) + 'px,' + (y * 22) + 'px)';
+    $('#hp-chip').style.transform = 'translate(' + (x * 30) + 'px,' + (y * 30) + 'px)';
+  });
+  marco.addEventListener('pointerleave', () => { if (efHero === 'profundidad') ['#hp-foto', '.hp-sello', '#hp-chip'].forEach(s => { $(s).style.transform = ''; }), $('#hp-img').style.transform = 'scale(1.08)'; });
+
+  // ---------- 2. abrir colección / producto ----------
+  const TXT_TR = {
+    vuela: '<b>La foto vuela y crece:</b> la foto que tocas viaja desde su lugar y se agranda hasta su posición en la página nueva; el resto aparece alrededor. Es el más impresionante (lo usan Apple y las tiendas grandes).',
+    cortina: '<b>Cortina que sube:</b> la página nueva sube desde abajo tapando la anterior, que se oscurece. Dramático y elegante.',
+    circulo: '<b>Círculo desde el toque:</b> la página nueva se abre como un círculo que nace justo donde tocaste. Juguetón y muy llamativo.',
+    profundidad: '<b>Profundidad:</b> la página anterior se aleja y se desenfoca, y la nueva llega desde adelante. Suave y moderno.',
+    deslizar: '<b>Deslizar como app:</b> la página nueva entra desde la derecha y al volver sale hacia el otro lado, como en una aplicación del celular.'
+  };
+  let efTr = 'vuela', productos = [], cols = [], estado = { vista: 'inicio' }, actual = null;
+  const soporta = typeof document.startViewTransition === 'function';
+  if (!soporta) $('#aviso-nav').hidden = false;
+
+  function pintarTr() {
+    document.querySelectorAll('#op-tr [data-tr]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tr === efTr));
+    $('#tr-explica').innerHTML = TXT_TR[efTr];
+  }
+  document.querySelectorAll('#op-tr [data-tr]').forEach(b => b.addEventListener('click', () => { efTr = b.dataset.tr; pintarTr(); }));
+
+  function render() {
+    const v = $('#vista');
+    if (estado.vista === 'inicio') {
+      $('#pantalla-url').textContent = 'karivejoyas.cl';
+      v.innerHTML = '<h3>Encuentra tu estilo</h3><p class="sub">Toca una colección</p><div class="v-cols entra">' +
+        cols.map((c, i) => '<button class="v-col" style="--n:' + i + '" data-col="' + h(c.nombre) + '"><span><img src="' + h(c.img) + '" alt="" data-vt="' + h(c.img) + '"></span><b>' + h(c.nombre) + '</b></button>').join('') + '</div>';
+    } else if (estado.vista === 'coleccion') {
+      const lista = productos.filter(p => p.col === estado.col).slice(0, 8);
+      $('#pantalla-url').textContent = 'karivejoyas.cl/c/' + estado.col.toLowerCase().replace(/\s+/g, '-');
+      v.innerHTML = '<button class="volver" data-atras="inicio">' + flecha + ' Volver</button>' +
+        '<div class="v-banner" data-col="' + h(estado.col) + '"><img src="' + h((cols.find(c => c.nombre === estado.col) || {}).img) + '" alt="" data-vt="banner"></div><h3>' + h(estado.col) + '</h3><p class="sub">' + productos.filter(p => p.col === estado.col).length + ' modelos · toca un producto</p>' +
+        '<div class="v-grilla entra">' + lista.map((p, i) => '<button class="v-prod" style="--n:' + i + '" data-prod="' + h(p.id) + '"><span class="f"><img src="' + h(p.img) + '" alt="" data-vt="' + h(p.id) + '"></span><b>' + h(p.name) + '</b><em>' + clp(p.priceOffer || p.price) + '</em></button>').join('') + '</div>';
+    } else {
+      const p = productos.find(x => x.id === estado.prod);
+      $('#pantalla-url').textContent = 'karivejoyas.cl' + p.url;
+      v.innerHTML = '<button class="volver" data-atras="coleccion">' + flecha + ' ' + h(p.col) + '</button><div class="v-ficha">' +
+        '<div class="foto"><img src="' + h(p.img.replace('-480.', '-800.')) + '" alt="" data-vt="' + h(p.id) + '"></div>' +
+        '<div class="entra"><div class="cod" style="--n:0">' + h(p.col) + ' · ' + h(p.code) + '</div><h3 style="--n:1">' + h(p.name) + '</h3><div class="precio" style="--n:2">' + clp(p.priceOffer || p.price) + '</div>' +
+        '<button class="btn btn-1" style="--n:3">Agregar al carrito</button><button class="btn btn-2" style="--n:4">Consultar por WhatsApp</button>' +
+        '<ul style="--n:5"><li>Envío a todo Chile</li><li>Paga con tarjeta o transferencia</li><li>3 meses de garantía</li></ul></div></div>';
+    }
+  }
+
+  /* Cambia de "página" con el efecto elegido. `origen` es lo que se tocó. */
+  function ir(nuevo, origen, ev, atras) {
+    document.documentElement.dataset.tr = efTr;
+    document.documentElement.dataset.dir = atras ? 'atras' : 'adelante';
+    if (!soporta || quieto) { estado = nuevo; render(); return; }
+    // A: la foto tocada (o la de destino al volver) lleva el mismo nombre en las dos páginas
+    const nombre = efTr === 'vuela' ? (atras ? estado.prod || estado.col : (nuevo.prod || origen && origen.dataset.col)) : null;
+    const marcar = () => {
+      document.querySelectorAll('[data-vt]').forEach(img => { img.style.viewTransitionName = ''; });
+      if (!nombre) return;
+      const img = [...document.querySelectorAll('[data-vt]')].find(i => i.dataset.vt === nombre || (i.closest('[data-col]') && i.closest('[data-col]').dataset.col === nombre));
+      if (img) img.style.viewTransitionName = 'foto';
+    };
+    marcar();
+    if (actual) actual.skipTransition();          // si tocan rápido, el efecto anterior termina al tiro
+    const t = actual = document.startViewTransition(() => { estado = nuevo; render(); marcar(); });
+    t.ready.catch(() => {}); t.updateCallbackDone.catch(() => {});
+    if (efTr === 'circulo') {
+      const r = $('#pantalla').getBoundingClientRect();
+      const x = ev ? ev.clientX - r.left : r.width / 2, y = ev ? ev.clientY - r.top : r.height / 2;
+      const radio = Math.hypot(Math.max(x, r.width - x), Math.max(y, r.height - y));
+      t.ready.then(() => {
+        document.documentElement.animate({ clipPath: ['circle(0px at ' + x + 'px ' + y + 'px)', 'circle(' + radio + 'px at ' + x + 'px ' + y + 'px)'] },
+          { duration: 750, easing: 'cubic-bezier(.22,1,.36,1)', pseudoElement: '::view-transition-new(pantalla)' });
+      });
+    }
+    t.finished.catch(() => {}).finally(() => { if (actual === t) actual = null; document.querySelectorAll('[data-vt]').forEach(img => { img.style.viewTransitionName = ''; }); });
+  }
+
+  $('#vista').addEventListener('click', (e) => {
+    const c = e.target.closest('[data-col]'), p = e.target.closest('[data-prod]'), a = e.target.closest('[data-atras]');
+    if (c) ir({ vista: 'coleccion', col: c.dataset.col }, c, e);
+    else if (p) ir({ vista: 'producto', col: estado.col, prod: p.dataset.prod }, p, e);
+    else if (a) ir(a.dataset.atras === 'inicio' ? { vista: 'inicio' } : { vista: 'coleccion', col: estado.col }, a, e, true);
+  });
+
+  fetch('/productos.json').then(r => r.json()).then(d => {
+    productos = (d.productos || []).filter(p => p.stock);
+    const vistas = {};
+    productos.forEach(p => { if (!vistas[p.col]) vistas[p.col] = p; });
+    // la foto de cada colección, la misma de la portada
+    fetch('/').then(r => r.text()).then(html => {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const fotos = {};
+      doc.querySelectorAll('.coleccion').forEach(a => { const n = a.querySelector('.coleccion-txt b'), i = a.querySelector('img'); if (n && i) fotos[n.textContent.trim()] = i.getAttribute('src'); });
+      const heroImg = doc.querySelector('.hero-img img'); if (heroImg) $('#hp-img').src = heroImg.getAttribute('src');
+      const nuevo = doc.querySelector('.hero-nuevo');
+      if (nuevo) $('#hp-chip').innerHTML = nuevo.innerHTML; else $('#hp-chip').hidden = true;
+      cols = Object.keys(vistas).map(n => ({ nombre: n, img: fotos[n] || vistas[n].img }));
+      render(); correrHero();
+    }).catch(() => { cols = Object.keys(vistas).map(n => ({ nombre: n, img: vistas[n].img })); render(); correrHero(); });
+  });
+  pintarTr();
+})();
+</script>
+</body>
+</html>

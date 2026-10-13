@@ -908,7 +908,7 @@ def archivos_buscadores(prods, cols):
             fh.write("  <url><loc>%sp/%s.html</loc><lastmod>%s</lastmod><image:image><image:loc>%s</image:loc></image:image></url>\n"
                      % (SITIO, p["codigo"], p["actualizado"] or hoy, html.escape(p["foto_abs"])))
         fh.write("</urlset>\n")
-    open(DIST + "/robots.txt", "w").write("User-agent: *\nAllow: /\nDisallow: /finalizar-compra.html\nDisallow: /admin/\n\nSitemap: %ssitemap.xml\n" % SITIO)
+    open(DIST + "/robots.txt", "w").write("User-agent: *\nAllow: /\nDisallow: /finalizar-compra.html\nDisallow: /admin/\nDisallow: /demo/\n\nSitemap: %ssitemap.xml\n" % SITIO)
 
     filas = []
     for p in sorted(prods, key=lambda p: (p["cat"], p["orden"])):
@@ -970,6 +970,8 @@ def panel():
     """El panel de administración (dist/admin) y el tema tal como quedó
     publicado, para que el editor parta desde lo que se ve en la web."""
     shutil.copytree("admin", DIST + "/admin")
+    if os.path.isdir("demo"):
+        shutil.copytree("demo", DIST + "/demo")      # páginas de prueba (no se indexan)
     import time
     ix = DIST + "/admin/index.html"
     contenido = open(ix, encoding="utf-8").read().replace("__V__", str(int(time.time())))
