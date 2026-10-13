@@ -51,7 +51,7 @@
     m = t.replace(/(\d)\.(?=\d{3}\b)/g, '$1').match(/\$?\s*(\d{3,7})/);
     return m ? parseInt(m[1], 10) : null;
   }
-  const COMO_COMPRAR = 'Agregas tus aros al carrito y pagas aquí mismo en la web, con <b>tarjeta (Mercado Pago)</b> o <b>transferencia</b>.';
+  const COMO_COMPRAR = 'Agregas tus aros al carrito y pagas aquí mismo en la web, con <b>tarjeta de débito o crédito</b> (Mercado Pago). Si prefieres transferencia, escríbenos por WhatsApp.';
 
   /* ---------- respuestas locales (respaldo sin IA) ---------- */
   function responder(pregunta) {
@@ -78,7 +78,7 @@
       return 'Hacemos <b>envíos a todo Chile</b> desde Santiago 🚚<br>• Región Metropolitana: <b>' + formatCLP(env.rm) + '</b><br>• Resto de Chile: <b>' + formatCLP(env.reg) +
         '</b><br>No tenemos retiro en tienda. Apenas verificamos el pago preparamos tu pedido y te avisamos con el número de seguimiento.';
     if (/(comprar|compro|pedido|pedir|encargar|pagar|pago|transferencia|tarjeta|mercado ?pago)/.test(t))
-      return 'Comprar es facilito 💜<br>1. Toca <b>Agregar al carrito</b> en los aros que te gusten.<br>2. Abre el carrito y toca <b>Finalizar compra</b>.<br>3. Pagas con <b>tarjeta (Mercado Pago)</b> o <b>transferencia</b> y te lo enviamos a todo Chile 🚚';
+      return 'Comprar es facilito 💜<br>1. Toca <b>Agregar al carrito</b> en los aros que te gusten.<br>2. Abre el carrito y toca <b>Finalizar compra</b>.<br>3. Pagas con <b>tarjeta de débito o crédito</b> (Mercado Pago) y te lo enviamos a todo Chile 🚚<br>¿Prefieres transferencia? Escríbenos por ' + contacto() + ' y lo coordinamos.';
     if (/(cuid|limpi|moja|agua|perfume|crema|fragil|alergi|acero|material|hipoalerg)/.test(t))
       return 'Los hacemos a mano con arcilla polimérica, cristales y mostacillas, siempre con <b>base de acero quirúrgico</b>.<br><br>Para que te duren mucho: guárdalos en un lugar seco, evita el agua, perfumes y cremas, y límpialos con un paño seco ✨';
     if (/(garantia|falla|roto|cambio|devoluc)/.test(t))
@@ -116,7 +116,7 @@
         ' | colección ' + (p.col || '') + ' | código ' + (p.code || '') + (p.detail ? ' | ' + p.detail : '');
     });
     return 'PRODUCTOS DISPONIBLES EN LA WEB:\n' + lineas.join('\n') +
-      '\n\nCÓMO SE COMPRA: en esta misma web (' + ORIGEN + '), agregando los aros al carrito y pagando con tarjeta (Mercado Pago) o transferencia. ' +
+      '\n\nCÓMO SE COMPRA: en esta misma web (' + ORIGEN + '), agregando los aros al carrito y pagando con tarjeta de débito o crédito (Mercado Pago). Quien quiera pagar por transferencia debe escribir por WhatsApp para coordinarlo. ' +
       'NO se coordina por DM. Envíos a todo Chile desde Santiago: Región Metropolitana ' + formatCLP(env.rm) + ', resto de Chile ' + formatCLP(env.reg) + '. NO hay retiro en tienda. ' +
       '3 meses de garantía por fallas. Hacemos diseños a pedido por WhatsApp.' +
       '\nCuando recomiendes un producto, escribe su código entre paréntesis, por ejemplo (TP-016): la web muestra su foto y enlace.';
@@ -157,10 +157,17 @@
   const btn = document.createElement('button');
   btn.className = 'chat-btn'; btn.type = 'button';
   btn.setAttribute('aria-label', 'Abrir el asistente'); btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'chat-panel');
-  btn.innerHTML = ICO_CHAT;
-  const globo = document.createElement('button');
-  globo.className = 'chat-globo'; globo.type = 'button'; globo.hidden = true;
-  globo.textContent = CFG.invitacion || '¿Te ayudo a encontrar tus aros? 💜';
+  btn.innerHTML = ICO_CHAT + '<span class="chat-btn-txt"><b>Asistente IA</b><small>Pregúntame</small></span>';
+  // burbujas de mensajes (como las del catálogo): una al lado del asistente y,
+  // de vez en cuando, una sobre WhatsApp
+  const globo = document.createElement('div');
+  globo.className = 'chat-globo'; globo.hidden = true;
+  globo.innerHTML = '<button type="button" class="chat-globo-txt"></button><button type="button" class="chat-globo-x" aria-label="No mostrar más mensajes">' + ICO_X + '</button>';
+  const waBtn = document.querySelector('.wa-flota');
+  const waGlobo = document.createElement('a');
+  waGlobo.className = 'wa-globo'; waGlobo.hidden = true; waGlobo.target = '_blank'; waGlobo.rel = 'noopener';
+  waGlobo.href = waBtn ? waBtn.href : 'https://wa.me/' + (CFG.wa || '');
+  waGlobo.textContent = CFG.mensajeWhatsapp || '¿Prefieres hablar con nosotras? Escríbenos por WhatsApp 💬';
   const panel = document.createElement('section');
   panel.className = 'chat-panel'; panel.id = 'chat-panel'; panel.hidden = true;
   panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', CFG.nombre || 'Asistente');
@@ -171,7 +178,7 @@
     '<div class="chat-sug">' + SUGERENCIAS.map(s => '<button type="button">' + esc(s) + '</button>').join('') + '</div></div>' +
     '<form class="chat-fila"><input type="text" placeholder="Escribe tu pregunta…" autocomplete="off" aria-label="Tu pregunta" maxlength="400">' +
     '<button type="submit" aria-label="Enviar">' + ICO_ENV + '</button></form>';
-  document.body.append(btn, globo, panel);
+  document.body.append(btn, globo, waGlobo, panel);
 
   const msgs = $('.chat-msgs', panel), input = $('input', panel), enviarBtn = $('.chat-fila button', panel);
   function agregar(html, cls) {
@@ -209,7 +216,7 @@
   }
   if (window.visualViewport) { visualViewport.addEventListener('resize', ajustar); visualViewport.addEventListener('scroll', ajustar); }
   function abrir() {
-    panel.hidden = false; globo.hidden = true; btn.classList.remove('llama');
+    panel.hidden = false; globo.hidden = true; waGlobo.hidden = true; btn.classList.remove('llama');
     btn.setAttribute('aria-expanded', 'true');
     document.documentElement.classList.add('chat-abierto');
     if (innerWidth <= 640) document.body.style.overflow = 'hidden';
@@ -224,17 +231,37 @@
     document.body.style.overflow = '';
   }
   btn.addEventListener('click', () => panel.hidden ? abrir() : cerrar());
-  globo.addEventListener('click', abrir);
+  $('.chat-globo-txt', globo).addEventListener('click', abrir);
+  $('.chat-globo-x', globo).addEventListener('click', () => { globo.hidden = true; btn.classList.remove('llama'); basta = true; try { sessionStorage.setItem('kv_chat_basta', '1'); } catch (e) {} });
   $('.chat-x', panel).addEventListener('click', cerrar);
   $('.chat-fila', panel).addEventListener('submit', e => { e.preventDefault(); enviar(input.value); });
   msgs.addEventListener('click', e => { const b = e.target.closest('.chat-sug button'); if (b) enviar(b.textContent); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) cerrar(); });
 
-  // invitación: una vez por visita, a los 8 segundos, y se va sola
-  let visto = false;
-  try { visto = sessionStorage.getItem('kv_chat_visto') === '1'; } catch (e) {}
-  if (!visto && !/finalizar-compra/.test(location.pathname)) {
-    setTimeout(() => { if (panel.hidden) { globo.hidden = false; btn.classList.add('llama'); } }, 8000);
-    setTimeout(() => { globo.hidden = true; }, 26000);
+  // mensajes: aparecen de a uno, se van solos y no se repiten demasiado
+  // (máximo 6 por visita; se acaban al abrir el chat o al cerrar una burbuja)
+  const MENSAJES = (Array.isArray(CFG.mensajes) ? CFG.mensajes : []).concat(CFG.invitacion ? [CFG.invitacion] : []).filter((x, i, l) => String(x || '').trim() && l.indexOf(x) === i);
+  if (!MENSAJES.length) MENSAJES.push('¿Te ayudo a encontrar tus aros? 💜');
+  const ses = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch (e) { return null; } };
+  let mostrados = +(ses('kv_chat_n') || 0);
+  let basta = ses('kv_chat_basta') === '1' || ses('kv_chat_visto') === '1';
+  let quitarT = null;
+  function burbuja(tipo) {
+    if (basta || !panel.hidden || mostrados >= 6 || document.hidden || /finalizar-compra/.test(location.pathname)) return;
+    if (tipo === 'wa') {
+      if (!waBtn || waBtn.hidden || getComputedStyle(waBtn).display === 'none') return;
+      globo.hidden = true; waGlobo.hidden = false;
+    } else {
+      waGlobo.hidden = true;
+      const txt = $('.chat-globo-txt', globo);
+      txt.innerHTML = '<span class="chat-puntos"><i></i><i></i><i></i></span>';
+      globo.hidden = false; btn.classList.add('llama');
+      const k = +(ses('kv_chat_m') || 0); ses('kv_chat_m', String(k + 1));
+      setTimeout(() => { txt.textContent = MENSAJES[k % MENSAJES.length]; }, 900);
+    }
+    mostrados++; ses('kv_chat_n', String(mostrados));
+    clearTimeout(quitarT);
+    quitarT = setTimeout(() => { globo.hidden = true; waGlobo.hidden = true; }, 9000);
   }
+  [[5000, 'chat'], [24000, 'wa'], [45000, 'chat'], [70000, 'chat'], [95000, 'wa']].forEach(([t, tipo]) => setTimeout(() => burbuja(tipo), t));
 })();

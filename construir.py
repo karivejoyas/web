@@ -108,7 +108,7 @@ def ajustes_tienda():
     if int(tar.get("regiones") or 0) > 0:
         ENV_RESTO = int(tar["regiones"])
     web = leer_doc("catalog/web")
-    TEMA = T.mezclar(T.TEMA_DEFECTO, web.get("tema") or {})
+    TEMA = T.actualizar_textos(T.mezclar(T.TEMA_DEFECTO, web.get("tema") or {}))
     CORREO = ((web.get("general") or {}).get("correo") or CORREO).strip()
     VARS = {"envio_rm": pesos(ENV_RM), "envio_regiones": pesos(ENV_RESTO)}
 
@@ -554,6 +554,7 @@ def chat_html():
     if not c.get("activo", True):
         return ""
     datos = {"nombre": c.get("nombre") or "Asistente Karivé", "saludo": c.get("saludo") or "", "invitacion": c.get("invitacion") or "",
+             "mensajes": [str(x) for x in (c.get("mensajes") or []) if str(x).strip()][:8], "mensajeWhatsapp": c.get("mensajeWhatsapp") or "",
              "wa": WA, "ig": IG, "fb": FBK}
     return '\n<script id="kv-chat-datos" type="application/json">%s</script>' % json.dumps(datos, ensure_ascii=False).replace("</", "<\\/")
 
@@ -1095,7 +1096,7 @@ def archivos_buscadores(prods, cols):
               "conchitas y charms, con base de acero. Tienda online con envíos a todo Chile.", "",
               "- Tienda: %stienda/" % SITIO, "- Instagram: %s" % IG, "- Facebook: %s" % FBK, "- WhatsApp: +%s" % WA,
               "- Envíos: a todo Chile desde Santiago (%s Región Metropolitana, %s resto de Chile). Sin retiro en tienda." % (pesos(ENV_RM), pesos(ENV_RESTO)),
-              "- Pagos: tarjeta (Mercado Pago) o transferencia.", "- Garantía: 3 meses por fallas (%sdevoluciones.html)." % SITIO,
+              "- Pagos: tarjeta de débito o crédito (Mercado Pago); transferencia coordinándola por WhatsApp.", "- Garantía: 3 meses por fallas (%sdevoluciones.html)." % SITIO,
               "- Preguntas frecuentes: %spreguntas-frecuentes.html" % SITIO, "", "## Colecciones", ""]
     for c in cols:
         lineas.append("- [%s](%sc/%s.html): %s" % (c["nombre"], SITIO, c["slug"], c.get("sub") or ""))
@@ -1142,7 +1143,7 @@ def panel():
     t = {k: v for k, v in TEMA.items()}
     t["paginas"] = {k: v for k, v in TEMA["paginas"].items() if not k.startswith("_x_")}
     json.dump({"tema": t, "defecto": T.TEMA_DEFECTO, "secciones": T.SECCIONES_PORTADA, "generado": date.today().isoformat(),
-               "envio": {"rm": ENV_RM, "regiones": ENV_RESTO}, "iconos": {k: T.icono(k) for k in T.ICONOS_TEMA}, "whatsapp": WA, "instagram": IG, "facebook": FBK, "correo": CORREO},
+               "envio": {"rm": ENV_RM, "regiones": ENV_RESTO}, "iconos": {k: T.icono(k) for k in T.ICONOS_TEMA}, "textosAntiguos": T.TEXTOS_ANTIGUOS, "whatsapp": WA, "instagram": IG, "facebook": FBK, "correo": CORREO},
               open(DIST + "/admin/tema-actual.json", "w", encoding="utf-8"), ensure_ascii=False)
 
 

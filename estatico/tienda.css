@@ -234,6 +234,13 @@ p{margin:0 0 1em}
 .medio span{font-size:13px;color:var(--suave)}
 .medio[aria-pressed="true"]{border-color:var(--morado);background:#F3ECF9}
 .transf{background:var(--crema);border-radius:12px;padding:14px;font-size:15px}
+.medio-unico{border:2px solid var(--morado);border-radius:14px;padding:14px;background:#F3ECF9;margin:10px 0}
+.medio-unico b{display:block}
+.medio-unico span{font-size:13.5px;color:var(--suave)}
+.transf-wa{display:block;border:1px dashed var(--lila);border-radius:14px;padding:12px 14px;text-decoration:none;color:var(--tinta);margin:4px 0 6px;transition:background-color .2s}
+.transf-wa b{display:block;font-weight:500;color:#157F43}
+.transf-wa span{font-size:13.5px;color:var(--suave)}
+@media (hover:hover){.transf-wa:hover{background:var(--crema2)}}
 .archivo{display:block;border:2px dashed var(--lila);border-radius:12px;padding:16px;text-align:center;cursor:pointer;color:var(--morado);margin-top:8px}
 .archivo.listo{border-style:solid;border-color:var(--ok);color:var(--ok)}
 .error-caja{background:#FBE9E7;color:var(--error);border-radius:12px;padding:12px 14px;margin:12px 0;font-size:14.5px}
@@ -419,7 +426,7 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 .wa-flota.respira::before{content:"";position:absolute;inset:0;border-radius:50%;background:#25D366;z-index:-1;animation:halo 3.2s var(--salida) infinite}
 @keyframes respira{0%,100%{transform:scale(1)}45%{transform:scale(1.08)}}
 @keyframes halo{0%,20%{transform:scale(1);opacity:.5}75%,100%{transform:scale(1.7);opacity:0}}
-@media (hover:hover){.wa-flota:hover{animation:none;transform:scale(1.08) rotate(-6deg)}.wa-flota:hover::before{animation:none;opacity:0}}
+@media (hover:hover){.wa-flota:hover{animation:none;transform:scale(1.08)}.wa-flota:hover::before{animation:none;opacity:0}}
 .chat-abierto .wa-flota{animation-play-state:paused}
 
 /* olas antes del pie (Personalizar → Olas) */
@@ -428,12 +435,16 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 @media (min-width:900px){.olas svg{height:var(--ola,110px)}}
 .olas use{fill:currentColor}
 .ola1 use{opacity:.35}.ola2 use{opacity:.5}.ola3 use{opacity:.7}
-.ola use{animation:ola 22s cubic-bezier(.55,.5,.45,.5) infinite}
-.ola1 use{animation-delay:-2s;animation-duration:9s}
-.ola2 use{animation-delay:-3s;animation-duration:12s}
-.ola3 use{animation-delay:-4s;animation-duration:15s}
-.ola4 use{animation-delay:-5s;animation-duration:22s}
-@keyframes ola{0%{transform:translate3d(-90px,0,0)}100%{transform:translate3d(85px,0,0)}}
+/* cada vuelta avanza exactamente un largo de ola (176), así el reinicio no se
+   nota; velocidad pareja (lineal) y capas en sentidos opuestos, para que
+   nunca se muevan todas juntas */
+.ola use{animation:ola 18s linear infinite;will-change:transform}
+.ola1 use{animation-duration:14s;animation-delay:-3s}
+.ola2 use{animation-name:ola-vuelta;animation-duration:19s;animation-delay:-7s}
+.ola3 use{animation-duration:25s;animation-delay:-11s}
+.ola4 use{animation-name:ola-vuelta;animation-duration:33s;animation-delay:-5s}
+@keyframes ola{from{transform:translate3d(-88px,0,0)}to{transform:translate3d(88px,0,0)}}
+@keyframes ola-vuelta{from{transform:translate3d(88px,0,0)}to{transform:translate3d(-88px,0,0)}}
 .olas.quietas use,.olas.quieta use{animation-play-state:paused}
 .olas.al-reves{transform:scaleX(-1)}
 .pie.con-olas{margin-top:0}
@@ -535,18 +546,36 @@ html[data-tr="vuela"] .ficha-foto img{view-transition-name:foto}
    ASISTENTE (chat con IA): botón abajo a la izquierda (WhatsApp va a la
    derecha). En el celular el panel ocupa toda la pantalla.
    ============================================================ */
-.chat-btn{position:fixed;left:16px;bottom:16px;z-index:30;width:56px;height:56px;border-radius:50%;border:0;cursor:pointer;
-  background:var(--morado);color:var(--crema);display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 0 2px rgba(251,247,241,.85),0 8px 20px rgba(42,18,62,.35);transition:transform .3s var(--resorte),background-color .25s}
-.chat-btn svg{width:28px;height:28px}
-.chat-btn:active{transform:scale(.94)}
-@media (hover:hover){.chat-btn:hover{transform:scale(1.07);background:var(--morado-osc)}}
-.chat-btn.llama::after{content:"";position:absolute;top:4px;right:4px;width:12px;height:12px;border-radius:50%;background:var(--dorado-cl);border:2px solid var(--morado-osc)}
+.chat-btn{position:fixed;left:16px;bottom:16px;z-index:30;height:56px;padding:0 20px 0 14px;border-radius:999px;border:0;cursor:pointer;
+  background:var(--morado);color:var(--crema);display:flex;align-items:center;gap:10px;font:inherit;text-align:left;
+  box-shadow:0 0 0 2px rgba(251,247,241,.85),0 10px 24px rgba(42,18,62,.35);transition:transform .3s var(--resorte),background-color .25s}
+.chat-btn svg{width:28px;height:28px;flex:0 0 28px;color:var(--dorado-cl)}
+.chat-btn-txt{display:flex;flex-direction:column;line-height:1.15}
+.chat-btn-txt b{font-weight:500;font-size:15px}
+.chat-btn-txt small{font-size:12px;color:var(--lila)}
+.chat-btn-txt small::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ADE80;margin-right:5px;vertical-align:1px}
+.chat-btn:active{transform:scale(.96)}
+@media (hover:hover){.chat-btn:hover{transform:translateY(-2px);background:var(--morado-osc)}}
+.chat-btn.llama::after{content:"";position:absolute;top:6px;left:34px;width:11px;height:11px;border-radius:50%;background:var(--dorado-cl);border:2px solid var(--morado)}
 .chat-abierto .chat-btn{opacity:0;pointer-events:none}
 @media (min-width:641px){.chat-abierto .chat-btn{opacity:1;pointer-events:auto}}
-.chat-globo{position:fixed;left:16px;bottom:82px;z-index:30;max-width:230px;padding:11px 15px;border:0;border-radius:18px 18px 18px 6px;cursor:pointer;
-  background:var(--blanco);color:var(--tinta);font:inherit;font-size:14.5px;text-align:left;box-shadow:0 14px 34px -14px rgba(42,18,62,.45);
-  animation:aparece .5s var(--salida) both}
+@media (max-width:640px){.chat-btn{height:52px;padding:0 16px 0 12px;gap:8px}.chat-btn svg{width:24px;height:24px;flex-basis:24px}.chat-btn-txt b{font-size:14px}.chat-btn-txt small{font-size:11.5px}.chat-btn.llama::after{left:28px}}
+.chat-globo{position:fixed;left:16px;bottom:84px;z-index:31;display:flex;align-items:flex-start;max-width:min(290px,calc(100vw - 100px));
+  background:var(--blanco);border-radius:18px 18px 18px 6px;box-shadow:0 14px 34px -12px rgba(42,18,62,.45);animation:globo .45s var(--resorte) both}
+.chat-globo[hidden],.wa-globo[hidden]{display:none}
+.chat-globo-txt{border:0;background:none;font:inherit;font-size:14.5px;line-height:1.4;color:var(--tinta);text-align:left;padding:12px 4px 12px 15px;cursor:pointer;min-height:44px}
+.chat-globo-x{flex:0 0 32px;width:32px;height:32px;margin:6px 6px 0 0;border:0;border-radius:50%;background:none;color:var(--suave);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.chat-globo-x svg{width:15px;height:15px}
+@media (hover:hover){.chat-globo-x:hover{background:var(--crema2)}}
+.wa-globo{position:fixed;right:16px;bottom:84px;z-index:31;max-width:min(250px,calc(100vw - 100px));padding:11px 15px;border-radius:18px 18px 6px 18px;
+  background:var(--blanco);color:var(--tinta);font-size:14.5px;line-height:1.4;text-decoration:none;box-shadow:0 14px 34px -12px rgba(42,18,62,.45);animation:globo .45s var(--resorte) both}
+@keyframes globo{from{opacity:0;transform:translateY(10px) scale(.94)}}
+/* WhatsApp: al pasar el mouse dice qué es */
+@media (hover:hover){
+  .wa-flota::after{content:attr(aria-label);position:absolute;right:66px;white-space:nowrap;background:var(--blanco);color:var(--tinta);font-size:14px;padding:8px 13px;border-radius:12px;
+    box-shadow:0 10px 26px -10px rgba(42,18,62,.45);opacity:0;transform:translateX(6px);pointer-events:none;transition:opacity .2s,transform .2s}
+  .wa-flota:hover::after{opacity:1;transform:none}
+}
 .chat-panel{position:fixed;left:16px;bottom:84px;z-index:85;width:min(380px,calc(100vw - 32px));height:min(560px,calc(100dvh - 120px));
   display:flex;flex-direction:column;background:var(--crema);border:1px solid var(--borde);border-radius:22px;overflow:hidden;
   box-shadow:0 30px 70px -24px rgba(42,18,62,.55);transform-origin:bottom left;animation:chat-entra .35s var(--resorte) both}

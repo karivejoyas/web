@@ -53,7 +53,7 @@ TEMA_DEFECTO = {
     },
     "anuncio": {"activo": True, "texto": "Envíos a todo Chile · **Hecho a mano en Santiago** · 3 meses de garantía"},
     "menu": [
-        {"texto": "Tienda", "url": "/tienda/"},
+        {"texto": "Ver todo", "url": "/tienda/"},
         {"texto": "Colecciones", "tipo": "colecciones"},
         {"texto": "Nosotros", "url": "/nosotros.html"},
         {"texto": "Preguntas", "url": "/preguntas-frecuentes.html"},
@@ -75,7 +75,14 @@ TEMA_DEFECTO = {
         "activo": True,
         "nombre": "Asistente Karivé",
         "saludo": "¡Hola! 💜 Soy la asistente de Karivé Joyas. Te ayudo a encontrar aros, ver precios, envíos o cómo comprar.",
-        "invitacion": "¿Te ayudo a encontrar tus aros? 💜",
+        "invitacion": "",
+        "mensajes": [
+            "¿Te ayudo a encontrar tus aros? 💜",
+            "¿Buscas un regalo? Dime para quién y te muestro opciones 🎁",
+            "Dime tu presupuesto y te muestro lo que alcanza ✨",
+            "¿Dudas con el envío o el pago? Pregúntame",
+        ],
+        "mensajeWhatsapp": "¿Prefieres hablar con nosotras? Escríbenos por WhatsApp 💬",
     },
     "seo": {
         "titulo": MARCA + " | Aros artesanales hechos a mano en Chile",
@@ -102,7 +109,7 @@ TEMA_DEFECTO = {
         ]},
         "confianza": {"items": [
             {"icono": "camion", "titulo": "Envíos a todo Chile", "texto": "{envio_rm} RM · {envio_regiones} regiones"},
-            {"icono": "tarjeta", "titulo": "Pago seguro", "texto": "Mercado Pago o transferencia"},
+            {"icono": "tarjeta", "titulo": "Pago seguro", "texto": "Tarjeta de débito o crédito"},
             {"icono": "escudo", "titulo": "3 meses de garantía", "texto": "Si llega con falla, lo solucionamos"},
             {"icono": "mano", "titulo": "Hecho a mano", "texto": "Cada par es único"},
         ]},
@@ -116,7 +123,7 @@ TEMA_DEFECTO = {
             "imagenAlt": "Argollas de cristal hechas a mano por Karivé Joyas",
             "pasos": [
                 "Elige tus favoritos y agrégalos al carrito.",
-                "Paga con tarjeta (Mercado Pago) o transferencia.",
+                "Paga con tarjeta de débito o crédito (Mercado Pago).",
                 "Los enviamos en su empaque, listos para regalar, a cualquier lugar de Chile.",
             ],
             "boton": {"texto": "Conoce Karivé", "url": "/nosotros.html"},
@@ -134,7 +141,7 @@ TEMA_DEFECTO = {
     "producto": {
         "beneficios": [
             "🚚 Envío a todo Chile: {envio_rm} en la RM · {envio_regiones} a regiones",
-            "💳 Paga con tarjeta (Mercado Pago) o transferencia",
+            "💳 Paga con tarjeta de débito o crédito (Mercado Pago)",
             "🛡️ 3 meses de garantía por fallas",
         ],
     },
@@ -188,7 +195,7 @@ TEMA_DEFECTO = {
                 {"q": "¿De qué material son los aros?", "a": "Los hacemos a mano con arcilla polimérica, cristales, mostacillas y otros materiales, siempre sobre una base de acero quirúrgico. Si tienes la piel muy sensible, escríbenos antes de comprar."},
                 {"q": "¿Hacen envíos a regiones?", "a": "Sí, enviamos a todo Chile desde Santiago: {envio_rm} a la Región Metropolitana y {envio_regiones} al resto del país. No tenemos retiro en tienda."},
                 {"q": "¿Cuánto demora mi pedido?", "a": "Preparamos tu pedido apenas verificamos el pago y te avisamos cuando va en camino, con su número de seguimiento."},
-                {"q": "¿Cómo puedo pagar?", "a": "Con tarjeta de débito o crédito a través de Mercado Pago, o por transferencia bancaria (en ese caso adjuntas el comprobante al terminar la compra)."},
+                {"q": "¿Cómo puedo pagar?", "a": "Con tarjeta de débito o crédito a través de Mercado Pago, directo en la web. Si prefieres pagar por transferencia, escríbenos por WhatsApp y lo coordinamos."},
                 {"q": "¿Puedo pedir un modelo en otros colores?", "a": "Sí. Si te gusta un diseño pero lo imaginas en otro color, escríbenos por WhatsApp o Instagram y lo creamos para ti."},
                 {"q": "¿Qué pasa si mi pedido llega con una falla?", "a": "Tienes 3 meses de garantía legal: lo cambiamos, lo reparamos o te devolvemos el dinero, y el envío de vuelta lo pagamos nosotros. Por higiene no aceptamos cambios por arrepentimiento."},
                 {"q": "¿Son iguales a las fotos?", "a": "Sí, aunque al ser hechos a mano cada par puede tener pequeñas diferencias de tono o forma. Eso es parte de que sean únicos."},
@@ -228,6 +235,31 @@ def icono(nombre):
         return html.escape(str(nombre or ""))
     return ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" '
             'stroke-linejoin="round" aria-hidden="true">%s</svg>' % d)
+
+
+# Textos que cambiaron de fábrica: si el tema guardado todavía tiene el texto
+# antiguo tal cual (o sea, nunca lo editaste), se usa el nuevo.
+TEXTOS_ANTIGUOS = {
+    'Mercado Pago o transferencia': 'Tarjeta de débito o crédito',
+    'Paga con tarjeta (Mercado Pago) o transferencia.': 'Paga con tarjeta de débito o crédito (Mercado Pago).',
+    '💳 Paga con tarjeta (Mercado Pago) o transferencia': '💳 Paga con tarjeta de débito o crédito (Mercado Pago)',
+    'Con tarjeta de débito o crédito a través de Mercado Pago, o por transferencia bancaria (en ese caso adjuntas el comprobante al terminar la compra).': 'Con tarjeta de débito o crédito a través de Mercado Pago, directo en la web. Si prefieres pagar por transferencia, escríbenos por WhatsApp y lo coordinamos.',
+}
+
+
+def actualizar_textos(v, menu=True):
+    """Pasa los textos antiguos de fábrica a los nuevos (ver TEXTOS_ANTIGUOS).
+    En el menú, «Tienda» (que lleva a /tienda/) pasa a llamarse «Ver todo»."""
+    if menu and isinstance(v, dict) and isinstance(v.get("menu"), list):
+        v = dict(v)
+        v["menu"] = [dict(it, texto="Ver todo") if isinstance(it, dict) and it.get("texto") == "Tienda" and it.get("url") == "/tienda/" else it for it in v["menu"]]
+    if isinstance(v, dict):
+        return {k: actualizar_textos(x, False) for k, x in v.items()}
+    if isinstance(v, list):
+        return [actualizar_textos(x, False) for x in v]
+    if isinstance(v, str):
+        return TEXTOS_ANTIGUOS.get(v, v)
+    return v
 
 
 def mezclar(base, encima):

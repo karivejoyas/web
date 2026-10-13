@@ -26,8 +26,17 @@
   /* Lo que se ve (o se verá en minutos) en la web: lo armado + lo guardado después. */
   A.temaVigente = function () {
     if (!A.temaPublicado) return null;
-    return A.mezclar(A.mezclar(A.temaPublicado.defecto, A.temaPublicado.tema), (A.web || {}).tema || {});
+    return actualizarTextos(A.mezclar(A.mezclar(A.temaPublicado.defecto, A.temaPublicado.tema), (A.web || {}).tema || {}));
   };
+  /* Igual que en construir.py: textos antiguos de fábrica → los nuevos, y en el
+     menú «Tienda» pasa a llamarse «Ver todo». */
+  function actualizarTextos(t) {
+    const viejos = (A.temaPublicado && A.temaPublicado.textosAntiguos) || {};
+    const pasar = (v) => Array.isArray(v) ? v.map(pasar) : (v && typeof v === 'object') ? Object.keys(v).reduce((o, k) => { o[k] = pasar(v[k]); return o; }, {}) : (typeof v === 'string' && viejos[v]) || v;
+    t = pasar(t);
+    if (Array.isArray(t.menu)) t.menu = t.menu.map(it => it && it.texto === 'Tienda' && it.url === '/tienda/' ? Object.assign({}, it, { texto: 'Ver todo' }) : it);
+    return t;
+  }
   A.nombreTemaVivo = () => ((A.web || {}).nombreTema) || 'Karivé';
   A.guardarTemaVivo = function (tema, nombre) {
     const datos = { tema: tema, actualizado: new Date().toISOString() };
@@ -283,7 +292,7 @@
     logo: { nombre: 'Logo', ruta: 'logo', campos: [['imagen', 'imagen', 'Imagen del logo'], ['alto', 'rango', 'Tamaño en el computador', { min: 28, max: 110 }], ['altoMovil', 'rango', 'Tamaño en el celular', { min: 24, max: 80 }], ['altoPie', 'rango', 'Tamaño en el pie de página', { min: 30, max: 120 }]], ayuda: 'Para cambiar la imagen usa un PNG con fondo transparente. Al bajar por la página, en el computador el logo se achica un poco.' },
     efectos: { nombre: 'Efectos y movimiento', ruta: 'efectos', campos: [['portada', 'opciones', 'Efecto de la foto de portada', EFECTOS_PORTADA], ['transicion', 'opciones', 'Al abrir una colección o un producto', TRANSICIONES]], ayuda: 'La transición entre páginas se ve en Chrome, Edge y Safari (iPhone) actualizados; en los demás la página simplemente cambia. Quien tenga activado «reducir movimiento» no ve efectos.' },
     olas: { nombre: 'Olas antes del pie', ruta: 'olas', campos: [['activo', 'si', 'Mostrar las olas'], ['animacion', 'si', 'Que se muevan'], ['rotar', 'si', 'Darlas vuelta (de derecha a izquierda)'], ['alto', 'rango', 'Alto en el computador', { min: 30, max: 220 }], ['altoMovil', 'rango', 'Alto en el celular', { min: 20, max: 160 }], ['color', 'colorOpc', 'Color de las olas']], ayuda: 'Si no eliges color, usan el del pie de página (Colores → Color oscuro).' },
-    chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['invitacion', 'texto', 'Burbuja de invitación (aparece una vez por visita)']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
+    chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['mensajes', 'textos', 'Mensajes que aparecen junto al botón (de a uno, máximo 6 por visita)'], ['mensajeWhatsapp', 'texto', 'Mensaje que aparece sobre el botón de WhatsApp']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
     producto: { nombre: 'Ficha de producto', ruta: 'producto', campos: [['beneficios', 'textos', 'Beneficios bajo el botón de compra']] }
   };
   const PAGINAS_PREV = [['/', 'Inicio'], ['/tienda/', 'Tienda'], ['col', 'Una colección'], ['prod', 'Un producto'], ['/nosotros.html', 'Nosotros'], ['/contacto.html', 'Contacto'], ['/envios.html', 'Envíos'], ['/preguntas-frecuentes.html', 'Preguntas frecuentes'], ['/devoluciones.html', 'Cambios y devoluciones']];

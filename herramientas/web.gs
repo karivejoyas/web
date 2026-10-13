@@ -91,7 +91,8 @@ function webConfigurar() {
   var firma = webFirmaProductos();
   if (firma) PropertiesService.getScriptProperties().setProperty('WEB_FIRMA', firma);
   Logger.log(firma ? '✅ Revisión cada 15 minutos programada (' + firma.split('|')[0] + ' productos).' : '⚠️ No pude leer los productos ahora; igual quedó programada.');
-  webProbarInstagram();
+  if (typeof webProbarInstagram === 'function') webProbarInstagram();
+  else Logger.log('⚠️ Falta la parte de Instagram: copia el archivo web.gs COMPLETO (termina en la función webProbarInstagram) y guarda.');
   webPublicarAhora();
 }
 
@@ -178,4 +179,4 @@ function webProbarInstagram() {
   var v = ig.filter(function (x) { return x.tipo === 'VIDEO'; }).length;
   Logger.log('✅ Instagram: ' + ig.length + ' publicaciones (' + v + ' videos). La más nueva: ' + (ig[0] ? ig[0].url : '—'));
 }
-
+// ---- fin de web.gs (si no ves esta línea en Apps Script, el archivo quedó cortado) ----

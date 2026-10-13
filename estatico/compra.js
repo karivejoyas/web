@@ -15,7 +15,7 @@
   const PEND = 'kv_pedido_pendiente';
   const form = { nombre: '', correo: '', telefono: '', direccion: '', region: '', comuna: '', notas: '' };
   try { Object.assign(form, JSON.parse(localStorage.getItem('kv_datos_compra') || '{}')); } catch (e) {}
-  let medio = 'transferencia', comprobante = null, cupon = null, cuponTxt = '', cuponErr = '', enviando = false, correoAvisado = '';
+  let medio = 'mercadopago', comprobante = null, cupon = null, cuponTxt = '', cuponErr = '', enviando = false, correoAvisado = '';
   let A = {}, items = [];
 
   function pendGuardar(d) {
@@ -36,6 +36,16 @@
   const whatsapp = () => { const m = String(A.whatsapp || '+56988829803').match(/\d+/g); return m ? m.join('') : '56988829803'; };
 
   function pintarError(msg) { const e = $('#pago-error'); e.textContent = msg; e.hidden = false; e.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+
+  /* Mensaje para WhatsApp con el pedido, para quien quiere pagar por transferencia. */
+  function mensajeTransferencia(total, envio) {
+    const f = form;
+    return '¡Hola Karivé! 💜 Quiero pagar por transferencia este pedido:\n' +
+      items.map(it => '• ' + it.qty + ' × ' + (it.p.name || '') + (it.p.code ? ' (' + it.p.code + ')' : '') + ' — ' + formatCLP(KV.precioDe(it.p) * it.qty)).join('\n') +
+      (envio != null ? '\nEnvío: ' + formatCLP(envio) + ' (' + f.comuna + ', ' + f.region + ')' : '') +
+      (cupon && descuento() ? '\nCupón ' + cupon.codigo + ': −' + formatCLP(descuento()) : '') +
+      '\nTotal: ' + formatCLP(total) + (f.nombre ? '\n\nMi nombre: ' + f.nombre : '');
+  }
 
   function pintar() {
     if (!items.length) {
@@ -63,11 +73,10 @@
           comunas.map(c => '<option' + (form.comuna === c ? ' selected' : '') + '>' + escapeHtml(c) + '</option>').join('') + '</select></label></div>' +
         '<label class="campo"><span>Nota para tu pedido (opcional)</span><textarea data-c="notas" rows="2">' + escapeHtml(form.notas || '') + '</textarea></label>' +
         '<h2 style="margin-top:14px">Pago</h2>' +
-        (mp.activo ? '<div class="medios">' +
-          '<button type="button" class="medio" data-medio="transferencia" aria-pressed="' + (medio === 'transferencia') + '"><b>🏦 Transferencia</b><span>Sin recargo</span></button>' +
-          '<button type="button" class="medio" data-medio="mercadopago" aria-pressed="' + (medio === 'mercadopago') + '"><b>💳 Tarjeta</b><span>Débito o crédito, con Mercado Pago</span></button></div>' : '') +
         (conTarjeta
-          ? '<p class="nota">Al confirmar te llevamos a Mercado Pago para pagar con tarjeta de forma segura.' + (mp.prueba ? ' <b>Modo de prueba: no se cobra dinero real.</b>' : '') + '</p>'
+          ? '<div class="medio-unico"><b>💳 Tarjeta de débito o crédito</b><span>Pago seguro con Mercado Pago. Al confirmar te llevamos a Mercado Pago para pagar.' + (mp.prueba ? ' <b>Modo de prueba: no se cobra dinero real.</b>' : '') + '</span></div>' +
+            '<a class="transf-wa" href="https://wa.me/' + whatsapp() + '?text=' + encodeURIComponent(mensajeTransferencia(total, envio)) + '" target="_blank" rel="noopener">' +
+              '<b>¿Prefieres pagar por transferencia?</b><span>Escríbenos por WhatsApp con tu pedido y te damos los datos.</span></a>'
           : '<div class="transf">' + (kvTransferenciaLista(A)
               ? '<b>' + escapeHtml(t.titular) + '</b><br>' + (t.rut ? 'RUT ' + escapeHtml(t.rut) + '<br>' : '') + escapeHtml(t.banco) + (t.tipo ? ' · ' + escapeHtml(t.tipo) : '') +
                 '<br>N° de cuenta <b>' + escapeHtml(t.numero) + '</b>' + (t.correo ? '<br>' + escapeHtml(t.correo) : '') +
@@ -182,7 +191,7 @@
         location.href = dp.url;
       } catch (err) {
         enviando = false; pintar();
-        pintarError('No pudimos iniciar el pago con tarjeta (' + err.message + '). Prueba con transferencia o escríbenos por WhatsApp 💜');
+        pintarError('No pudimos iniciar el pago con tarjeta (' + err.message + '). Inténtalo de nuevo, o escríbenos por WhatsApp para pagar por transferencia 💜');
       }
       return;
     }
@@ -239,7 +248,7 @@
       }
       return true;
     }
-    KV.aviso(estado === 'pendiente' ? 'Tu pago quedó pendiente en Mercado Pago. Si se aprueba te avisamos 💜' : 'El pago no se completó. Puedes intentar de nuevo o pagar por transferencia 💜');
+    KV.aviso(estado === 'pendiente' ? 'Tu pago quedó pendiente en Mercado Pago. Si se aprueba te avisamos 💜' : 'El pago no se completó. Puedes intentar de nuevo, o escríbenos por WhatsApp para pagar por transferencia 💜');
     return false;
   }
 
