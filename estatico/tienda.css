@@ -382,31 +382,39 @@ a{text-underline-offset:.18em;text-decoration-thickness:1px}
 
 
 /* ============================================================
-   COLECCIONES: tarjetas horizontales del mismo tamaño, todas a la
-   vista. La última fila se centra si queda incompleta.
-   Al pasar el mouse: la foto se enmarca (paspartú) y se dibuja la
-   línea de "Ver colección".
+   COLECCIONES: tarjetas verticales (4:5) del mismo tamaño, todas a la
+   vista; la última fila se centra si queda incompleta.
+   Al pasar el mouse: la foto se acerca despacio, sube un velo morado
+   desde abajo y aparece "Ver colección" (sin bordes).
    ============================================================ */
 .colecciones{--cols:2;--gap:14px;display:flex;flex-wrap:wrap;justify-content:center;gap:22px var(--gap)}
 @media (min-width:700px){.colecciones{--cols:3;--gap:18px}}
-@media (min-width:1050px){.colecciones{--cols:4;--gap:20px}}
+@media (min-width:1050px){.colecciones{--cols:4;--gap:22px}}
 .coleccion{flex:0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols));min-width:0;display:flex;flex-direction:column;gap:10px;text-decoration:none;color:inherit;outline-offset:6px}
-.coleccion-foto{display:block;aspect-ratio:3/2;border-radius:18px;overflow:hidden;background:var(--crema2);transition:background-color .35s var(--salida)}
-.coleccion-foto img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 32%;border-radius:18px;
-  transition:transform .55s var(--salida),border-radius .55s var(--salida),filter .55s var(--salida)}
+.coleccion-foto{position:relative;display:block;aspect-ratio:4/5;border-radius:18px;overflow:hidden;background:var(--crema2);
+  box-shadow:0 1px 2px rgba(42,18,62,.06);transition:box-shadow .45s var(--salida),transform .45s var(--salida)}
+.coleccion-foto img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 35%;transition:transform 1.1s var(--salida)}
+.coleccion-foto::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(42,18,62,.72) 0%,rgba(42,18,62,.25) 38%,transparent 62%);
+  opacity:0;transition:opacity .45s var(--salida)}
+.coleccion-ver{position:absolute;left:50%;bottom:18px;z-index:1;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+  padding:9px 16px;border-radius:999px;background:var(--crema);color:var(--morado-osc);font-size:14px;font-weight:500;
+  opacity:0;transform:translate(-50%,14px);transition:opacity .35s var(--salida),transform .45s var(--salida)}
+.coleccion-ver svg{width:16px;height:16px;transition:transform .35s var(--salida)}
 .coleccion-txt{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:0 10px;padding:0 2px}
-.coleccion-txt b{font-family:var(--serif);font-weight:500;font-size:clamp(19px,2vw,24px);line-height:1.15;color:var(--morado-osc)}
+.coleccion-txt b{font-family:var(--serif);font-weight:500;font-size:clamp(19px,2vw,24px);line-height:1.15;color:var(--morado-osc);transition:color .3s}
 .coleccion-txt small{font-size:13px;color:var(--suave)}
-.coleccion-txt em{flex-basis:100%;font-style:normal;font-size:13.5px;color:var(--morado);position:relative;align-self:flex-start;width:max-content;padding-bottom:3px;margin-top:2px}
-.coleccion-txt em::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--dorado);transform:scaleX(.25);transform-origin:left;transition:transform .45s var(--salida)}
 @media (hover:hover){
-  .coleccion:hover .coleccion-foto{background:var(--lila)}
-  .coleccion:hover .coleccion-foto img{transform:scale(.92);border-radius:12px;filter:saturate(1.08)}
-  .coleccion:hover .coleccion-txt em::after{transform:scaleX(1)}
+  .coleccion:hover .coleccion-foto{transform:translateY(-4px);box-shadow:0 22px 38px -20px rgba(42,18,62,.55)}
+  .coleccion:hover .coleccion-foto img{transform:scale(1.07)}
+  .coleccion:hover .coleccion-foto::after{opacity:1}
+  .coleccion:hover .coleccion-ver{opacity:1;transform:translate(-50%,0)}
+  .coleccion:hover .coleccion-ver svg{transform:translateX(3px)}
+  .coleccion:hover .coleccion-txt b{color:var(--morado)}
 }
-.coleccion:focus-visible .coleccion-foto img{transform:scale(.92);border-radius:12px}
-.coleccion:active .coleccion-foto img{transform:scale(.9);transition-duration:.15s}
-@media (max-width:699px){.coleccion-txt small{display:none}.coleccion-txt em{font-size:13px}}
+.coleccion:focus-visible .coleccion-foto::after,.coleccion:focus-visible .coleccion-ver{opacity:1;transform:translate(-50%,0)}
+.coleccion:focus-visible .coleccion-foto::after{transform:none}
+.coleccion:active .coleccion-foto{transform:scale(.98);transition-duration:.15s}
+@media (max-width:699px){.coleccion-txt small{display:none}}
 /* entrada en cascada (única entrada al bajar) */
 .js .coleccion[data-revelar]{opacity:0;transform:translateY(22px);transition:opacity .7s var(--salida),transform .8s var(--salida);transition-delay:calc(var(--i,0) * 60ms)}
 .js .coleccion[data-revelar].visto,.revelar-todo .coleccion[data-revelar]{opacity:1;transform:none}

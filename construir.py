@@ -545,8 +545,8 @@ def portada(prods, cols, mas_vistos, img_cols):
         img = imagen(img_tema.get(c["id"])) or img_cols.get(c["id"]) or c["_prods"][0]["img"]
         w, hh = medidas_dist(img)
         return ('<a class="coleccion" href="/c/{s}.html" style="--i:{i}" data-revelar>'
-                '<span class="coleccion-foto"><img src="{img}" alt="{alt}" loading="lazy" width="{w}" height="{hh}" data-kv-colimg="{cid}"></span>'
-                '<span class="coleccion-txt"><b>{n}</b><small>{k} modelos</small><em>Ver colección</em></span></a>').format(
+                '<span class="coleccion-foto"><img src="{img}" alt="{alt}" loading="lazy" width="{w}" height="{hh}" data-kv-colimg="{cid}"><span class="coleccion-ver" aria-hidden="true">Ver colección ' + FLECHA_DER + '</span></span>'
+                '<span class="coleccion-txt"><b>{n}</b><small>{k} modelos</small></span></a>').format(
             s=e(c["slug"]), img=e(img), alt=e(gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0]), w=w, hh=hh,
             n=e(c["nombre"]), k=len(c["_prods"]), cid=e(c["id"]), i=i)
     tarj_cols = "".join(tarjeta_col(i, c) for i, c in enumerate(cols))
