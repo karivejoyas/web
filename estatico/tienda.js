@@ -56,11 +56,18 @@
         if (g && Date.now() - g.t < 5 * 60e3) return g.v;
       } catch (e) {}
       const mask = CAMPOS_AJUSTES.map(c => 'mask.fieldPaths=' + c).join('&');
-      const r = await fetch(FS + '/catalog/settings?' + mask);
-      if (!r.ok) throw new Error('ajustes ' + r.status);
-      const d = await r.json();
-      const v = {};
-      Object.keys(d.fields || {}).forEach(k => { v[k] = fsValor(d.fields[k]); });
+      let v = {};
+      try {
+        const r = await fetch(FS + '/catalog/settings?' + mask);
+        if (!r.ok) throw new Error('ajustes ' + r.status);
+        const d = await r.json();
+        Object.keys(d.fields || {}).forEach(k => { v[k] = fsValor(d.fields[k]); });
+      } catch (err) {
+        // la base no responde: se usa la copia publicada con la web, para no dejar de vender
+        console.warn('Configuración en vivo no disponible; uso la publicada:', err);
+        v = await fetch('/ajustes.json', { cache: 'no-cache' }).then(x => x.json());
+        return v;
+      }
       try { sessionStorage.setItem('kv_ajustes', JSON.stringify({ t: Date.now(), v: v })); } catch (e) {}
       return v;
     })().then(v => { kvSetDescuento(v); usarTarifas(v); return v; }).catch(err => { ajustesProm = null; throw err; });

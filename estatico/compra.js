@@ -42,14 +42,14 @@
     const f = form;
     return '¡Hola Karivé! 💜 Quiero pagar por transferencia este pedido:\n' +
       items.map(it => '• ' + it.qty + ' × ' + (it.p.name || '') + (it.p.code ? ' (' + it.p.code + ')' : '') + ' — ' + formatCLP(KV.precioDe(it.p) * it.qty)).join('\n') +
-      (envio != null ? '\nEnvío: ' + formatCLP(envio) + ' (' + f.comuna + ', ' + f.region + ')' : '') +
+      (envio != null ? '\nEnvío: ' + formatCLP(envio) + ' (' + [f.comuna, f.region].filter(Boolean).join(', ') + ')' : '') +
       (cupon && descuento() ? '\nCupón ' + cupon.codigo + ': −' + formatCLP(descuento()) : '') +
       '\nTotal: ' + formatCLP(total) + (f.nombre ? '\n\nMi nombre: ' + f.nombre : '');
   }
 
   function pintar() {
     if (!items.length) {
-      raiz.innerHTML = '<div class="ok-caja"><h1>Tu carrito está vacío</h1><p>Elige tus joyas favoritas en la tienda.</p><a class="btn btn-1" href="/tienda/">Ir a la tienda</a></div>';
+      raiz.innerHTML = '<div class="ok-caja"><h2>Tu carrito está vacío</h2><p>Elige tus joyas favoritas en la tienda.</p><a class="btn btn-1" href="/tienda/">Ir a la tienda</a></div>';
       return;
     }
     const sub = subtotal(), dcto = descuento();
@@ -106,6 +106,12 @@
   }
 
   function conectar() {
+    // el mensaje de WhatsApp se arma al tocarlo, con lo último que se escribió
+    const tw = raiz.querySelector('.transf-wa');
+    if (tw) tw.addEventListener('click', () => {
+      const env = form.region ? kvEnvioCosto(form.region) : null;
+      tw.href = 'https://wa.me/' + whatsapp() + '?text=' + encodeURIComponent(mensajeTransferencia(Math.max(0, subtotal() - descuento()) + (env || 0), env));
+    });
     raiz.querySelectorAll('[data-c]').forEach(n => n.addEventListener(n.tagName === 'SELECT' ? 'change' : 'input', () => {
       form[n.dataset.c] = n.value;
       try { localStorage.setItem('kv_datos_compra', JSON.stringify(form)); } catch (e) {}
@@ -184,9 +190,14 @@
           body: JSON.stringify({ accion: 'mp-preferencia', pedido: conRef, referencia: ref, volverA: location.origin + location.pathname }) });
         const dp = await rp.json();
         if (!dp || !dp.ok || !dp.url) throw new Error((dp && dp.error) || 'No se pudo iniciar el pago');
-        const docId = await KV.fsCrear('catalog/pedidos/items', Object.assign({}, conRef, {
-          num: 0, estado: 'nuevo', fecha: new Date().toISOString(), comprobante: '',
-          pagoEstado: 'esperando-pago', pagoRef: ref, pagoId: '', courier: '', tracking: '', trackingUrl: '' }));
+        // el pedido se guarda antes de ir a pagar; si la base no responde se sigue
+        // igual (al volver de Mercado Pago el pedido llega por correo con el número)
+        let docId = '';
+        try {
+          docId = await KV.fsCrear('catalog/pedidos/items', Object.assign({}, conRef, {
+            num: 0, estado: 'nuevo', fecha: new Date().toISOString(), comprobante: '',
+            pagoEstado: 'esperando-pago', pagoRef: ref, pagoId: '', courier: '', tracking: '', trackingUrl: '' }));
+        } catch (e) { console.warn('No se pudo guardar el pedido en la base antes de pagar:', e); }
         pendGuardar({ total: pedido.total, ref: ref, docId: docId, pedido: conRef });
         location.href = dp.url;
       } catch (err) {

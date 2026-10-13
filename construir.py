@@ -81,6 +81,25 @@ def leer_doc(ruta, campos=None):
     return {}
 
 
+# Lo que la web necesita para vender (los mismos campos públicos que lee
+# tienda.js). Se publica una copia en /ajustes.json: si un día la base no
+# responde (por ejemplo, si se acaba la cuota diaria), el carrito y el pago
+# siguen funcionando con esta copia.
+CAMPOS_AJUSTES = ["igPubUrl", "pedidos", "pagos", "cupones", "bienvenida", "descuentoGlobal", "whatsapp", "instagram", "facebook", "whatsappMsg", "envioTarifas"]
+
+
+def ajustes_respaldo():
+    d = leer_doc("catalog/settings", CAMPOS_AJUSTES)
+    if not d.get("igPubUrl"):
+        print("⚠ No se pudo leer la configuración para el respaldo; se deja el anterior si existe.")
+        try:
+            with urllib.request.urlopen((os.environ.get("SITIO_ACTUAL") or "https://nueva.karivejoyas.cl/").rstrip("/") + "/ajustes.json", timeout=30) as r:
+                d = json.load(r)
+        except Exception:
+            return
+    json.dump(d, open(DIST + "/ajustes.json", "w"), ensure_ascii=False)
+
+
 def solo_digitos(s):
     return re.sub(r"[^0-9]", "", str(s or ""))
 
@@ -864,13 +883,24 @@ def coleccion(c, cols):
     h = cabeza("%s | %s" % (h1, MARCA), desc, ruta, SITIO + prods[0]["img"].lstrip("/"), jsonld)
     h += encabezado(cols)
     otras = "".join('<a class="chip" href="/c/%s.html">%s</a>' % (e(o["slug"]), e(o["nombre"])) for o in cols if o["id"] != c["id"])
-    h += """<div class="envoltura"><nav class="migas" aria-label="Estás en"><ol><li><a href="/">Inicio</a></li><li><a href="/tienda/">Tienda</a></li><li aria-current="page">{nom}</li></ol></nav>
-  <h1>{h1}</h1>
-  <p style="max-width:720px;color:var(--suave)">{intro}</p>
+    # imagen de portada de la colección (Personalizar → Página de colección)
+    ban = ((TEMA.get("coleccionPagina") or {}).get("banners") or {}).get(c["id"]) or {}
+    b_pc, b_mov = imagen(ban.get("pc")), imagen(ban.get("movil"))
+    b_pc = b_pc or b_mov
+    migas = '<nav class="migas" aria-label="Estás en"><ol><li><a href="/">Inicio</a></li><li><a href="/tienda/">Ver todo</a></li><li aria-current="page">%s</li></ol></nav>' % e(c["nombre"])
+    portada_col = ('<section class="col-portada%s" data-kv-banner="%s">'
+                   '<picture><source media="(max-width:699px)" srcset="%s"><img src="%s" alt="%s" width="1600" height="700" fetchpriority="high" decoding="async"></picture>'
+                   '<div class="col-portada-txt envoltura">%s<h1>%s</h1><p>%s</p></div></section>'
+                   % ("" if b_mov else " solo-pc", e(c["id"]), e(b_mov or b_pc), e(b_pc), e(h1), migas, e(h1), e(intro)))
+    h += portada_col if b_pc else ('<section class="col-portada sin-imagen" data-kv-banner="%s" hidden>'
+                                   '<picture><source media="(max-width:699px)"><img alt="" width="1600" height="700"></picture>'
+                                   '<div class="col-portada-txt envoltura"><p class="col-titulo">%s</p></div></section>' % (e(c["id"]), e(h1)))
+    h += """<div class="envoltura">{cab}
   <ul class="grilla" style="margin-top:24px">{tarj}</ul>
   <h2 style="margin-top:48px">Otras colecciones</h2><div class="filtros">{otras}</div>
 </div>
-""".format(nom=e(c["nombre"]), h1=e(h1), intro=e(intro), tarj="".join(tarjeta(p, i, lazy=i > 3) for i, p in enumerate(prods)), otras=otras)
+""".format(cab="" if b_pc else ('<div class="col-cab">%s<h1>%s</h1><p style="max-width:720px;color:var(--suave)">%s</p></div>' % (migas, e(h1), e(intro))),
+           tarj="".join(tarjeta(p, i, lazy=i > 3) for i, p in enumerate(prods)), otras=otras)
     h += pie(cols)
     escribir(ruta, h)
 
@@ -1078,6 +1108,9 @@ def paginas_texto(cols):
                   '<div class="envoltura"><h1 style="margin:28px 0 0;font-size:40px">Finalizar compra</h1><div class="pago" id="pago"></div></div>')
     h = h.replace('<script src="/estatico/tienda.js?v=%s" defer></script>' % VERSION,
                   '<script src="/estatico/tienda.js?v=%s" defer></script>\n<script src="/estatico/compra.js?v=%s" defer></script>' % (VERSION, VERSION))
+    # al pagar no van los botones flotantes (tapaban el cupón en el celular; WhatsApp sigue en el resumen)
+    h = re.sub(r'<a class="wa-flota[^"]*"[^>]*>.*?</a>', '', h, count=1, flags=re.S)
+    h = h.replace('<script src="/estatico/chat.js?v=%s" defer></script>' % VERSION, '')
     open(ruta, "w", encoding="utf-8").write(h)
 
     pagina_texto("/404.html", "Página no encontrada | " + MARCA, "Esta página no existe.",
@@ -1209,6 +1242,7 @@ def main():
     paginas_texto(cols)
     archivos_buscadores(prods, cols)
     panel()
+    ajustes_respaldo()
     open(DIST + "/firma.txt", "w").write(firma_datos + "\n")
     total = sum(len(fs) for _, _, fs in os.walk(DIST))
     print("productos: %d | colecciones: %d | archivos en %s: %d" % (len(prods), len(cols), DIST, total))

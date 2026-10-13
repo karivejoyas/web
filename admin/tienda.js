@@ -131,6 +131,13 @@
       const u = A.urlImagen(((obtener(t, 'portada.colecciones.imagenes') || {})[el.dataset.kvColimg]) || '');
       el.src = u || el.dataset.original;
     });
+    doc.querySelectorAll('[data-kv-banner]').forEach(sec => {
+      const b = ((obtener(t, 'coleccionPagina.banners') || {})[sec.dataset.kvBanner]) || {};
+      const pc = A.urlImagen(b.pc) || A.urlImagen(b.movil), mo = A.urlImagen(b.movil) || pc;
+      const cab = doc.querySelector('.col-cab');
+      sec.hidden = !pc; if (cab) cab.hidden = !!pc;
+      if (pc) { const img = sec.querySelector('img'), src = sec.querySelector('source'); if (img) img.src = pc; if (src) src.srcset = mo; sec.classList.toggle('solo-pc', !A.urlImagen(b.movil)); }
+    });
     doc.querySelectorAll('[data-kv-img]').forEach(el => { const u = A.urlImagen(obtener(t, el.dataset.kvImg)); if (u) { el.src = u; el.removeAttribute('srcset'); } });
     doc.querySelectorAll('[data-kv-html]').forEach(el => {
       const v = obtener(t, el.dataset.kvHtml); if (v == null) return;
@@ -291,6 +298,7 @@
     colores: { nombre: 'Colores', ruta: 'colores', campos: [['fondo', 'color', 'Fondo'], ['fondo2', 'color', 'Fondo secundario'], ['texto', 'color', 'Texto'], ['suave', 'color', 'Texto suave'], ['borde', 'color', 'Bordes'], ['principal', 'color', 'Color principal'], ['oscuro', 'color', 'Color oscuro (botones, títulos)'], ['lila', 'color', 'Lila'], ['dorado', 'color', 'Dorado'], ['doradoClaro', 'color', 'Dorado claro']] },
     whatsapp: { nombre: 'Botón de WhatsApp', ruta: '', campos: [['whatsappFlotante', 'si', 'Mostrar el botón flotante de WhatsApp'], ['whatsappRespira', 'si', 'Que respire (se agranda suavecito, para que se note)']], ayuda: 'El número se cambia en Configuración → General.' },
     logo: { nombre: 'Logo', ruta: 'logo', campos: [['imagen', 'imagen', 'Imagen del logo'], ['alto', 'rango', 'Tamaño en el computador', { min: 28, max: 110 }], ['altoMovil', 'rango', 'Tamaño en el celular', { min: 24, max: 80 }], ['altoPie', 'rango', 'Tamaño en el pie de página', { min: 30, max: 120 }]], ayuda: 'Para cambiar la imagen usa un PNG con fondo transparente. Al bajar por la página, en el computador el logo se achica un poco.' },
+    coleccionPagina: { nombre: 'Página de colección', ruta: 'coleccionPagina', campos: [['banners', 'bannersCol', 'Imagen de portada de cada colección']], ayuda: 'Es la foto ancha que se ve arriba al abrir una colección, con el título encima. Computador: horizontal (3:2, por ejemplo 1536×1024). Celular (opcional): cuadrada (1024×1024); si no subes una, se usa la del computador. Si una colección no tiene imagen, se ve como antes.' },
     efectos: { nombre: 'Efectos y movimiento', ruta: 'efectos', campos: [['portada', 'opciones', 'Efecto de la foto de portada', EFECTOS_PORTADA], ['transicion', 'opciones', 'Al abrir una colección o un producto', TRANSICIONES]], ayuda: 'La transición entre páginas se ve en Chrome, Edge y Safari (iPhone) actualizados; en los demás la página simplemente cambia. Quien tenga activado «reducir movimiento» no ve efectos.' },
     olas: { nombre: 'Olas antes del pie', ruta: 'olas', campos: [['activo', 'si', 'Mostrar las olas'], ['animacion', 'si', 'Que se muevan'], ['rotar', 'si', 'Darlas vuelta (de derecha a izquierda)'], ['alto', 'rango', 'Alto en el computador', { min: 30, max: 220 }], ['altoMovil', 'rango', 'Alto en el celular', { min: 20, max: 160 }], ['color', 'colorOpc', 'Color de las olas']], ayuda: 'Si no eliges color, usan el del pie de página (Colores → Color oscuro).' },
     chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['mensajes', 'textos', 'Mensajes que aparecen junto al botón (de a uno, máximo 6 por visita)']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
@@ -405,6 +413,16 @@
   function abrirSeccion(k) {
     if (GLOBALES[k] && GLOBALES[k].enlace) { if (A.hayCambios()) { A.toast('Guarda primero tus cambios'); return; } A.ir(GLOBALES[k].enlace); return; }
     ed.sec = k; pintarPanel(); marcarSeleccion();
+    if (k === 'coleccionPagina' && !/^\/c\//.test(ed.pagina)) verColeccion('');
+  }
+  /* En la vista previa abre la página de una colección (por su nombre, o la primera). */
+  function verColeccion(nombre) {
+    const marco = A.$('#ed-marco'), d = marco && marco.contentDocument; if (!d) return;
+    const ls = Array.from(d.querySelectorAll('a[href^="/c/"]'));
+    const l = ls.find(a => a.textContent.trim() === nombre) || ls[0]; if (!l) return;
+    const u = l.getAttribute('href'); if (ed.pagina === u) return;
+    ed.pagina = u; marco.src = u;
+    const sel = A.$('#ed-pagina'); if (sel) sel.value = 'col';
   }
 
   function pintarPanel() {
@@ -421,7 +439,7 @@
         '<button class="mini" data-sub="' + i + '" title="Subir"' + (i ? '' : ' disabled') + '>' + A.ic.arriba + '</button><button class="mini" data-baja="' + i + '" title="Bajar"' + (i < orden.length - 1 ? '' : ' disabled') + '>' + A.ic.abajo + '</button>' +
         '<button class="mini" data-ojo="' + k + '" title="' + (ocultas.indexOf(k) !== -1 ? 'Mostrar' : 'Ocultar') + '">' + (ocultas.indexOf(k) !== -1 ? A.ic.ojoNo : A.ic.ojo) + '</button></div>').join('') +
       '<div class="ed-grupo">Pie de página</div>' + ['olas', 'pie'].map(filaGlobal).join('') +
-      '<div class="ed-grupo">Configuración del tema</div>' + ['efectos', 'colores', 'whatsapp', 'chat', 'producto'].map(filaGlobal).join('') +
+      '<div class="ed-grupo">Configuración del tema</div>' + ['efectos', 'colores', 'whatsapp', 'chat', 'coleccionPagina', 'producto'].map(filaGlobal).join('') +
       '<div class="ed-grupo">Páginas</div><a class="ed-sec" href="#/contenido/paginas" style="text-decoration:none;color:inherit"><span class="nombre">Nosotros, Envíos, Preguntas…</span>' + A.ic.externo + '</a>' +
       '</div>';
     A.$$('[data-sec]', panel).forEach(f => f.addEventListener('click', (e) => { if (!e.target.closest('button')) abrirSeccion(f.dataset.sec); }));
@@ -473,6 +491,18 @@
         html += '<div class="campo"><span>' + h(etq) + '</span><div class="ed-img">' + (u ? '<img src="' + h(u) + '" alt="">' : '<div class="ayuda" style="padding:20px;text-align:center">Sin imagen</div>') + '</div>' +
           '<div style="display:flex;gap:6px"><button class="btn btn-chico" data-img="' + ruta + '">' + A.ic.subir + ' Cambiar</button><button class="btn btn-chico btn-plano" data-imgdef="' + ruta + '">Usar la original</button></div></div>';
       }
+      else if (tipo === 'bannersCol') {
+        html += '<span class="etq">' + h(etq) + '</span>' + A.colecciones().map(c => {
+          const b = (v || {})[c.id] || {}, pc = A.urlImagen(b.pc), mo = A.urlImagen(b.movil);
+          const mini = (u, w, hh, t) => u ? '<img src="' + h(u) + '" alt="" style="width:' + w + 'px;height:' + hh + 'px;object-fit:cover;border-radius:6px;background:#F4EEF6">'
+            : '<span style="display:flex;align-items:center;justify-content:center;width:' + w + 'px;height:' + hh + 'px;border-radius:6px;background:#F4EEF6;color:var(--tenue);font-size:11px">' + t + '</span>';
+          return '<div class="ed-lista-item"><b style="font-weight:500">' + h(c.nombre) + '</b>' +
+            '<div style="display:flex;gap:10px;align-items:flex-end;margin-top:8px">' +
+              '<div>' + mini(pc, 96, 64, 'Sin foto') + '<div style="display:flex;gap:4px;margin-top:4px"><button class="btn btn-chico" data-img="' + ruta + '.' + c.id + '.pc" data-vercol="' + h(c.nombre) + '">Computador</button>' + (pc ? '<button class="btn btn-chico btn-plano" data-imgquitar="' + ruta + '.' + c.id + '.pc" title="Quitar">✕</button>' : '') + '</div></div>' +
+              '<div>' + mini(mo, 64, 64, 'Opcional') + '<div style="display:flex;gap:4px;margin-top:4px"><button class="btn btn-chico" data-img="' + ruta + '.' + c.id + '.movil" data-vercol="' + h(c.nombre) + '">Celular</button>' + (mo ? '<button class="btn btn-chico btn-plano" data-imgquitar="' + ruta + '.' + c.id + '.movil" title="Quitar">✕</button>' : '') + '</div></div>' +
+            '</div></div>';
+        }).join('');
+      }
       else if (tipo === 'fotosCol') {
         html += '<span class="etq">' + h(etq) + '</span>' + A.colecciones().map(c => {
           const r = ruta + '.' + c.id, u = A.urlImagen((v || {})[c.id]);
@@ -521,6 +551,7 @@
     A.$$('[data-img]', panel).forEach(b => b.addEventListener('click', async () => {
       const m = await A.elegirMedio(); if (!m) return;
       poner(ed.tema, b.dataset.img, m); pintarFormulario(panel, k); cambio();
+      if (b.dataset.vercol) verColeccion(b.dataset.vercol);
     }));
     A.$$('[data-imgquitar]', panel).forEach(b => b.addEventListener('click', () => {
       const ks = b.dataset.imgquitar.split('.'), id = ks.pop(), m = obtener(ed.tema, ks.join('.')) || {};
