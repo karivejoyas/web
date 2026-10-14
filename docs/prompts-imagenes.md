@@ -12,7 +12,7 @@ tags: [proyecto, karive, imagenes, prompts]
 1. **Adjunta la foto real del aro** en cada prompt (la de la ficha del producto). Sin eso, ChatGPT inventa un aro que no vendes, y una tienda no puede mostrar algo distinto a lo que entrega.
 2. Pega primero el **bloque de estilo** y después el prompt de la escena, en el mismo mensaje.
 3. Pide **una imagen por mensaje**. Si cambia el aro, responde: *"El aro tiene que ser idéntico a la foto adjunta: misma forma, colores, tamaño y cierre. Vuelve a generarla."*
-4. Descarga en la máxima calidad y súbela en el panel: **Tienda online → Personalizar → Colecciones → Foto de cada colección → Cambiar → Subir una imagen nueva**.
+4. Descarga en la máxima calidad y súbela en el panel: **Tienda online → Personalizar → Colecciones → (la colección) → Foto de la tarjeta → Cambiar (después arrástrala para elegir qué parte se ve)**.
 
 ## Bloque de estilo (pegar siempre al inicio)
 ```

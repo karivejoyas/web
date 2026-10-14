@@ -13,7 +13,7 @@ Son la foto ancha y baja que se ve arriba al abrir una colección. No lleva nada
 1. **Adjunta la foto real del aro** (la de la ficha del producto). Sin eso, ChatGPT inventa un aro que no vendes.
 2. En el mismo mensaje pega, en este orden: **bloque de estilo** + **formato** (computador o celular) + **escena** de la colección.
 3. Una imagen por mensaje. Si cambia el aro: *"El aro tiene que ser idéntico a la foto adjunta: misma forma, colores, tamaño y cierre. Vuelve a generarla."*
-4. Súbela en el panel: **Tienda online → Personalizar → Página de colección → (la colección) → Computador / Celular**. En la vista previa se abre esa colección para que veas cómo queda. Después toca **Guardar**: en 2 a 3 minutos está en la web.
+4. Súbela en el panel: **Tienda online → Personalizar → Colecciones → (la colección) → Foto al abrir la colección**. En la vista previa se abre esa colección; arrastra la foto para elegir qué parte se ve. Después toca **Guardar**: en 2 a 3 minutos está en la web.
 
 ## Bloque de estilo (pegar siempre primero)
 ```
