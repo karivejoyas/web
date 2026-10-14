@@ -23,9 +23,10 @@
 var WEB_REPO = 'karivejoyas/web';
 var WEB_FLUJO = 'publicar.yml';
 
-/* ¿Cambió algo desde la última revisión? Se mira la fecha de modificación
-   de todos los productos (sin bajar las fotos, es muy liviano) y cuántos
-   hay —así también se nota uno borrado—, y la de la configuración y la web. */
+/* Revisión de productos (cada 15 minutos), para lo que cambia el bot de
+   Telegram: se mira la fecha de modificación de todos los productos (sin
+   bajar las fotos) y cuántos hay —así también se nota uno borrado—, y si
+   hay un reel nuevo en Instagram. */
 function webVigilar() {
   var props = PropertiesService.getScriptProperties();
   var firma = webFirmaProductos();
@@ -107,7 +108,7 @@ function webConfigurar() {
   ScriptApp.newTrigger('webRapido').timeBased().everyMinutes(1).create();
   webRapido();
   var firma = webFirmaProductos();
-  if (firma) PropertiesService.getScriptProperties().setProperty('WEB_FIRMA', firma);
+  if (firma) PropertiesService.getScriptProperties().setProperty('WEB_FIRMA', firma + '|' + webInstagramUltimo());
   Logger.log(firma ? '✅ Revisiones programadas: panel cada minuto y productos cada 15 minutos (' + firma.split('|')[0] + ' productos).' : '⚠️ No pude leer los productos ahora; igual quedaron programadas.');
   if (typeof webProbarInstagram === 'function') webProbarInstagram();
   else Logger.log('⚠️ Falta la parte de Instagram: copia el archivo web.gs COMPLETO (termina en la función webProbarInstagram) y guarda.');
