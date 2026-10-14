@@ -3,17 +3,17 @@ tags: [proyecto, karive, imagenes, prompts]
 ---
 # Karivé Joyas — prompts para las portadas de colección
 
-Son la foto ancha que se ve arriba al abrir una colección, con el título encima (abajo a la izquierda).
+Son la foto ancha y baja que se ve arriba al abrir una colección. No lleva nada encima: el título va debajo.
 
 ## Formatos
-- **Computador (obligatoria):** horizontal **3:2** (en ChatGPT: 1536×1024). En la web se muestra como una franja panorámica, así que se recorta arriba y abajo: lo importante debe ir en la **franja del medio** y hacia la **derecha**, y la **izquierda** debe quedar tranquila, porque ahí va el título.
-- **Celular (opcional):** **cuadrada** (1024×1024). La mitad de abajo debe quedar tranquila, porque ahí va el título. Si no la subes, se usa la del computador recortada.
+- **Computador (obligatoria):** horizontal **3:2** (en ChatGPT: 1536×1024). En la web se muestra como una franja panorámica baja (16:5), así que se recorta bastante arriba y abajo: todo lo importante debe ir en la **franja del medio**.
+- **Celular (opcional):** horizontal **3:2** también (1536×1024); en el celular se muestra en 16:9. Si no la subes, se usa la del computador.
 
 ## Cómo usarlos
 1. **Adjunta la foto real del aro** (la de la ficha del producto). Sin eso, ChatGPT inventa un aro que no vendes.
 2. En el mismo mensaje pega, en este orden: **bloque de estilo** + **formato** (computador o celular) + **escena** de la colección.
 3. Una imagen por mensaje. Si cambia el aro: *"El aro tiene que ser idéntico a la foto adjunta: misma forma, colores, tamaño y cierre. Vuelve a generarla."*
-4. Súbela en el panel: **Tienda online → Personalizar → Página de colección → (la colección) → Computador / Celular**. En la vista previa se abre esa colección para que veas cómo queda. Después toca **Guardar**.
+4. Súbela en el panel: **Tienda online → Personalizar → Página de colección → (la colección) → Computador / Celular**. En la vista previa se abre esa colección para que veas cómo queda. Después toca **Guardar**: en 2 a 3 minutos está en la web.
 
 ## Bloque de estilo (pegar siempre primero)
 ```
@@ -22,12 +22,12 @@ Fotografía editorial de joyería artesanal para la tienda online "Karivé Joyas
 
 ## Formato COMPUTADOR (pegar después del estilo)
 ```
-Formato horizontal 3:2 (1536×1024), pensado como banner panorámico de sitio web: se va a recortar arriba y abajo, así que pon todo lo importante en la franja central horizontal. El protagonista va en el tercio DERECHO de la imagen. El tercio izquierdo debe quedar despejado y tranquilo (fondo suave, sin objetos importantes), porque ahí irá un título encima. Amplio, con aire, sensación de escena completa.
+Formato horizontal 3:2 (1536×1024), pensado como banner panorámico bajo de sitio web: se va a recortar mucho arriba y abajo, así que pon todo lo importante (los aros y los objetos principales) en la franja central horizontal, a la altura media de la imagen. Composición amplia y ordenada, los aros un poco a la derecha del centro, con aire a los lados.
 ```
 
-## Formato CELULAR (pegar después del estilo)
+## Formato CELULAR (opcional, pegar después del estilo)
 ```
-Formato cuadrado 1:1 (1024×1024), pensado como portada para celular. El protagonista va en la mitad de ARRIBA, centrado. La mitad de abajo debe quedar despejada y tranquila (superficie o fondo suave, sin objetos importantes), porque ahí irá un título encima.
+Formato horizontal 3:2 (1536×1024), pensado como portada para celular: se verá un poco recortada arriba y abajo. Los aros grandes y centrados, ocupando buena parte de la imagen, con la escena alrededor.
 ```
 
 ## Escenas por colección
