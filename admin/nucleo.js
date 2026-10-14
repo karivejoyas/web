@@ -274,6 +274,8 @@
     A.limpiarCambios(); auth.signOut();
   });
   A.$('#btn-campana').addEventListener('click', () => A.ir('pedidos?estado=nuevo'));
+  // «Ver tienda» abre siempre la versión recién publicada (sin la copia guardada del navegador)
+  A.$$('#ver-tienda, .nav-ojo').forEach(l => l.addEventListener('click', () => { l.href = '/?v=' + Date.now(); }));
 
   // ============================================================
   //  datos
@@ -398,6 +400,70 @@
       A.temaPublicado = d; emitir('web');
     }).catch(e => console.warn('tema-actual.json', e));
   };
+
+  // ============================================================
+  //  publicación rápida
+  //  Lo que guardas en el panel (tema, configuración o productos) lo detecta
+  //  web.gs en menos de un minuto y pide la publicación (~2 minutos más).
+  //  Los productos avisan escribiendo catalog/web.cambio. Arriba se ve el
+  //  estado leyendo los trabajos de GitHub (el repositorio es público).
+  // ============================================================
+  let pubT = null, pubDesde = 0, pubSiguiendo = false;
+  A.publicarPronto = function () {
+    clearTimeout(pubT);
+    pubT = setTimeout(() => { A.ref.web.set({ cambio: new Date().toISOString() }, { merge: true }).catch(e => console.warn('cambio', e)); }, 2500);
+    A.seguirPublicacion();
+  };
+  A.seguirPublicacion = function () {
+    pubDesde = Date.now() - 5000;
+    pintarPub('espera');
+    if (!pubSiguiendo) { pubSiguiendo = true; setTimeout(revisarPub, 25000); }
+  };
+  function pintarPub(estado) {
+    const el = A.$('#publicando'), tx = A.$('#publicando-txt'); if (!el) return;
+    el.hidden = !estado; el.className = 'publicando ' + (estado || '');
+    tx.textContent = { espera: 'Cambios guardados · publicando en 1–3 min', publicando: 'Publicando en la web…', listo: '✓ Ya está en la web', error: 'No se pudo publicar' }[estado] || '';
+    if (estado === 'listo') { el.href = '/?v=' + Date.now(); setTimeout(() => { if (el.classList.contains('listo')) el.hidden = true; }, 15000); }
+  }
+  async function revisarPub() {
+    try {
+      const r = await fetch('https://api.github.com/repos/karivejoyas/web/actions/runs?per_page=3', { cache: 'no-store' });
+      const d = await r.json();
+      const run = (d.workflow_runs || []).find(x => new Date(x.created_at).getTime() >= pubDesde);
+      if (run && run.status === 'completed') { pintarPub(run.conclusion === 'success' ? 'listo' : 'error'); pubSiguiendo = false; return; }
+      if (run) pintarPub('publicando');
+      if (Date.now() - pubDesde > 8 * 60e3) { pintarPub(''); pubSiguiendo = false; return; }
+    } catch (e) {}
+    setTimeout(revisarPub, 20000);
+  }
+  // cualquier cambio de productos (desde cualquier pantalla) avisa que hay que publicar;
+  // los del tema y la configuración los detecta web.gs solo, aquí solo se muestra el estado
+  (function vigilarEscrituras() {
+    const fs = firebase.firestore;
+    const marcar = (ruta) => {
+      if (/^catalog\/products\/items\//.test(ruta)) A.publicarPronto();
+      else if (ruta === 'catalog/web' || ruta === 'catalog/settings') A.seguirPublicacion();
+    };
+    const envolver = (proto, metodo, rutaDe) => {
+      if (!proto || typeof proto[metodo] !== 'function') return;
+      const orig = proto[metodo];
+      proto[metodo] = function () {
+        const res = orig.apply(this, arguments), ruta = rutaDe(this, arguments);
+        if (res && typeof res.then === 'function') res.then(() => marcar(ruta)).catch(() => {});
+        return res;
+      };
+    };
+    try {
+      ['set', 'update', 'delete'].forEach(m => envolver(fs.DocumentReference && fs.DocumentReference.prototype, m, (yo) => yo.path));
+      envolver(fs.CollectionReference && fs.CollectionReference.prototype, 'add', (yo) => yo.path + '/x');
+      if (fs.WriteBatch) {
+        const wb = fs.WriteBatch.prototype;
+        ['set', 'update', 'delete'].forEach(m => { const o = wb[m]; if (o) wb[m] = function (ref) { (this.__rutas = this.__rutas || []).push(ref && ref.path); return o.apply(this, arguments); }; });
+        const c = wb.commit;
+        if (c) wb.commit = function () { const rutas = this.__rutas || []; return c.apply(this, arguments).then(v => { rutas.forEach(marcar); return v; }); };
+      }
+    } catch (e) { console.warn('No se pudo vigilar las escrituras:', e); }
+  })();
 
   // ---------- conteos de la barra lateral ----------
   A.pedidoEsNuevo = (p) => (p.estado || 'nuevo') === 'nuevo' && !(p.medioPago === 'mercadopago' && /^(esperando-pago|sin-pago|rejected|cancelled)$/.test(p.pagoEstado || ''));

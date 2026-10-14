@@ -413,6 +413,21 @@
     }, 800);
   }
 
+  /* ---------- siempre la última versión publicada ----------
+     El navegador guarda las páginas unos minutos. Si ya hay una publicación
+     más nueva que la que se está viendo, se recarga una vez (sin gastar nada
+     de la base: version.txt es un archivo de la web). */
+  (function () {
+    const m = document.querySelector('meta[name="kv-version"]'); if (!m || window.top !== window) return;
+    fetch('/version.txt', { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(v => {
+      v = v.trim();
+      if (!v || v <= m.content) return;
+      const clave = 'kv_recargado_' + v;
+      try { if (sessionStorage.getItem(clave)) return; sessionStorage.setItem(clave, '1'); } catch (e) { return; }
+      location.reload();
+    }).catch(() => {});
+  })();
+
   /* ---------- movimiento de la portada ---------- */
   window.kvRevela = true;
   // el título de la portada sube palabra por palabra

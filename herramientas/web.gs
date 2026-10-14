@@ -2,8 +2,10 @@
 //  WEB · KARIVÉ JOYAS (karivejoyas.cl / nueva.karivejoyas.cl)
 //  Vuelve a publicar la web apenas cambia algo: los productos (bot de
 //  Telegram o panel), la configuración (cupones, colecciones, envíos…) o
-//  los textos y diseño de la web (panel nuevo → Tienda online). Aparece en
-//  la web en unos 15 a 20 minutos, sin esperar la actualización de la noche.
+//  los textos y diseño de la web (panel nuevo → Tienda online).
+//  · Lo que guardas en el panel se ve en la web en 2 a 3 minutos (revisión
+//    rápida cada minuto, que solo lee 2 documentos de la base).
+//  · Lo que cambia el bot de Telegram, en unos 15 a 20 minutos.
 //  También trae tus últimos videos de Instagram para la portada (usa el mismo
 //  acceso a Instagram que ya tiene el publicador; no hay que configurar nada).
 //
@@ -15,7 +17,7 @@
 //  1) Propiedades del script → agregar  GH_TOKEN  = el token de GitHub
 //     (permiso "Actions: lectura y escritura" solo sobre el repositorio web).
 //  2) Arriba elige "webConfigurar" y aprieta ▶ Ejecutar.
-//     Deja programada la revisión cada 15 minutos y publica una vez.
+//     Deja programadas las revisiones (cada minuto y cada 15 minutos) y publica una vez.
 // ============================================================
 
 var WEB_REPO = 'karivejoyas/web';
@@ -50,7 +52,20 @@ function webFirmaProductos() {
       token = d.nextPageToken || '';
     } while (token);
   } catch (e) { return ''; }
-  return total + '|' + ultima + '|' + webFechaDoc('catalog/settings', 'whatsapp') + '|' + webFechaDoc('catalog/web', 'nombreTema');
+  return total + '|' + ultima;
+}
+
+/* Revisión rápida (cada minuto): ¿se guardó algo en el panel? Mira solo la
+   fecha de la web (tema y avisos de productos) y de la configuración:
+   2 lecturas por minuto, una parte chica de la cuota gratis de la base. */
+function webRapido() {
+  var a = webFechaDoc('catalog/web', 'nombreTema'), b = webFechaDoc('catalog/settings', 'whatsapp');
+  if (!a || !b) return;                                 // la base no respondió: se revisa en el próximo minuto
+  var props = PropertiesService.getScriptProperties();
+  var firma = a + '|' + b, anterior = props.getProperty('WEB_RAPIDO');
+  if (firma === anterior) return;
+  props.setProperty('WEB_RAPIDO', firma);
+  if (anterior) webPublicarAhora();                     // la primera vez solo se anota
 }
 
 /* Fecha de última modificación de un documento ('' si no se puede leer). */
@@ -80,17 +95,20 @@ function webPublicarAhora() {
   return ok;
 }
 
-/* Ejecútala UNA vez: programa la revisión cada 15 minutos y prueba todo.
-   (Cada revisión lee todos los productos; cada 15 minutos gasta una parte
-   chica de la cuota gratis diaria de la base, que es de 50.000 lecturas.) */
+/* Ejecútala UNA vez: programa las revisiones y prueba todo.
+   (La de productos lee todos los productos, por eso va cada 15 minutos; la
+   rápida lee 2 documentos por minuto. Juntas usan menos de un tercio de la
+   cuota gratis diaria de la base, que es de 50.000 lecturas.) */
 function webConfigurar() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === 'webVigilar') ScriptApp.deleteTrigger(t);
+    if (t.getHandlerFunction() === 'webVigilar' || t.getHandlerFunction() === 'webRapido') ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger('webVigilar').timeBased().everyMinutes(15).create();
+  ScriptApp.newTrigger('webRapido').timeBased().everyMinutes(1).create();
+  webRapido();
   var firma = webFirmaProductos();
   if (firma) PropertiesService.getScriptProperties().setProperty('WEB_FIRMA', firma);
-  Logger.log(firma ? '✅ Revisión cada 15 minutos programada (' + firma.split('|')[0] + ' productos).' : '⚠️ No pude leer los productos ahora; igual quedó programada.');
+  Logger.log(firma ? '✅ Revisiones programadas: panel cada minuto y productos cada 15 minutos (' + firma.split('|')[0] + ' productos).' : '⚠️ No pude leer los productos ahora; igual quedaron programadas.');
   if (typeof webProbarInstagram === 'function') webProbarInstagram();
   else Logger.log('⚠️ Falta la parte de Instagram: copia el archivo web.gs COMPLETO (termina en la función webProbarInstagram) y guarda.');
   webPublicarAhora();

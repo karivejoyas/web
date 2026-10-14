@@ -36,7 +36,8 @@ WA_MSG = ""
 RESENAS = []
 TEMA = T.TEMA_DEFECTO
 VARS = {}
-VERSION = date.today().strftime("%Y%m%d")
+import time as _time
+VERSION = _time.strftime("%Y%m%d%H%M%S", _time.gmtime())   # cambia en cada publicación: el navegador no usa copias viejas
 e = lambda s: html.escape(str(s), quote=True)
 pesos = gen.pesos
 
@@ -380,7 +381,8 @@ def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="
 <link rel="icon" href="/assets/logo-avatar.png" type="image/png"><link rel="apple-touch-icon" href="/assets/logo-avatar.png"><link rel="manifest" href="/manifest.webmanifest">
 {fuentes}
 <link rel="stylesheet" href="/estatico/tienda.css?v={v}">
-{vt}<script>document.documentElement.classList.add('js');setTimeout(function(){{if(!window.kvRevela)document.documentElement.classList.add('revelar-todo')}},2500);
+{vt}<meta name="kv-version" content="{v}">
+<script>document.documentElement.classList.add('js');setTimeout(function(){{if(!window.kvRevela)document.documentElement.classList.add('revelar-todo')}},2500);
 addEventListener('pagereveal',function(e){{var n=window.navigation&&navigation.activation,h=document.documentElement;if(!e.viewTransition||!n||n.navigationType!=='traverse')return;h.dataset.dir='atras';e.viewTransition.finished.finally(function(){{delete h.dataset.dir}})}})</script>
 {colores}
 {j}
@@ -888,18 +890,16 @@ def coleccion(c, cols):
     b_pc, b_mov = imagen(ban.get("pc")), imagen(ban.get("movil"))
     b_pc = b_pc or b_mov
     migas = '<nav class="migas" aria-label="Estás en"><ol><li><a href="/">Inicio</a></li><li><a href="/tienda/">Ver todo</a></li><li aria-current="page">%s</li></ol></nav>' % e(c["nombre"])
-    portada_col = ('<section class="col-portada%s" data-kv-banner="%s">'
-                   '<picture><source media="(max-width:699px)" srcset="%s"><img src="%s" alt="%s" width="1600" height="700" fetchpriority="high" decoding="async"></picture>'
-                   '<div class="col-portada-txt envoltura">%s<h1>%s</h1><p>%s</p></div></section>'
-                   % ("" if b_mov else " solo-pc", e(c["id"]), e(b_mov or b_pc), e(b_pc), e(h1), migas, e(h1), e(intro)))
-    h += portada_col if b_pc else ('<section class="col-portada sin-imagen" data-kv-banner="%s" hidden>'
-                                   '<picture><source media="(max-width:699px)"><img alt="" width="1600" height="700"></picture>'
-                                   '<div class="col-portada-txt envoltura"><p class="col-titulo">%s</p></div></section>' % (e(c["id"]), e(h1)))
-    h += """<div class="envoltura">{cab}
+    # la foto va arriba, sin nada encima; el título y el texto, debajo
+    h += ('<div class="envoltura">%s<div class="col-portada%s" data-kv-banner="%s"%s>'
+          '<picture><source media="(max-width:699px)"%s><img%s alt="%s" width="1600" height="600" fetchpriority="high" decoding="async"></picture></div>'
+          % (migas, "" if b_mov else " solo-pc", e(c["id"]), "" if b_pc else " hidden",
+             (' srcset="%s"' % e(b_mov or b_pc)) if b_pc else "", (' src="%s"' % e(b_pc)) if b_pc else "", e(h1)))
+    h += """{cab}
   <ul class="grilla" style="margin-top:24px">{tarj}</ul>
   <h2 style="margin-top:48px">Otras colecciones</h2><div class="filtros">{otras}</div>
 </div>
-""".format(cab="" if b_pc else ('<div class="col-cab">%s<h1>%s</h1><p style="max-width:720px;color:var(--suave)">%s</p></div>' % (migas, e(h1), e(intro))),
+""".format(cab='<div class="col-cab"><h1>%s</h1><p style="max-width:720px;color:var(--suave)">%s</p></div>' % (e(h1), e(intro)),
            tarj="".join(tarjeta(p, i, lazy=i > 3) for i, p in enumerate(prods)), otras=otras)
     h += pie(cols)
     escribir(ruta, h)
@@ -1244,6 +1244,7 @@ def main():
     panel()
     ajustes_respaldo()
     open(DIST + "/firma.txt", "w").write(firma_datos + "\n")
+    open(DIST + "/version.txt", "w").write(VERSION)
     total = sum(len(fs) for _, _, fs in os.walk(DIST))
     print("productos: %d | colecciones: %d | archivos en %s: %d" % (len(prods), len(cols), DIST, total))
 

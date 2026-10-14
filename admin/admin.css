@@ -679,3 +679,13 @@ code{background:#F4EEF6;padding:1px 5px;border-radius:5px;font-size:12.5px}
   .apps-viejas .ig-stickybar{padding:10px 12px}
   .apps-viejas .ig-stickybar-btns{width:100%}
 }
+
+/* estado de la publicación (arriba a la derecha) */
+.publicando{display:inline-flex;align-items:center;gap:7px;margin-right:6px;padding:5px 11px;border-radius:999px;font-size:12.5px;white-space:nowrap;text-decoration:none;
+  background:rgba(255,255,255,.12);color:#fff}
+.publicando[hidden]{display:none}
+.pub-punto{width:8px;height:8px;border-radius:50%;background:var(--dorado-cl);animation:pub-late 1.2s ease-in-out infinite}
+.publicando.listo{background:var(--verde-fondo);color:#1F5A37}.publicando.listo .pub-punto{background:var(--verde);animation:none}
+.publicando.error{background:var(--rojo-fondo);color:#7D1B15}.publicando.error .pub-punto{background:var(--rojo);animation:none}
+@keyframes pub-late{50%{opacity:.35}}
+@media (max-width:700px){.publicando span:last-child{display:none}.publicando{padding:7px;margin-right:2px}}

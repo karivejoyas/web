@@ -638,26 +638,15 @@ html[data-tr="vuela"] .ficha-foto img{view-transition-name:foto}
 @media print{.chat-btn,.chat-globo,.chat-panel,.wa-flota,.olas{display:none!important}}
 
 /* ============================================================
-   PORTADA DE COLECCIÓN: foto ancha con el título encima. Al abrir, la
-   foto se asienta despacio y el texto sube (con "reducir movimiento", quieta).
+   PORTADA DE COLECCIÓN: foto ancha y baja, con bordes redondeados, sin
+   nada encima; el título va debajo. Al abrir, la foto se asienta despacio.
    ============================================================ */
-.col-portada{position:relative;overflow:hidden;background:var(--morado-osc);color:var(--crema);min-height:300px;display:flex;align-items:flex-end}
+.col-portada{position:relative;overflow:hidden;border-radius:22px;background:var(--crema2);aspect-ratio:16/5;max-height:340px;width:100%;margin:4px 0 22px}
 .col-portada[hidden]{display:none}
-.col-portada picture,.col-portada img{position:absolute;inset:0;width:100%;height:100%}
-.col-portada img{object-fit:cover;object-position:center 45%}
-.col-portada::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(30,12,44,.78) 0%,rgba(30,12,44,.35) 42%,rgba(30,12,44,0) 70%),linear-gradient(to right,rgba(30,12,44,.35),transparent 60%)}
-.col-portada-txt{position:relative;z-index:1;padding-top:90px;padding-bottom:28px;width:100%}
-.col-portada .col-titulo{font-family:var(--serif);font-weight:500}
-.col-portada h1,.col-portada .col-titulo{color:var(--crema);margin:0;font-size:clamp(34px,5.4vw,62px);line-height:1.05;text-wrap:balance;max-width:16ch;text-shadow:0 2px 18px rgba(0,0,0,.25)}
-.col-portada p{margin:10px 0 0;max-width:560px;color:rgba(251,247,241,.88);font-size:15.5px}
-.col-portada .migas,.col-portada .migas a{color:rgba(251,247,241,.8)}
-.col-portada .migas li+li::before{color:rgba(251,247,241,.5)}
-@media (min-width:700px){.col-portada{min-height:clamp(380px,40vw,540px)}.col-portada-txt{padding-bottom:44px}}
-@media (max-width:699px){.col-portada{min-height:0;aspect-ratio:4/4.4}.col-portada.solo-pc img{object-position:68% 45%}.col-portada p{font-size:14.5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}}
-.js .col-portada img{animation:col-asienta 1.6s var(--salida) both}
-@keyframes col-asienta{from{transform:scale(1.1);opacity:.4}}
-.js .col-portada-txt>*{animation:aparece .8s var(--salida) both}
-.js .col-portada-txt h1{animation-delay:.15s}
-.js .col-portada-txt p{animation-delay:.3s}
-.col-cab{padding-top:4px}
-@media (prefers-reduced-motion:reduce){.js .col-portada img,.js .col-portada-txt>*{animation:none!important;opacity:1!important;transform:none!important}}
+.col-portada picture,.col-portada img{display:block;width:100%;height:100%}
+.col-portada img{object-fit:cover;object-position:center 50%}
+@media (max-width:699px){.col-portada{aspect-ratio:16/9;border-radius:16px;margin-bottom:16px}.col-portada.solo-pc img{object-position:65% 50%}}
+.js .col-portada img{animation:col-asienta 1.4s var(--salida) both}
+@keyframes col-asienta{from{transform:scale(1.08);opacity:.3}}
+.col-cab h1{margin-top:0}
+@media (prefers-reduced-motion:reduce){.js .col-portada img{animation:none!important;opacity:1!important;transform:none!important}}

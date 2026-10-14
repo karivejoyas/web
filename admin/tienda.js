@@ -44,6 +44,7 @@
     if (nombre) { datos.nombreTema = nombre; campos.push('nombreTema'); }
     return A.ref.web.set(datos, { mergeFields: campos }).then(() => {
       A.web = Object.assign({}, A.web || {}, datos);
+      if (A.seguirPublicacion) A.seguirPublicacion();
     });
   };
   A.avisoPermisoWeb = function () {
@@ -134,8 +135,7 @@
     doc.querySelectorAll('[data-kv-banner]').forEach(sec => {
       const b = ((obtener(t, 'coleccionPagina.banners') || {})[sec.dataset.kvBanner]) || {};
       const pc = A.urlImagen(b.pc) || A.urlImagen(b.movil), mo = A.urlImagen(b.movil) || pc;
-      const cab = doc.querySelector('.col-cab');
-      sec.hidden = !pc; if (cab) cab.hidden = !!pc;
+      sec.hidden = !pc;
       if (pc) { const img = sec.querySelector('img'), src = sec.querySelector('source'); if (img) img.src = pc; if (src) src.srcset = mo; sec.classList.toggle('solo-pc', !A.urlImagen(b.movil)); }
     });
     doc.querySelectorAll('[data-kv-img]').forEach(el => { const u = A.urlImagen(obtener(t, el.dataset.kvImg)); if (u) { el.src = u; el.removeAttribute('srcset'); } });
@@ -192,7 +192,7 @@
       '<div class="tarjeta"><div class="tema-actual"><div class="tema-mini" id="tm-mini"><iframe src="/" title="Vista del tema" tabindex="-1" loading="lazy"></iframe></div>' +
         '<div class="tema-info"><span class="ins verde" style="align-self:flex-start">Tema actual</span><h3>' + h(A.nombreTemaVivo()) + '</h3>' +
           '<p class="ayuda" style="margin:0">' + (w.actualizado ? 'Guardado ' + h(A.hace(w.actualizado)) : 'Diseño original de la web nueva') + '</p>' + paleta(t) +
-          '<p class="ayuda" style="margin:0">Los cambios que guardes aparecen en la web en unos 15 a 20 minutos.</p>' +
+          '<p class="ayuda" style="margin:0">Los cambios que guardes aparecen en la web en unos 2 a 3 minutos.</p>' +
           '<div class="acciones"><a class="btn btn-primario" href="#/tienda/editor">Personalizar</a><button class="btn" id="tm-duplicar">' + A.ic.copiar + ' Duplicar</button>' +
             '<button class="btn" id="tm-mas" aria-label="Más acciones">' + A.ic.puntos + '</button></div></div></div></div>' +
       '<div class="tarjeta lista-temas"><div class="tarjeta-cab"><h2>Biblioteca de temas</h2><div class="acciones"><button class="btn btn-chico" id="tm-subir">' + A.ic.subir + ' Subir tema</button></div></div>' +
@@ -298,7 +298,7 @@
     colores: { nombre: 'Colores', ruta: 'colores', campos: [['fondo', 'color', 'Fondo'], ['fondo2', 'color', 'Fondo secundario'], ['texto', 'color', 'Texto'], ['suave', 'color', 'Texto suave'], ['borde', 'color', 'Bordes'], ['principal', 'color', 'Color principal'], ['oscuro', 'color', 'Color oscuro (botones, títulos)'], ['lila', 'color', 'Lila'], ['dorado', 'color', 'Dorado'], ['doradoClaro', 'color', 'Dorado claro']] },
     whatsapp: { nombre: 'Botón de WhatsApp', ruta: '', campos: [['whatsappFlotante', 'si', 'Mostrar el botón flotante de WhatsApp'], ['whatsappRespira', 'si', 'Que respire (se agranda suavecito, para que se note)']], ayuda: 'El número se cambia en Configuración → General.' },
     logo: { nombre: 'Logo', ruta: 'logo', campos: [['imagen', 'imagen', 'Imagen del logo'], ['alto', 'rango', 'Tamaño en el computador', { min: 28, max: 110 }], ['altoMovil', 'rango', 'Tamaño en el celular', { min: 24, max: 80 }], ['altoPie', 'rango', 'Tamaño en el pie de página', { min: 30, max: 120 }]], ayuda: 'Para cambiar la imagen usa un PNG con fondo transparente. Al bajar por la página, en el computador el logo se achica un poco.' },
-    coleccionPagina: { nombre: 'Página de colección', ruta: 'coleccionPagina', campos: [['banners', 'bannersCol', 'Imagen de portada de cada colección']], ayuda: 'Es la foto ancha que se ve arriba al abrir una colección, con el título encima. Computador: horizontal (3:2, por ejemplo 1536×1024). Celular (opcional): cuadrada (1024×1024); si no subes una, se usa la del computador. Si una colección no tiene imagen, se ve como antes.' },
+    coleccionPagina: { nombre: 'Página de colección', ruta: 'coleccionPagina', campos: [['banners', 'bannersCol', 'Imagen de portada de cada colección']], ayuda: 'Es la foto ancha que se ve arriba al abrir una colección; el título va debajo. Computador: horizontal (3:2, por ejemplo 1536×1024). Celular (opcional): cuadrada (1024×1024); si no subes una, se usa la del computador. Si una colección no tiene imagen, se ve como antes.' },
     efectos: { nombre: 'Efectos y movimiento', ruta: 'efectos', campos: [['portada', 'opciones', 'Efecto de la foto de portada', EFECTOS_PORTADA], ['transicion', 'opciones', 'Al abrir una colección o un producto', TRANSICIONES]], ayuda: 'La transición entre páginas se ve en Chrome, Edge y Safari (iPhone) actualizados; en los demás la página simplemente cambia. Quien tenga activado «reducir movimiento» no ve efectos.' },
     olas: { nombre: 'Olas antes del pie', ruta: 'olas', campos: [['activo', 'si', 'Mostrar las olas'], ['animacion', 'si', 'Que se muevan'], ['rotar', 'si', 'Darlas vuelta (de derecha a izquierda)'], ['alto', 'rango', 'Alto en el computador', { min: 30, max: 220 }], ['altoMovil', 'rango', 'Alto en el celular', { min: 20, max: 160 }], ['color', 'colorOpc', 'Color de las olas']], ayuda: 'Si no eliges color, usan el del pie de página (Colores → Color oscuro).' },
     chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['mensajes', 'textos', 'Mensajes que aparecen junto al botón (de a uno, máximo 6 por visita)']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
@@ -396,7 +396,7 @@
       else await A.guardarTemaVivo(ed.tema);
       ed.inicial = JSON.stringify(ed.tema);
       A.limpiarCambios();
-      A.toast(ed.id ? 'Copia guardada ✓' : 'Guardado ✓ La web se actualiza en unos 15 a 20 minutos.');
+      A.toast(ed.id ? 'Copia guardada ✓' : 'Guardado ✓ La web se actualiza en unos 2 a 3 minutos.');
       if (b) b.textContent = 'Guardar';
       return true;
     } catch (e) { A.errorGuardar(e); if (b) { b.disabled = false; b.textContent = 'Guardar'; } return false; }
