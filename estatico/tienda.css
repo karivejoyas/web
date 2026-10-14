@@ -644,8 +644,8 @@ html[data-tr="vuela"] .ficha-foto img{view-transition-name:foto}
 .col-portada{position:relative;overflow:hidden;border-radius:22px;background:var(--crema2);aspect-ratio:16/5;max-height:340px;width:100%;margin:4px 0 22px}
 .col-portada[hidden]{display:none}
 .col-portada picture,.col-portada img{display:block;width:100%;height:100%}
-.col-portada img{object-fit:cover;object-position:center 50%}
-@media (max-width:699px){.col-portada{aspect-ratio:16/9;border-radius:16px;margin-bottom:16px}.col-portada.solo-pc img{object-position:65% 50%}}
+.col-portada img{object-fit:cover;object-position:var(--foco,50% 50%)}
+@media (max-width:699px){.col-portada{aspect-ratio:16/9;border-radius:16px;margin-bottom:16px}.col-portada img{object-position:var(--foco-m,var(--foco,50% 50%))}}
 .js .col-portada img{animation:col-asienta 1.4s var(--salida) both}
 @keyframes col-asienta{from{transform:scale(1.08);opacity:.3}}
 .col-cab h1{margin-top:0}

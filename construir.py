@@ -552,6 +552,20 @@ def ig_html(IGD, pubs):
 IG_PLAY = ('<span class="ig-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg></span>')
 
 
+def foco(v):
+    """Encuadre de una foto («50% 30%»), tal como se mueve en Personalizar."""
+    m = re.match(r"^\s*(\d{1,3}(?:\.\d+)?)%\s+(\d{1,3}(?:\.\d+)?)%\s*$", str(v or ""))
+    if not m:
+        return ""
+    x, y = (min(100.0, float(n)) for n in m.groups())
+    return "%g%% %g%%" % (x, y)
+
+
+def estilo_foco(v):
+    f = foco(v)
+    return (' style="object-position:%s"' % f) if f else ""
+
+
 def logo_url():
     return imagen((TEMA.get("logo") or {}).get("imagen")) or "/assets/logo-karive-web.png"
 
@@ -760,10 +774,10 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
         img = imagen(img_tema.get(c["id"])) or img_cols.get(c["id"]) or c["_prods"][0]["img"]
         w, hh = medidas_dist(img)
         return ('<a class="coleccion" href="/c/{s}.html" style="--i:{i}" data-revelar>'
-                '<span class="coleccion-foto"><img src="{img}" alt="{alt}" loading="lazy" width="{w}" height="{hh}" data-kv-colimg="{cid}"><span class="coleccion-ver" aria-hidden="true">Ver colección ' + FLECHA_DER + '</span></span>'
+                '<span class="coleccion-foto"><img src="{img}" alt="{alt}" loading="lazy" width="{w}" height="{hh}" data-kv-colimg="{cid}"{foco}><span class="coleccion-ver" aria-hidden="true">Ver colección ' + FLECHA_DER + '</span></span>'
                 '<span class="coleccion-txt"><b>{n}</b><small>{k} modelos</small></span></a>').format(
             s=e(c["slug"]), img=e(img), alt=e(gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0]), w=w, hh=hh,
-            n=e(c["nombre"]), k=len(c["_prods"]), cid=e(c["id"]), i=i)
+            n=e(c["nombre"]), k=len(c["_prods"]), cid=e(c["id"]), i=i, foco=estilo_foco((P["colecciones"].get("focos") or {}).get(c["id"])))
     tarj_cols = "".join(tarjeta_col(i, c) for i, c in enumerate(cols))
     img_seo = imagen(seo.get("imagen")) or "/assets/modelo-portada.jpg"
     h = cabeza(tp(seo.get("titulo")), tp(seo.get("descripcion")), "/", SITIO + img_seo.lstrip("/"), jsonld)
@@ -779,11 +793,11 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     <p{k3}>{txt}</p>
     <div class="hero-acc">{b1}{b2}</div>
   </div>
-  <div class="hero-img-marco"><div class="hero-img destello"><img src="{img}" alt="{alt}" width="860" height="645" fetchpriority="high" data-kv-img="portada.hero.imagen"><span class="hero-velo" aria-hidden="true"></span><span class="hero-sello"{k4}>{sello}</span></div>{nuevo}</div>
+  <div class="hero-img-marco"><div class="hero-img destello"><img src="{img}" alt="{alt}" width="860" height="645" fetchpriority="high" data-kv-img="portada.hero.imagen"{foco_hero}><span class="hero-velo" aria-hidden="true"></span><span class="hero-sello"{k4}>{sello}</span></div>{nuevo}</div>
 </div></section>""".format(nuevo=tarjeta_nuevo(nuevo, H.get("tarjetaNuevo", True)),k1=kv("portada.hero.antetitulo"), ante=tx(H.get("antetitulo")), k2=kv("portada.hero.titulo"), tit=tx(H.get("titulo")),
                      k3=kv("portada.hero.texto"), txt=tx(H.get("texto")), b1=boton(H.get("boton1"), "btn-1", "portada.hero.boton1"),
                      b2=boton(H.get("boton2"), "btn-2", "portada.hero.boton2"), img=e(imagen(H.get("imagen")) or "/assets/modelo-portada.jpg"),
-                     alt=e(H.get("imagenAlt") or MARCA), k4=kv("portada.hero.sello"), sello=tx(H.get("sello")))
+                     alt=e(H.get("imagenAlt") or MARCA), k4=kv("portada.hero.sello"), sello=tx(H.get("sello")), foco_hero=estilo_foco(H.get("imagenFoco")))
     sec["cinta"] = cinta_html(CI.get("items") or [])
     sec["confianza"] = '<div class="envoltura"><div class="confianza" data-kv-lista="portada.confianza.items">%s</div></div>' % "".join(
         '<div><span class="ic">%s</span><span><b>%s</b>%s</span></div>' % (T.icono(it.get("icono")), tx(it.get("titulo")), tx(it.get("texto")))
@@ -797,7 +811,7 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
         cab(F, "portada.favoritos", "/tienda/"), "".join(tarjeta(p, i) for i, p in enumerate(destacados[:n_fav])))
     sec["taller"] = """<section class="franja">
   <div class="envoltura">
-    <div class="franja-img"><img src="{img}" alt="{alt}" loading="lazy" width="900" height="675" data-kv-img="portada.taller.imagen">{sello}</div>
+    <div class="franja-img"><img src="{img}" alt="{alt}" loading="lazy" width="900" height="675" data-kv-img="portada.taller.imagen"{foco_taller}>{sello}</div>
     <div>
       <h2{k2}>{tit}</h2>
       <p{k3}>{txt}</p>
@@ -805,7 +819,7 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
       <p style="margin-top:18px">{bt}</p>
     </div>
   </div>
-</section>""".format(sello=SELLO_GIRA, img=e(imagen(TA.get("imagen")) or "/assets/modelo-argollas.jpg"), alt=e(TA.get("imagenAlt") or MARCA),
+</section>""".format(sello=SELLO_GIRA, img=e(imagen(TA.get("imagen")) or "/assets/modelo-argollas.jpg"), alt=e(TA.get("imagenAlt") or MARCA), foco_taller=estilo_foco(TA.get("imagenFoco")),
                      k1=kv("portada.taller.antetitulo"), ante=tx(TA.get("antetitulo")), k2=kv("portada.taller.titulo"), tit=tx(TA.get("titulo")),
                      k3=kv("portada.taller.texto"), txt=tx(TA.get("texto")), bt=boton(TA.get("boton"), "btn-oro", "portada.taller.boton"),
                      pasos="".join('<li><span class="n">%d</span><span>%s</span></li>' % (i + 1, tx(x)) for i, x in enumerate(TA.get("pasos") or [])))
@@ -891,9 +905,11 @@ def coleccion(c, cols):
     b_pc = b_pc or b_mov
     migas = '<nav class="migas" aria-label="Estás en"><ol><li><a href="/">Inicio</a></li><li><a href="/tienda/">Ver todo</a></li><li aria-current="page">%s</li></ol></nav>' % e(c["nombre"])
     # la foto va arriba, sin nada encima; el título y el texto, debajo
-    h += ('<div class="envoltura">%s<div class="col-portada%s" data-kv-banner="%s"%s>'
+    f_pc, f_mov = foco(ban.get("foco")), foco(ban.get("focoMovil"))
+    vars_foco = ";".join(x for x in (("--foco:" + f_pc) if f_pc else "", ("--foco-m:" + f_mov) if f_mov else "") if x)
+    h += ('<div class="envoltura">%s<div class="col-portada%s" data-kv-banner="%s"%s%s>'
           '<picture><source media="(max-width:699px)"%s><img%s alt="%s" width="1600" height="600" fetchpriority="high" decoding="async"></picture></div>'
-          % (migas, "" if b_mov else " solo-pc", e(c["id"]), "" if b_pc else " hidden",
+          % (migas, "" if b_mov else " solo-pc", e(c["id"]), "" if b_pc else " hidden", (' style="%s"' % vars_foco) if vars_foco else "",
              (' srcset="%s"' % e(b_mov or b_pc)) if b_pc else "", (' src="%s"' % e(b_pc)) if b_pc else "", e(h1)))
     h += """{cab}
   <ul class="grilla" style="margin-top:24px">{tarj}</ul>

@@ -689,3 +689,22 @@ code{background:#F4EEF6;padding:1px 5px;border-radius:5px;font-size:12.5px}
 .publicando.error{background:var(--rojo-fondo);color:#7D1B15}.publicando.error .pub-punto{background:var(--rojo);animation:none}
 @keyframes pub-late{50%{opacity:.35}}
 @media (max-width:700px){.publicando span:last-child{display:none}.publicando{padding:7px;margin-right:2px}}
+
+/* Personalizar: secciones en desplegables (una abierta a la vez) */
+.ed-sec .chev{width:16px;height:16px;flex:0 0 16px;display:inline-flex;color:var(--tenue);transition:transform .2s}
+.ed-sec .chev svg{width:16px;height:16px}
+.ed-sec.abierta{background:var(--morado-cl)}
+.ed-sec.abierta .chev{color:var(--morado);transform:rotate(90deg)}
+.ed-sec.abierta .nombre{color:var(--morado)}
+.ed-cuerpo{margin:2px 0 10px;border-left:2px solid var(--morado-cl);margin-left:15px}
+.ed-cuerpo .ed-form{padding:8px 4px 6px 12px}
+/* encuadre de fotos: se arrastra la foto dentro del marco */
+.ed-foto{margin-bottom:16px}
+.ed-foco{position:relative;width:100%;border-radius:10px;overflow:hidden;background:#F4EEF6;cursor:grab;touch-action:none;user-select:none;box-shadow:inset 0 0 0 1px var(--borde)}
+.ed-foco img{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.ed-foco.moviendo{cursor:grabbing;box-shadow:0 0 0 2px var(--morado)}
+.ed-foco-guia{position:absolute;left:8px;bottom:8px;padding:3px 8px;border-radius:999px;background:rgba(42,18,62,.72);color:#fff;font-size:11.5px;opacity:0;transition:opacity .2s;pointer-events:none}
+.ed-foco:hover .ed-foco-guia{opacity:1}
+.ed-foco.moviendo .ed-foco-guia{opacity:0}
+.ed-foco.vacia{display:flex;align-items:center;justify-content:center;cursor:default;color:var(--tenue);font-size:12.5px;text-align:center;padding:8px}
+.ed-foto-acc{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}

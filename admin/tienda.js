@@ -75,6 +75,7 @@
      editor). Usa las marcas data-kv que pone construir.py. */
   /* Orden de las secciones de la portada; las que se agregaron después de
      guardar el tema van en su lugar de fábrica (igual que en construir.py). */
+  const focoValido = (v) => /^\d{1,3}(\.\d+)?% \d{1,3}(\.\d+)?%$/.test(String(v || '').trim()) ? String(v).trim() : '';
   function ordenPortada(P) {
     const fab = ((A.temaDefecto() || {}).portada || {}).orden || Object.keys(SECCIONES);
     const orden = (P.orden || []).filter(k => fab.indexOf(k) !== -1 || SECCIONES[k]);
@@ -131,13 +132,18 @@
       if (!el.dataset.original) el.dataset.original = el.getAttribute('src');
       const u = A.urlImagen(((obtener(t, 'portada.colecciones.imagenes') || {})[el.dataset.kvColimg]) || '');
       el.src = u || el.dataset.original;
+      el.style.objectPosition = focoValido((obtener(t, 'portada.colecciones.focos') || {})[el.dataset.kvColimg]);
     });
     doc.querySelectorAll('[data-kv-banner]').forEach(sec => {
       const b = ((obtener(t, 'coleccionPagina.banners') || {})[sec.dataset.kvBanner]) || {};
       const pc = A.urlImagen(b.pc) || A.urlImagen(b.movil), mo = A.urlImagen(b.movil) || pc;
       sec.hidden = !pc;
       if (pc) { const img = sec.querySelector('img'), src = sec.querySelector('source'); if (img) img.src = pc; if (src) src.srcset = mo; sec.classList.toggle('solo-pc', !A.urlImagen(b.movil)); }
+      const f1 = focoValido(b.foco), f2 = focoValido(b.focoMovil);
+      if (f1) sec.style.setProperty('--foco', f1); else sec.style.removeProperty('--foco');
+      if (f2) sec.style.setProperty('--foco-m', f2); else sec.style.removeProperty('--foco-m');
     });
+    doc.querySelectorAll('[data-kv-img]').forEach(el => { el.style.objectPosition = focoValido(obtener(t, el.dataset.kvImg + 'Foco')); });
     doc.querySelectorAll('[data-kv-img]').forEach(el => { const u = A.urlImagen(obtener(t, el.dataset.kvImg)); if (u) { el.src = u; el.removeAttribute('srcset'); } });
     doc.querySelectorAll('[data-kv-html]').forEach(el => {
       const v = obtener(t, el.dataset.kvHtml); if (v == null) return;
@@ -279,12 +285,12 @@
   //  editor con vista en vivo
   // ============================================================
   const SECCIONES = {
-    hero: { nombre: 'Portada principal', ruta: 'portada.hero', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton1', 'boton', 'Botón principal'], ['boton2', 'boton', 'Botón secundario'], ['imagen', 'imagen', 'Imagen'], ['imagenAlt', 'texto', 'Descripción de la imagen (para Google)'], ['sello', 'texto', 'Sello sobre la imagen'], ['tarjetaNuevo', 'si', 'Mostrar el último producto subido sobre la foto']] },
+    hero: { nombre: 'Portada principal', ruta: 'portada.hero', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton1', 'boton', 'Botón principal'], ['boton2', 'boton', 'Botón secundario'], ['imagen', 'imagen', 'Imagen', { aspecto: '4/3' }], ['imagenAlt', 'texto', 'Descripción de la imagen (para Google)'], ['sello', 'texto', 'Sello sobre la imagen'], ['tarjetaNuevo', 'si', 'Mostrar el último producto subido sobre la foto']] },
     cinta: { nombre: 'Cinta en movimiento', ruta: 'portada.cinta', campos: [['items', 'textos', 'Frases que pasan']], ayuda: 'Frases cortas. Se desplazan solas y se detienen al pasar el mouse.' },
     confianza: { nombre: 'Beneficios', ruta: 'portada.confianza', campos: [['items', 'objetos', 'Beneficios', { icono: 'Ícono', titulo: 'Título', texto: 'Texto' }]] },
-    colecciones: { nombre: 'Colecciones', ruta: 'portada.colecciones', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['imagenes', 'fotosCol', 'Foto de cada colección']], ayuda: 'El nombre y el orden de las colecciones se cambian en Productos → Colecciones. Las fotos de aquí son solo para la portada.' },
+    colecciones: { nombre: 'Colecciones', ruta: 'portada.colecciones', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace']], ayuda: 'Las fotos de cada colección se cambian más abajo, en el grupo «Colecciones» (una por una).' },
     favoritos: { nombre: 'Los más queridos', ruta: 'portada.favoritos', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántos productos']], ayuda: 'Muestra la lista de «Lo más visto» (Descuentos) y la completa con un producto de cada colección.' },
-    taller: { nombre: 'Nuestro taller', ruta: 'portada.taller', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['imagen', 'imagen', 'Imagen'], ['imagenAlt', 'texto', 'Descripción de la imagen'], ['pasos', 'textos', 'Pasos'], ['boton', 'boton', 'Botón']] },
+    taller: { nombre: 'Nuestro taller', ruta: 'portada.taller', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['imagen', 'imagen', 'Imagen', { aspecto: '4/3' }], ['imagenAlt', 'texto', 'Descripción de la imagen'], ['pasos', 'textos', 'Pasos'], ['boton', 'boton', 'Botón']] },
     nuevos: { nombre: 'Lo nuevo', ruta: 'portada.nuevos', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántos productos']], ayuda: 'Muestra los productos subidos más recientemente.' },
     instagram: { nombre: 'Instagram', ruta: 'portada.instagram', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántas publicaciones (máximo 12)']], ayuda: 'Muestra tus últimos videos (reels) de Instagram con el mismo estilo de las colecciones. Se actualizan solos cuando subes uno nuevo (Apps → Instagram).' },
     especial: { nombre: 'Diseños a pedido', ruta: 'portada.especial', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton', 'texto', 'Texto del botón'], ['mensaje', 'area', 'Mensaje que se escribe solo en WhatsApp']] }
@@ -298,7 +304,6 @@
     colores: { nombre: 'Colores', ruta: 'colores', campos: [['fondo', 'color', 'Fondo'], ['fondo2', 'color', 'Fondo secundario'], ['texto', 'color', 'Texto'], ['suave', 'color', 'Texto suave'], ['borde', 'color', 'Bordes'], ['principal', 'color', 'Color principal'], ['oscuro', 'color', 'Color oscuro (botones, títulos)'], ['lila', 'color', 'Lila'], ['dorado', 'color', 'Dorado'], ['doradoClaro', 'color', 'Dorado claro']] },
     whatsapp: { nombre: 'Botón de WhatsApp', ruta: '', campos: [['whatsappFlotante', 'si', 'Mostrar el botón flotante de WhatsApp'], ['whatsappRespira', 'si', 'Que respire (se agranda suavecito, para que se note)']], ayuda: 'El número se cambia en Configuración → General.' },
     logo: { nombre: 'Logo', ruta: 'logo', campos: [['imagen', 'imagen', 'Imagen del logo'], ['alto', 'rango', 'Tamaño en el computador', { min: 28, max: 110 }], ['altoMovil', 'rango', 'Tamaño en el celular', { min: 24, max: 80 }], ['altoPie', 'rango', 'Tamaño en el pie de página', { min: 30, max: 120 }]], ayuda: 'Para cambiar la imagen usa un PNG con fondo transparente. Al bajar por la página, en el computador el logo se achica un poco.' },
-    coleccionPagina: { nombre: 'Página de colección', ruta: 'coleccionPagina', campos: [['banners', 'bannersCol', 'Imagen de portada de cada colección']], ayuda: 'Es la foto ancha que se ve arriba al abrir una colección; el título va debajo. Computador: horizontal (3:2, por ejemplo 1536×1024). Celular (opcional): cuadrada (1024×1024); si no subes una, se usa la del computador. Si una colección no tiene imagen, se ve como antes.' },
     efectos: { nombre: 'Efectos y movimiento', ruta: 'efectos', campos: [['portada', 'opciones', 'Efecto de la foto de portada', EFECTOS_PORTADA], ['transicion', 'opciones', 'Al abrir una colección o un producto', TRANSICIONES]], ayuda: 'La transición entre páginas se ve en Chrome, Edge y Safari (iPhone) actualizados; en los demás la página simplemente cambia. Quien tenga activado «reducir movimiento» no ve efectos.' },
     olas: { nombre: 'Olas antes del pie', ruta: 'olas', campos: [['activo', 'si', 'Mostrar las olas'], ['animacion', 'si', 'Que se muevan'], ['rotar', 'si', 'Darlas vuelta (de derecha a izquierda)'], ['alto', 'rango', 'Alto en el computador', { min: 30, max: 220 }], ['altoMovil', 'rango', 'Alto en el celular', { min: 20, max: 160 }], ['color', 'colorOpc', 'Color de las olas']], ayuda: 'Si no eliges color, usan el del pie de página (Colores → Color oscuro).' },
     chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['mensajes', 'textos', 'Mensajes que aparecen junto al botón (de a uno, máximo 6 por visita)']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
@@ -342,13 +347,15 @@
       doc.addEventListener('click', (e) => {
         const a = e.target.closest('a,button'); if (a) e.preventDefault();
         const sec = e.target.closest('[data-kv-sec]');
-        if (sec) { abrirSeccion(sec.dataset.kvSec); return; }
-        if (e.target.closest('.anuncio')) abrirSeccion('anuncio');
-        else if (e.target.closest('.logo')) abrirSeccion('logo');
-        else if (e.target.closest('.olas')) abrirSeccion('olas');
-        else if (e.target.closest('.chat-btn')) abrirSeccion('chat');
-        else if (e.target.closest('.wa-flota')) abrirSeccion('whatsapp');
-        else if (e.target.closest('.pie')) abrirSeccion('pie');
+        if (sec) { abrirSeccion(sec.dataset.kvSec, true); return; }
+        const ban = e.target.closest('[data-kv-banner]');
+        if (ban) abrirSeccion('col:' + ban.dataset.kvBanner, true);
+        else if (e.target.closest('.anuncio')) abrirSeccion('anuncio', true);
+        else if (e.target.closest('.logo')) abrirSeccion('logo', true);
+        else if (e.target.closest('.olas')) abrirSeccion('olas', true);
+        else if (e.target.closest('.chat-btn')) abrirSeccion('chat', true);
+        else if (e.target.closest('.wa-flota')) abrirSeccion('whatsapp', true);
+        else if (e.target.closest('.pie')) abrirSeccion('pie', true);
       }, true);
       const css = doc.createElement('style');
       css.textContent = '[data-kv-sec]:hover{outline:2px dashed rgba(91,42,130,.45);outline-offset:-2px;cursor:pointer}[data-kv-sec].kv-sel{outline:2px solid #5B2A82;outline-offset:-2px}';
@@ -410,10 +417,21 @@
       if (s) { s.classList.add('kv-sel'); s.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     }
   }
-  function abrirSeccion(k) {
+  /* Abre una sección en su desplegable (y cierra la anterior). Tocar la que
+     está abierta la cierra; desde la vista previa siempre se abre. */
+  function abrirSeccion(k, forzar) {
     if (GLOBALES[k] && GLOBALES[k].enlace) { if (A.hayCambios()) { A.toast('Guarda primero tus cambios'); return; } A.ir(GLOBALES[k].enlace); return; }
-    ed.sec = k; pintarPanel(); marcarSeleccion();
-    if (k === 'coleccionPagina' && !/^\/c\//.test(ed.pagina)) verColeccion('');
+    ed.sec = (ed.sec === k && !forzar) ? null : k;
+    pintarPanel(); marcarSeleccion();
+    const fila = ed.sec && A.$('#ed-panel [data-sec="' + CSS.escape(ed.sec) + '"]');
+    if (fila) fila.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (ed.sec && ed.sec.indexOf('col:') === 0) { const c = A.colecciones().find(x => x.id === ed.sec.slice(4)); if (c) verColeccion(c.nombre); }
+    else if (ed.sec && SECCIONES[ed.sec] && ed.pagina !== '/') verPagina('/');
+  }
+  function verPagina(u) {
+    const marco = A.$('#ed-marco'); if (!marco) return;
+    ed.pagina = u; marco.src = u;
+    const sel = A.$('#ed-pagina'); if (sel) sel.value = u;
   }
   /* En la vista previa abre la página de una colección (por su nombre, o la primera). */
   function verColeccion(nombre) {
@@ -427,20 +445,30 @@
 
   function pintarPanel() {
     const panel = A.$('#ed-panel'); if (!panel) return;
-    if (ed.sec) { pintarFormulario(panel, ed.sec); return; }
     const P = ed.tema.portada;
     const ocultas = P.ocultas || [];
     // secciones nuevas aparecen en su lugar de fábrica (igual que en construir.py)
     const orden = ordenPortada(P).filter(k => SECCIONES[k]);
+    const fila = (k, nombre, extra, clase) => '<div class="ed-sec' + (ed.sec === k ? ' abierta' : '') + (clase || '') + '" data-sec="' + h(k) + '">' +
+      '<span class="chev"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 5 5 5-5 5"/></svg></span><span class="nombre">' + h(nombre) + '</span>' + (extra || '') + '</div>' +
+      (ed.sec === k ? '<div class="ed-cuerpo"></div>' : '');
+    const global = (k) => GLOBALES[k].enlace
+      ? '<div class="ed-sec" data-sec="' + k + '"><span class="chev"></span><span class="nombre">' + h(GLOBALES[k].nombre) + '</span>' + A.ic.externo + '</div>'
+      : fila(k, GLOBALES[k].nombre);
     panel.innerHTML = '<div class="ed-secciones">' +
-      '<div class="ed-grupo">Encabezado</div>' + ['anuncio', 'logo', 'menu'].map(k => filaGlobal(k)).join('') +
+      '<div class="ed-grupo">Encabezado</div>' + ['anuncio', 'logo', 'menu'].map(global).join('') +
       '<div class="ed-grupo">Portada</div>' +
-      orden.map((k, i) => '<div class="ed-sec' + (ocultas.indexOf(k) !== -1 ? ' oculta' : '') + '" data-sec="' + k + '"><span class="nombre">' + h(SECCIONES[k].nombre) + '</span>' +
+      orden.map((k, i) => fila(k, SECCIONES[k].nombre,
         '<button class="mini" data-sub="' + i + '" title="Subir"' + (i ? '' : ' disabled') + '>' + A.ic.arriba + '</button><button class="mini" data-baja="' + i + '" title="Bajar"' + (i < orden.length - 1 ? '' : ' disabled') + '>' + A.ic.abajo + '</button>' +
-        '<button class="mini" data-ojo="' + k + '" title="' + (ocultas.indexOf(k) !== -1 ? 'Mostrar' : 'Ocultar') + '">' + (ocultas.indexOf(k) !== -1 ? A.ic.ojoNo : A.ic.ojo) + '</button></div>').join('') +
-      '<div class="ed-grupo">Pie de página</div>' + ['olas', 'pie'].map(filaGlobal).join('') +
-      '<div class="ed-grupo">Configuración del tema</div>' + ['efectos', 'colores', 'whatsapp', 'chat', 'coleccionPagina', 'producto'].map(filaGlobal).join('') +
-      '<div class="ed-grupo">Páginas</div><a class="ed-sec" href="#/contenido/paginas" style="text-decoration:none;color:inherit"><span class="nombre">Nosotros, Envíos, Preguntas…</span>' + A.ic.externo + '</a>' +
+        '<button class="mini" data-ojo="' + k + '" title="' + (ocultas.indexOf(k) !== -1 ? 'Mostrar' : 'Ocultar') + '">' + (ocultas.indexOf(k) !== -1 ? A.ic.ojoNo : A.ic.ojo) + '</button>',
+        ocultas.indexOf(k) !== -1 ? ' oculta' : '')).join('') +
+      '<div class="ed-grupo">Colecciones</div>' +
+      A.colecciones().map(c => fila('col:' + c.id, c.nombre)).join('') +
+      '<a class="ed-sec" href="#/colecciones" style="text-decoration:none;color:inherit"><span class="chev"></span><span class="nombre">Nombres, orden y productos</span>' + A.ic.externo + '</a>' +
+      '<div class="ed-grupo">Ficha de producto</div>' + global('producto') +
+      '<div class="ed-grupo">Pie de página</div>' + ['olas', 'pie'].map(global).join('') +
+      '<div class="ed-grupo">Estilo y botones</div>' + ['colores', 'efectos', 'whatsapp', 'chat'].map(global).join('') +
+      '<div class="ed-grupo">Páginas</div><a class="ed-sec" href="#/contenido/paginas" style="text-decoration:none;color:inherit"><span class="chev"></span><span class="nombre">Nosotros, Envíos, Preguntas…</span>' + A.ic.externo + '</a>' +
       '</div>';
     A.$$('[data-sec]', panel).forEach(f => f.addEventListener('click', (e) => { if (!e.target.closest('button')) abrirSeccion(f.dataset.sec); }));
     A.$$('[data-sub],[data-baja]', panel).forEach(b => b.addEventListener('click', () => {
@@ -453,6 +481,8 @@
       const i = P.ocultas.indexOf(k); if (i === -1) P.ocultas.push(k); else P.ocultas.splice(i, 1);
       pintarPanel(); cambio();
     }));
+    const cuerpo = A.$('.ed-cuerpo', panel);
+    if (cuerpo && ed.sec) pintarFormulario(cuerpo, ed.sec);
   }
   const NOMBRE_ICONO = { camion: 'Camión', tarjeta: 'Tarjeta', escudo: 'Escudo', mano: 'Mano', corazon: 'Corazón', regalo: 'Regalo', estrella: 'Estrella', flor: 'Flor', reloj: 'Reloj', chispa: 'Destello' };
   const EMOJI_ICONO = { '🚚': 'camion', '💳': 'tarjeta', '🛡️': 'escudo', '🛡': 'escudo', '✋': 'mano', '💜': 'corazon', '🎁': 'regalo', '⭐': 'estrella', '🌸': 'flor', '✨': 'chispa' };
@@ -469,11 +499,38 @@
   }
   function filaGlobal(k) { return '<div class="ed-sec" data-sec="' + k + '"><span class="nombre">' + h(GLOBALES[k].nombre) + '</span>' + (GLOBALES[k].enlace ? A.ic.externo : '') + '</div>'; }
 
+  /* Foto con encuadre: se arrastra para moverla dentro del marco (con la
+     misma forma que tiene en la web). Guarda «x% y%» en rFoco. */
+  function fotoFoco(etq, rImg, rFoco, url, aspecto, opc) {
+    opc = opc || {};
+    const f = focoValido(obtener(ed.tema, rFoco)) || '50% 50%';
+    const [aw, ah] = String(aspecto).split('/').map(Number), vertical = aw < ah;
+    return '<div class="campo ed-foto"><span>' + h(etq) + '</span>' +
+      (url ? '<div class="ed-foco" data-foco="' + rFoco + '" style="aspect-ratio:' + aspecto + (vertical ? ';max-width:210px' : '') + '" title="Arrastra para encuadrar"><img src="' + h(url) + '" alt="" draggable="false" style="object-position:' + f + '"><span class="ed-foco-guia">Arrastra para encuadrar</span></div>'
+           : '<div class="ed-foco vacia" style="aspect-ratio:' + aspecto + '"><span>' + h(opc.vacio || 'Sin foto') + '</span></div>') +
+      '<div class="ed-foto-acc"><button class="btn btn-chico" data-img="' + rImg + '"' + (opc.vercol ? ' data-vercol="' + h(opc.vercol) + '"' : '') + '>' + A.ic.subir + (url ? ' Cambiar' : ' Subir') + '</button>' +
+      (url ? '<button class="btn btn-chico btn-plano" data-focoreset="' + rFoco + '">Centrar</button>' : '') +
+      (opc.quitar && obtener(ed.tema, rImg) ? '<button class="btn btn-chico btn-plano" data-imgquitar="' + rImg + '">' + h(opc.quitar) + '</button>' : '') +
+      (opc.original ? '<button class="btn btn-chico btn-plano" data-imgdef="' + rImg + '">Usar la original</button>' : '') + '</div></div>';
+  }
   function pintarFormulario(panel, k) {
-    const def = SECCIONES[k] || GLOBALES[k];
+    let def = SECCIONES[k] || GLOBALES[k];
+    let html = '<div class="ed-form">';
+    if (k.indexOf('col:') === 0) {
+      // una colección: foto de la tarjeta y foto al abrirla (computador y celular)
+      const id = k.slice(4), c = A.colecciones().find(x => x.id === id) || { nombre: id };
+      const b = obtener(ed.tema, 'coleccionPagina.banners.' + id) || {};
+      const tarjeta = A.urlImagen((obtener(ed.tema, 'portada.colecciones.imagenes') || {})[id]) || imgColActual(id);
+      html += fotoFoco('Foto de la tarjeta en la portada', 'portada.colecciones.imagenes.' + id, 'portada.colecciones.focos.' + id, tarjeta, '4/5', { quitar: 'Usar la actual' }) +
+        fotoFoco('Foto al abrir la colección · computador', 'coleccionPagina.banners.' + id + '.pc', 'coleccionPagina.banners.' + id + '.foco', A.urlImagen(b.pc), '16/5', { quitar: 'Quitar', vercol: c.nombre, vacio: 'Sin foto: la colección se ve sin portada' }) +
+        fotoFoco('Foto al abrir la colección · celular (opcional)', 'coleccionPagina.banners.' + id + '.movil', 'coleccionPagina.banners.' + id + '.focoMovil', A.urlImagen(b.movil) || A.urlImagen(b.pc), '16/9', { quitar: A.urlImagen(b.movil) ? 'Usar la del computador' : '', vercol: c.nombre, vacio: 'Usa la del computador' }) +
+        '<p class="ayuda">Fotos horizontales 3:2 (1536×1024). Arrastra cada foto para elegir qué parte se ve.</p>' +
+        '<a class="btn btn-chico" href="#/colecciones/' + encodeURIComponent(id) + '">Editar nombre, descripción y productos ' + A.ic.externo + '</a>';
+      def = { campos: [] };
+    }
     const base = def.ruta ? def.ruta + '.' : '';
     const val = (c) => obtener(ed.tema, base + c);
-    let html = '<div class="ed-form"><h3><button class="btn btn-plano btn-chico" id="ed-atras" aria-label="Volver">' + A.ic.volver + '</button>' + h(def.nombre) + '</h3>' + (def.ayuda ? '<p class="ayuda">' + h(def.ayuda) + '</p>' : '');
+    html += def.ayuda ? '<p class="ayuda">' + h(def.ayuda) + '</p>' : '';
     def.campos.forEach(([c, tipo, etq, sub]) => {
       const ruta = base + c, v = val(c);
       if (tipo === 'texto') html += '<label class="campo"><span>' + h(etq) + '</span><input data-r="' + ruta + '" value="' + h(v || '') + '"></label>';
@@ -486,6 +543,7 @@
         '<button class="btn btn-chico btn-plano" data-colorquitar="' + ruta + '" style="margin:-4px 0 12px">Usar el color del pie</button>';
       else if (tipo === 'color') html += '<label class="color-campo"><input type="color" data-r="' + ruta + '" value="' + h(v || '#ffffff') + '"><span>' + h(etq) + '</span><code>' + h(v || '') + '</code></label>';
       else if (tipo === 'boton') html += '<div class="campo"><span>' + h(etq) + '</span><input class="inp" data-r="' + ruta + '.texto" value="' + h((v || {}).texto || '') + '" placeholder="Texto" style="margin-bottom:6px"><input class="inp" data-r="' + ruta + '.url" value="' + h((v || {}).url || '') + '" placeholder="Enlace (ej: /tienda/)"></div>';
+      else if (tipo === 'imagen' && sub && sub.aspecto) html += fotoFoco(etq, ruta, ruta + 'Foco', A.urlImagen(v), sub.aspecto, { original: true });
       else if (tipo === 'imagen') {
         const u = A.urlImagen(v);
         html += '<div class="campo"><span>' + h(etq) + '</span><div class="ed-img">' + (u ? '<img src="' + h(u) + '" alt="">' : '<div class="ayuda" style="padding:20px;text-align:center">Sin imagen</div>') + '</div>' +
@@ -524,7 +582,25 @@
     if (k === 'colores') html += '<button class="btn btn-chico mt" id="ed-col-orig">Volver a los colores originales</button>';
     html += '</div>';
     panel.innerHTML = html;
-    A.$('#ed-atras', panel).addEventListener('click', () => { ed.sec = null; pintarPanel(); marcarSeleccion(); });
+    // encuadre: arrastrar la foto
+    A.$$('[data-foco]', panel).forEach(caja => {
+      const img = caja.querySelector('img'); let ini = null;
+      const lim = (n) => Math.max(0, Math.min(100, n));
+      caja.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); caja.setPointerCapture(e.pointerId);
+        const [x, y] = (img.style.objectPosition || '50% 50%').split(' ').map(parseFloat);
+        ini = { px: e.clientX, py: e.clientY, x: isNaN(x) ? 50 : x, y: isNaN(y) ? 50 : y, w: caja.clientWidth, h: caja.clientHeight };
+        caja.classList.add('moviendo');
+      });
+      caja.addEventListener('pointermove', (e) => {
+        if (!ini) return;
+        const v = lim(ini.x - (e.clientX - ini.px) / ini.w * 160).toFixed(1) + '% ' + lim(ini.y - (e.clientY - ini.py) / ini.h * 160).toFixed(1) + '%';
+        img.style.objectPosition = v; poner(ed.tema, caja.dataset.foco, v); cambio();
+      });
+      const fin = () => { if (!ini) return; ini = null; caja.classList.remove('moviendo'); cambio(); };
+      caja.addEventListener('pointerup', fin); caja.addEventListener('pointercancel', fin);
+    });
+    A.$$('[data-focoreset]', panel).forEach(b => b.addEventListener('click', () => { poner(ed.tema, b.dataset.focoreset, ''); pintarFormulario(panel, k); cambio(); }));
     A.$$('[data-r]', panel).forEach(inp => {
       const ev = inp.type === 'checkbox' ? 'change' : 'input';
       inp.addEventListener(ev, () => {
