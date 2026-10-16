@@ -47,6 +47,19 @@
       '\nTotal: ' + formatCLP(total) + (f.nombre ? '\n\nMi nombre: ' + f.nombre : '');
   }
 
+  // logos de tarjetas y de la empresa de envío (Personalizar → Página de pago)
+  const LOGOS_TARJETA = [['visa', 'Visa'], ['mastercard', 'Mastercard'], ['amex', 'American Express'], ['mercadopago', 'Mercado Pago']];
+  function logosTarjetas() {
+    if (raiz.dataset.tarjetas === '0') return '';
+    return '<div class="logos-pago" aria-label="Tarjetas aceptadas">' + LOGOS_TARJETA.map(l => '<img src="/assets/pagos/' + l[0] + '.svg" alt="' + l[1] + '" title="' + l[1] + '" width="44" height="28" loading="lazy">').join('') + '</div>';
+  }
+  function courier(conTexto) {
+    const nom = raiz.dataset.courier || '', logo = raiz.dataset.courierLogo || '';
+    if (!nom && !logo) return '';
+    const marca = logo ? '<img class="courier-logo" src="' + escapeHtml(logo) + '" alt="' + escapeHtml(nom || 'Empresa de envío') + '">' : '<b>' + escapeHtml(nom) + '</b>';
+    return '<span class="courier">' + (conTexto || '') + marca + '</span>';
+  }
+
   function pintar() {
     if (!items.length) {
       raiz.innerHTML = '<div class="ok-caja"><h2>Tu carrito está vacío</h2><p>Elige tus joyas favoritas en la tienda.</p><a class="btn btn-1" href="/tienda/">Ir a la tienda</a></div>';
@@ -65,7 +78,7 @@
         campo('nombre', 'Nombre y apellido *', 'text', ' autocomplete="name" required') +
         '<div class="doble">' + campo('correo', 'Correo electrónico *', 'email', ' autocomplete="email" required') +
         campo('telefono', 'Teléfono *', 'tel', ' autocomplete="tel" placeholder="+56 9 1234 5678" required') + '</div>' +
-        '<h2 style="margin-top:14px">Envío</h2>' +
+        '<h2 style="margin-top:14px">Envío</h2>' + (courier() ? '<p class="envio-con">' + courier('Despachamos a todo Chile con ') + '</p>' : '') +
         campo('direccion', 'Dirección (calle, número, depto) *', 'text', ' autocomplete="street-address" required') +
         '<div class="doble"><label class="campo"><span>Región *</span><select data-c="region"><option value="">Elige tu región</option>' +
           KV_REGIONES.map(r => '<option' + (form.region === r ? ' selected' : '') + '>' + escapeHtml(r) + '</option>').join('') + '</select></label>' +
@@ -74,7 +87,7 @@
         '<label class="campo"><span>Nota para tu pedido (opcional)</span><textarea data-c="notas" rows="2">' + escapeHtml(form.notas || '') + '</textarea></label>' +
         '<h2 style="margin-top:14px">Pago</h2>' +
         (conTarjeta
-          ? '<div class="medio-unico"><b>💳 Tarjeta de débito o crédito</b><span>Pago seguro con Mercado Pago. Al confirmar te llevamos a Mercado Pago para pagar.' + (mp.prueba ? ' <b>Modo de prueba: no se cobra dinero real.</b>' : '') + '</span></div>' +
+          ? '<div class="medio-unico"><b>💳 Tarjeta de débito o crédito</b>' + logosTarjetas() + '<span>Pago seguro con Mercado Pago. Al confirmar te llevamos a Mercado Pago para pagar.' + (mp.prueba ? ' <b>Modo de prueba: no se cobra dinero real.</b>' : '') + '</span></div>' +
             '<a class="transf-wa" href="https://wa.me/' + whatsapp() + '?text=' + encodeURIComponent(mensajeTransferencia(total, envio)) + '" target="_blank" rel="noopener">' +
               '<b>¿Prefieres pagar por transferencia?</b><span>Escríbenos por WhatsApp con tu pedido y te damos los datos.</span></a>'
           : '<div class="transf">' + (kvTransferenciaLista(A)
@@ -100,7 +113,7 @@
         (dcto ? '<div class="fila"><span>Descuento</span><span>−' + formatCLP(dcto) + '</span></div>' : '') +
         '<div class="fila"><span>Envío' + (form.region ? (form.region === KV_REGION_RM ? ' (RM)' : ' (regiones)') : '') + '</span><span>' + (envio != null ? formatCLP(envio) : 'elige tu región') + '</span></div>' +
         '<div class="fila total"><span>Total</span><span>' + formatCLP(total) + '</span></div>' +
-        '<ul class="lista-confianza"><li>🚚 Despacho a todo Chile desde Santiago</li><li>🛡️ 3 meses de garantía por fallas</li><li>💬 ¿Dudas? <a href="https://wa.me/' + whatsapp() + '">Escríbenos por WhatsApp</a></li></ul>' +
+        '<ul class="lista-confianza"><li>🚚 ' + (courier() ? courier('Despacho a todo Chile con ') : 'Despacho a todo Chile desde Santiago') + '</li><li>🛡️ 3 meses de garantía por fallas</li><li>💬 ¿Dudas? <a href="https://wa.me/' + whatsapp() + '">Escríbenos por WhatsApp</a></li></ul>' +
       '</aside>';
     conectar();
   }

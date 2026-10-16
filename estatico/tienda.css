@@ -261,6 +261,11 @@ p{margin:0 0 1em}
 .medio-unico{border:2px solid var(--morado);border-radius:14px;padding:14px;background:#F3ECF9;margin:10px 0}
 .medio-unico b{display:block}
 .medio-unico span{font-size:13.5px;color:var(--suave)}
+.logos-pago{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.logos-pago img{width:44px;height:28px;border-radius:5px;box-shadow:0 1px 3px rgba(42,18,62,.18)}
+.courier{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.courier-logo{height:22px;width:auto;max-width:120px;object-fit:contain;vertical-align:middle}
+.envio-con{margin:-4px 0 12px;font-size:14px;color:var(--suave)}
 .transf-wa{display:block;border:1px dashed var(--lila);border-radius:14px;padding:12px 14px;text-decoration:none;color:var(--tinta);margin:4px 0 6px;transition:background-color .2s}
 .transf-wa b{display:block;font-weight:500;color:#157F43}
 .transf-wa span{font-size:13.5px;color:var(--suave)}

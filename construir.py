@@ -566,6 +566,15 @@ def estilo_foco(v):
     return (' style="object-position:%s"' % f) if f else ""
 
 
+def datos_pago():
+    """Lo que la página de pago muestra además (Personalizar → Página de pago):
+    los logos de las tarjetas y el logo de la empresa de envío."""
+    pg = TEMA.get("pago") or {}
+    logo = imagen(pg.get("courierLogo"))
+    return ' data-tarjetas="%s" data-courier="%s" data-courier-logo="%s"' % (
+        "0" if pg.get("tarjetas") is False else "1", e(pg.get("courierNombre") or ""), e(logo or ""))
+
+
 def portada_ancha(datos, atributo, alt, clase=""):
     """Foto ancha y baja con bordes redondeados (colecciones y páginas), con su
     encuadre de computador y de celular. Sin foto queda oculta (la vista previa
@@ -1133,7 +1142,7 @@ def paginas_texto(cols):
     ruta = DIST + "/finalizar-compra.html"
     h = open(ruta, encoding="utf-8").read()
     h = h.replace('<div class="envoltura"><div class="texto-pag"><h1 style="margin-bottom:0">Finalizar compra</h1></div></div>',
-                  '<div class="envoltura"><h1 style="margin:28px 0 0;font-size:40px">Finalizar compra</h1><div class="pago" id="pago"></div></div>')
+                  '<div class="envoltura"><h1 style="margin:28px 0 0;font-size:40px">Finalizar compra</h1><div class="pago" id="pago"%s></div></div>' % datos_pago())
     h = h.replace('<script src="/estatico/tienda.js?v=%s" defer></script>' % VERSION,
                   '<script src="/estatico/tienda.js?v=%s" defer></script>\n<script src="/estatico/compra.js?v=%s" defer></script>' % (VERSION, VERSION))
     # al pagar no van los botones flotantes (tapaban el cupón en el celular; WhatsApp sigue en el resumen)
@@ -1257,6 +1266,7 @@ def main():
     os.makedirs(DIST + "/assets", exist_ok=True)
     for f in ("logo-karive-web.png", "logo-karive.png", "logo-avatar.png", "modelo-portada.jpg", "modelo-argollas.jpg"):
         shutil.copy("assets/" + f, DIST + "/assets/" + f)
+    shutil.copytree("assets/pagos", DIST + "/assets/pagos")      # logos de tarjetas (página de pago)
 
     prods, cols, mas_vistos = cargar()
     publicar_fotos(prods)

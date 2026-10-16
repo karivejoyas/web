@@ -308,7 +308,8 @@
     efectos: { nombre: 'Efectos y movimiento', ruta: 'efectos', campos: [['portada', 'opciones', 'Efecto de la foto de portada', EFECTOS_PORTADA], ['transicion', 'opciones', 'Al abrir una colección o un producto', TRANSICIONES]], ayuda: 'La transición entre páginas se ve en Chrome, Edge y Safari (iPhone) actualizados; en los demás la página simplemente cambia. Quien tenga activado «reducir movimiento» no ve efectos.' },
     olas: { nombre: 'Olas antes del pie', ruta: 'olas', campos: [['activo', 'si', 'Mostrar las olas'], ['animacion', 'si', 'Que se muevan'], ['rotar', 'si', 'Darlas vuelta (de derecha a izquierda)'], ['alto', 'rango', 'Alto en el computador', { min: 30, max: 220 }], ['altoMovil', 'rango', 'Alto en el celular', { min: 20, max: 160 }], ['color', 'colorOpc', 'Color de las olas']], ayuda: 'Si no eliges color, usan el del pie de página (Colores → Color oscuro).' },
     chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['mensajes', 'textos', 'Mensajes que aparecen junto al botón (de a uno, máximo 6 por visita)']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
-    producto: { nombre: 'Ficha de producto', ruta: 'producto', campos: [['beneficios', 'textos', 'Beneficios bajo el botón de compra']] }
+    producto: { nombre: 'Ficha de producto', ruta: 'producto', campos: [['beneficios', 'textos', 'Beneficios bajo el botón de compra']] },
+    pago: { nombre: 'Página de pago', ruta: 'pago', campos: [['tarjetas', 'si', 'Mostrar los logos de las tarjetas (Visa, Mastercard, American Express, Mercado Pago)'], ['courierNombre', 'texto', 'Empresa de envío (ej: Bluexpress)'], ['courierLogo', 'imagen', 'Logo de la empresa de envío']], ayuda: 'El logo de la empresa de envío aparece en «Envío» y en el resumen del pedido. Mejor un PNG con fondo transparente. Para verlo en la vista previa, agrega algo al carrito en la web.' }
   };
   // páginas con foto de portada (Personalizar → Páginas)
   const PAGINAS_FOTO = { nosotros: ['Nosotros', '/nosotros.html'], preguntas: ['Preguntas frecuentes', '/preguntas-frecuentes.html'], contacto: ['Contacto', '/contacto.html'],
@@ -471,7 +472,7 @@
       '<div class="ed-grupo">Colecciones</div>' +
       A.colecciones().map(c => fila('col:' + c.id, c.nombre)).join('') +
       '<a class="ed-sec" href="#/colecciones" style="text-decoration:none;color:inherit"><span class="chev"></span><span class="nombre">Nombres, orden y productos</span>' + A.ic.externo + '</a>' +
-      '<div class="ed-grupo">Ficha de producto</div>' + global('producto') +
+      '<div class="ed-grupo">Producto y compra</div>' + ['producto', 'pago'].map(global).join('') +
       '<div class="ed-grupo">Pie de página</div>' + ['olas', 'pie'].map(global).join('') +
       '<div class="ed-grupo">Estilo y botones</div>' + ['colores', 'efectos', 'whatsapp', 'chat'].map(global).join('') +
       '<div class="ed-grupo">Páginas</div>' + Object.keys(PAGINAS_FOTO).map(k => fila('pag:' + k, PAGINAS_FOTO[k][0])).join('') +

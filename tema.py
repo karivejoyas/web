@@ -71,6 +71,7 @@ TEMA_DEFECTO = {
     "logo": {"alto": 44, "altoMovil": 38, "altoPie": 52},
     "efectos": {"portada": "destello", "transicion": "profundidad"},
     "coleccionPagina": {"banners": {}},
+    "pago": {"tarjetas": True, "courierNombre": "Bluexpress", "courierLogo": ""},
     "olas": {"activo": True, "animacion": True, "alto": 110, "altoMovil": 64, "color": ""},
     "chat": {
         "activo": True,
