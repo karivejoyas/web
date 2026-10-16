@@ -708,3 +708,6 @@ code{background:#F4EEF6;padding:1px 5px;border-radius:5px;font-size:12.5px}
 .ed-foco.moviendo .ed-foco-guia{opacity:0}
 .ed-foco.vacia{display:flex;align-items:center;justify-content:center;cursor:default;color:var(--tenue);font-size:12.5px;text-align:center;padding:8px}
 .ed-foto-acc{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ed-courier{display:inline-flex;align-items:center;justify-content:center;height:40px;min-width:76px;max-width:130px;padding:6px 10px;border:1px solid var(--borde);border-radius:8px;background:#fff}
+.ed-courier img{max-height:28px;max-width:110px;object-fit:contain}
+.ed-courier.vacio{font-size:11px;color:var(--tenue);background:#F4EEF6}

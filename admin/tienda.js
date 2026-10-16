@@ -83,6 +83,53 @@
     Object.keys(SECCIONES).forEach(k => { if (orden.indexOf(k) === -1) orden.push(k); });
     return orden;
   }
+  /* Empresas de envío (Personalizar → Página de pago), igual que en construir.py.
+     Antes era una sola (courierNombre / courierLogo). */
+  A.listaCouriers = function (t, listo) {
+    const pg = (t && t.pago) || {};
+    const l = Array.isArray(pg.couriers) ? pg.couriers : [{ nombre: pg.courierNombre || '', logo: pg.courierLogo || '' }];
+    return l.filter(c => c && (String(c.nombre || '').trim() || c.logo)).map(c => ({ nombre: String(c.nombre || '').trim(), logo: logoAjustado(A.urlImagen(c.logo), listo) }));
+  };
+  /* El logo sin el margen liso que suelen traer (como hace construir.py), para
+     que se vea grande aunque sea cuadrado. Mientras se calcula, va el original. */
+  const logosListos = {};
+  function logoAjustado(url, listo) {
+    if (!url || url.indexOf('data:') !== 0) return url;
+    const k = url.length + ':' + url.slice(-80);
+    if (logosListos[k]) return logosListos[k] === 'calculando' ? url : logosListos[k];
+    logosListos[k] = 'calculando';
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+        const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+        const d = cx.getImageData(0, 0, cv.width, cv.height).data, W = cv.width, H = cv.height;
+        const f = [d[0], d[1], d[2], d[3]], transp = f[3] < 30;
+        let x0 = W, y0 = H, x1 = -1, y1 = -1;
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+          const i = (y * W + x) * 4;
+          const dist = transp ? (d[i + 3] > 30) : Math.max(Math.abs(d[i] - f[0]), Math.abs(d[i + 1] - f[1]), Math.abs(d[i + 2] - f[2])) > 30;
+          if (dist) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        }
+        if (x1 < 0) { logosListos[k] = url; return; }
+        const m = Math.round(Math.max(x1 - x0, y1 - y0) * 0.03);
+        x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(W - 1, x1 + m); y1 = Math.min(H - 1, y1 + m);
+        const out = document.createElement('canvas'), alto = Math.min(120, y1 - y0 + 1), ancho = Math.round((x1 - x0 + 1) * alto / (y1 - y0 + 1));
+        out.width = ancho; out.height = alto;
+        out.getContext('2d').drawImage(cv, x0, y0, x1 - x0 + 1, y1 - y0 + 1, 0, 0, ancho, alto);
+        logosListos[k] = out.toDataURL('image/png');
+      } catch (e) { logosListos[k] = url; }
+      if (listo) listo();
+    };
+    img.onerror = () => { logosListos[k] = url; };
+    img.src = url;
+    return url;
+  }
+  function couriersHtml(t, listo) {
+    const l = A.listaCouriers(t, listo);
+    return '<div class="envio-empresas" data-kv-couriers' + (l.length ? '' : ' hidden') + '><span>Enviamos con</span><div class="courier-lista">' +
+      l.map(c => c.logo ? '<span class="courier-chip"><img src="' + h(c.logo) + '" alt="' + h(c.nombre || 'Empresa de envío') + '" title="' + h(c.nombre) + '"></span>' : '<span class="courier-chip solo-nombre">' + h(c.nombre) + '</span>').join('') + '</div></div>';
+  }
   A.aplicarTema = function (doc, t) {
     if (!doc || !doc.documentElement) return;
     const cache = doc.__kv || (doc.__kv = {
@@ -138,8 +185,7 @@
     if (pagoEl && doc.defaultView) {
       const pg = t.pago || {};
       pagoEl.dataset.tarjetas = pg.tarjetas === false ? '0' : '1';
-      pagoEl.dataset.courier = pg.courierNombre || '';
-      pagoEl.dataset.courierLogo = A.urlImagen(pg.courierLogo) || '';
+      pagoEl.dataset.couriers = JSON.stringify(A.listaCouriers(t, () => A.aplicarTema(doc, t)).map(x => [x.nombre, x.logo]));
       doc.defaultView.dispatchEvent(new Event('kv-pago-repintar'));
     }
     doc.querySelectorAll('[data-kv-banner], [data-kv-banner-pag]').forEach(sec => {
@@ -156,7 +202,9 @@
     doc.querySelectorAll('[data-kv-img]').forEach(el => { const u = A.urlImagen(obtener(t, el.dataset.kvImg)); if (u) { el.src = u; el.removeAttribute('srcset'); } });
     doc.querySelectorAll('[data-kv-html]').forEach(el => {
       const v = obtener(t, el.dataset.kvHtml); if (v == null) return;
-      el.innerHTML = reemplazos(String(v), Object.assign(VARS(), { tabla_envios: cache.tabla, tarjetas_contacto: cache.tarjetas }));
+      let html = String(v);
+      if (el.dataset.kvHtml === 'paginas.envios.html' && html.indexOf('{empresas_envio}') === -1) html = html.indexOf('{tabla_envios}') !== -1 ? html.replace('{tabla_envios}', '{tabla_envios}{empresas_envio}') : html + '{empresas_envio}';
+      el.innerHTML = reemplazos(html, Object.assign(VARS(), { tabla_envios: cache.tabla, tarjetas_contacto: cache.tarjetas, empresas_envio: couriersHtml(t, () => A.aplicarTema(doc, t)) }));
     });
     // listas
     const menuItem = (it, movil) => it.tipo === 'colecciones'
@@ -317,7 +365,7 @@
     olas: { nombre: 'Olas antes del pie', ruta: 'olas', campos: [['activo', 'si', 'Mostrar las olas'], ['animacion', 'si', 'Que se muevan'], ['rotar', 'si', 'Darlas vuelta (de derecha a izquierda)'], ['alto', 'rango', 'Alto en el computador', { min: 30, max: 220 }], ['altoMovil', 'rango', 'Alto en el celular', { min: 20, max: 160 }], ['color', 'colorOpc', 'Color de las olas']], ayuda: 'Si no eliges color, usan el del pie de página (Colores → Color oscuro).' },
     chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['mensajes', 'textos', 'Mensajes que aparecen junto al botón (de a uno, máximo 6 por visita)']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
     producto: { nombre: 'Ficha de producto', ruta: 'producto', campos: [['beneficios', 'textos', 'Beneficios bajo el botón de compra']] },
-    pago: { nombre: 'Página de pago', ruta: 'pago', campos: [['tarjetas', 'si', 'Mostrar los logos de las tarjetas (Visa, Mastercard, American Express, Mercado Pago)'], ['courierNombre', 'texto', 'Empresa de envío (ej: Bluexpress)'], ['courierLogo', 'imagen', 'Logo de la empresa de envío']], ayuda: 'El logo de la empresa de envío aparece en «Envío» y en el resumen del pedido. Mejor un PNG con fondo transparente. Para verlo en la vista previa, agrega algo al carrito en la web.' }
+    pago: { nombre: 'Pago y envíos', ruta: 'pago', campos: [['tarjetas', 'si', 'Mostrar las tarjetas que acepta Mercado Pago (Visa, Mastercard, American Express)'], ['couriers', 'couriers', 'Empresas de envío']], ayuda: 'El pago es con Mercado Pago (su logo siempre se muestra). Las empresas de envío aparecen en la página de pago y en la página Envíos, bajo la tabla de precios. Sirve cualquier logo: si viene con margen blanco, se recorta solo.' }
   };
   // páginas con foto de portada (Personalizar → Páginas)
   const PAGINAS_FOTO = { nosotros: ['Nosotros', '/nosotros.html'], preguntas: ['Preguntas frecuentes', '/preguntas-frecuentes.html'], contacto: ['Contacto', '/contacto.html'],
@@ -575,6 +623,23 @@
         const u = A.urlImagen(v);
         html += '<div class="campo"><span>' + h(etq) + '</span><div class="ed-img">' + (u ? '<img src="' + h(u) + '" alt="">' : '<div class="ayuda" style="padding:20px;text-align:center">Sin imagen</div>') + '</div>' +
           '<div style="display:flex;gap:6px"><button class="btn btn-chico" data-img="' + ruta + '">' + A.ic.subir + ' Cambiar</button><button class="btn btn-chico btn-plano" data-imgdef="' + ruta + '">Usar la original</button></div></div>';
+      }
+      else if (tipo === 'couriers') {
+        let lista = v;
+        if (!Array.isArray(lista)) {   // antes había una sola empresa (courierNombre / courierLogo)
+          const pg = ed.tema.pago || {};
+          lista = pg.courierNombre || pg.courierLogo ? [{ nombre: pg.courierNombre || '', logo: pg.courierLogo || '' }] : [];
+          poner(ed.tema, ruta, lista);
+        }
+        html += '<span class="etq">' + h(etq) + '</span>' + lista.map((it, i) => {
+          const u = A.urlImagen(it.logo);
+          return '<div class="ed-lista-item"><div class="cab">' + (i + 1) +
+            '<button class="mini" data-lsub="' + ruta + '|' + i + '"' + (i ? '' : ' disabled') + '>' + A.ic.arriba + '</button><button class="mini" data-lbaja="' + ruta + '|' + i + '"' + (i < lista.length - 1 ? '' : ' disabled') + '>' + A.ic.abajo + '</button><button class="mini" data-lborrar="' + ruta + '|' + i + '" style="color:var(--rojo)" aria-label="Quitar">' + A.ic.basura + '</button></div>' +
+            '<input class="inp" data-r="' + ruta + '.' + i + '.nombre" value="' + h(it.nombre || '') + '" placeholder="Nombre (ej: Bluexpress, Starken, Chilexpress)" style="margin-bottom:8px">' +
+            '<div style="display:flex;gap:10px;align-items:center">' + (u ? '<span class="ed-courier"><img src="' + h(logoAjustado(u)) + '" alt=""></span>' : '<span class="ed-courier vacio">Sin logo</span>') +
+            '<button class="btn btn-chico" data-img="' + ruta + '.' + i + '.logo">' + A.ic.subir + (u ? ' Cambiar logo' : ' Subir logo') + '</button>' +
+            (u ? '<button class="btn btn-chico btn-plano" data-imgquitar="' + ruta + '.' + i + '.logo" title="Quitar el logo">✕</button>' : '') + '</div></div>';
+        }).join('') + '<button class="btn btn-chico" data-lmas="' + ruta + '|objetos">' + A.ic.mas + ' Agregar empresa de envío</button>';
       }
       else if (tipo === 'bannersCol') {
         html += '<span class="etq">' + h(etq) + '</span>' + A.colecciones().map(c => {

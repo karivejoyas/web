@@ -566,13 +566,66 @@ def estilo_foco(v):
     return (' style="object-position:%s"' % f) if f else ""
 
 
+def lista_couriers():
+    """Empresas de envío (Personalizar → Página de pago): [{nombre, logo}].
+    Antes era una sola (courierNombre / courierLogo); se lee igual."""
+    pg = TEMA.get("pago") or {}
+    l = pg.get("couriers")
+    if not isinstance(l, list):
+        l = [{"nombre": pg.get("courierNombre") or "", "logo": pg.get("courierLogo") or ""}]
+    out = []
+    for c in l:
+        if isinstance(c, dict) and (str(c.get("nombre") or "").strip() or c.get("logo")):
+            out.append({"nombre": str(c.get("nombre") or "").strip(), "logo": logo_ajustado(c.get("logo"))})
+    return out
+
+
+def logo_ajustado(ruta):
+    """Logo sin el margen liso que suelen traer (blanco o transparente): así se
+    ve grande aunque lo hayan subido cuadrado, como el de Bluexpress."""
+    url = imagen(ruta)
+    if not url.startswith("/assets/medios/") or not gen.Image:
+        return url
+    destino = "/assets/medios/%s-logo.webp" % url.rsplit("/", 1)[1].rsplit(".", 1)[0]
+    if os.path.exists(DIST + destino):
+        return destino
+    try:
+        from PIL import ImageChops
+        im = gen.Image.open(DIST + url).convert("RGBA")
+        fondo = im.getpixel((0, 0))
+        if fondo[3] < 30:
+            caja = im.getchannel("A").point(lambda a: 255 if a > 30 else 0).getbbox()
+        else:
+            dif = ImageChops.difference(im.convert("RGB"), gen.Image.new("RGB", im.size, fondo[:3])).convert("L")
+            caja = dif.point(lambda p: 255 if p > 30 else 0).getbbox()
+        if caja:
+            m = round(max(caja[2] - caja[0], caja[3] - caja[1]) * 0.03)
+            im = im.crop((max(0, caja[0] - m), max(0, caja[1] - m), min(im.width, caja[2] + m), min(im.height, caja[3] + m)))
+        if im.height > 120:
+            im = im.resize((round(im.width * 120 / im.height), 120), gen.Image.LANCZOS)
+        im.save(DIST + destino, "WEBP", quality=90, method=6)
+        return destino
+    except Exception as err:
+        print("logo sin recortar", ruta, err)
+        return url
+
+
+def couriers_html(clase="envio-empresas", texto="Enviamos con"):
+    """Logos de las empresas de envío (página Envíos)."""
+    l = lista_couriers()
+    chips = "".join(('<span class="courier-chip"><img src="%s" alt="%s" title="%s" loading="lazy"></span>' % (e(c["logo"]), e(c["nombre"] or "Empresa de envío"), e(c["nombre"])))
+                    if c["logo"] else '<span class="courier-chip solo-nombre">%s</span>' % e(c["nombre"]) for c in l)
+    return '<div class="%s" data-kv-couriers%s><span>%s</span><div class="courier-lista">%s</div></div>' % (
+        clase, "" if l else " hidden", e(texto), chips)
+
+
 def datos_pago():
     """Lo que la página de pago muestra además (Personalizar → Página de pago):
-    los logos de las tarjetas y el logo de la empresa de envío."""
+    los logos de las tarjetas y de las empresas de envío."""
     pg = TEMA.get("pago") or {}
-    logo = imagen(pg.get("courierLogo"))
-    return ' data-tarjetas="%s" data-courier="%s" data-courier-logo="%s"' % (
-        "0" if pg.get("tarjetas") is False else "1", e(pg.get("courierNombre") or ""), e(logo or ""))
+    return " data-tarjetas=\"%s\" data-couriers=\"%s\"" % (
+        "0" if pg.get("tarjetas") is False else "1",
+        e(json.dumps([[c["nombre"], c["logo"]] for c in lista_couriers()], ensure_ascii=False)))
 
 
 def portada_ancha(datos, atributo, alt, clase=""):
@@ -1075,11 +1128,15 @@ def tarjetas_contacto():
 
 def html_pagina(s):
     """HTML de una página escrita en el panel, con sus {variables}."""
-    return T.reemplazos(str(s or ""), dict(VARS, tabla_envios=tabla_envios(), tarjetas_contacto=tarjetas_contacto()))
+    return T.reemplazos(str(s or ""), dict(VARS, tabla_envios=tabla_envios(), tarjetas_contacto=tarjetas_contacto(), empresas_envio=couriers_html()))
 
 
 def pagina_tema(clave, ruta, actual="", jsonld=None, robots="index, follow"):
     pg = TEMA["paginas"][clave]
+    if clave == "envios" and "{empresas_envio}" not in str(pg.get("html") or ""):
+        # los logos de las empresas de envío van bajo la tabla de precios
+        h = str(pg.get("html") or "")
+        pg = dict(pg, html=h.replace("{tabla_envios}", "{tabla_envios}{empresas_envio}", 1) if "{tabla_envios}" in h else h + "{empresas_envio}")
     cuerpo = ('<h1%s>%s</h1><div class="pagina-html" data-kv-html="paginas.%s.html">%s</div>'
               % (kv("paginas.%s.titulo" % clave), tx(pg.get("titulo")),
                  clave, html_pagina(pg.get("html"))))

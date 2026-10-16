@@ -47,17 +47,25 @@
       '\nTotal: ' + formatCLP(total) + (f.nombre ? '\n\nMi nombre: ' + f.nombre : '');
   }
 
-  // logos de tarjetas y de la empresa de envío (Personalizar → Página de pago)
-  const LOGOS_TARJETA = [['visa', 'Visa'], ['mastercard', 'Mastercard'], ['amex', 'American Express'], ['mercadopago', 'Mercado Pago']];
+  // Mercado Pago, las tarjetas que acepta y las empresas de envío (Personalizar → Pago y envíos)
+  const LOGOS_TARJETA = [['visa', 'Visa'], ['mastercard', 'Mastercard'], ['amex', 'American Express']];
   function logosTarjetas() {
     if (raiz.dataset.tarjetas === '0') return '';
-    return '<div class="logos-pago" aria-label="Tarjetas aceptadas">' + LOGOS_TARJETA.map(l => '<img src="/assets/pagos/' + l[0] + '.svg" alt="' + l[1] + '" title="' + l[1] + '" width="44" height="28" loading="lazy">').join('') + '</div>';
+    return '<div class="logos-pago" aria-label="Tarjetas que acepta Mercado Pago">' + LOGOS_TARJETA.map(l => '<img src="/assets/pagos/' + l[0] + '.svg" alt="' + l[1] + '" title="' + l[1] + '" width="44" height="28" loading="lazy">').join('') + '</div>';
+  }
+  function couriers() {
+    try { return (JSON.parse(raiz.dataset.couriers || '[]') || []).filter(c => c && (c[0] || c[1])); } catch (e) { return []; }
   }
   function courier(conTexto) {
-    const nom = raiz.dataset.courier || '', logo = raiz.dataset.courierLogo || '';
-    if (!nom && !logo) return '';
-    const marca = logo ? '<img class="courier-logo" src="' + escapeHtml(logo) + '" alt="' + escapeHtml(nom || 'Empresa de envío') + '">' : '<b>' + escapeHtml(nom) + '</b>';
-    return '<span class="courier">' + (conTexto || '') + marca + '</span>';
+    const l = couriers();
+    if (!l.length) return '';
+    return '<span class="courier">' + (conTexto ? '<span>' + conTexto + '</span>' : '') + l.map(c => c[1]
+      ? '<span class="courier-chip"><img src="' + escapeHtml(c[1]) + '" alt="' + escapeHtml(c[0] || 'Empresa de envío') + '" title="' + escapeHtml(c[0]) + '"></span>'
+      : '<span class="courier-chip solo-nombre">' + escapeHtml(c[0]) + '</span>').join('') + '</span>';
+  }
+  function nombresCouriers() {
+    const n = couriers().map(c => c[0]).filter(Boolean);
+    return n.length > 1 ? n.slice(0, -1).join(', ') + ' o ' + n[n.length - 1] : n[0] || '';
   }
 
   function pintar() {
@@ -78,7 +86,7 @@
         campo('nombre', 'Nombre y apellido *', 'text', ' autocomplete="name" required') +
         '<div class="doble">' + campo('correo', 'Correo electrónico *', 'email', ' autocomplete="email" required') +
         campo('telefono', 'Teléfono *', 'tel', ' autocomplete="tel" placeholder="+56 9 1234 5678" required') + '</div>' +
-        '<h2 style="margin-top:14px">Envío</h2>' + (courier() ? '<p class="envio-con">' + courier('Despachamos a todo Chile con ') + '</p>' : '') +
+        '<h2 style="margin-top:14px">Envío</h2>' + (courier() ? '<div class="envio-con">' + courier('Despachamos a todo Chile con') + '</div>' : '') +
         campo('direccion', 'Dirección (calle, número, depto) *', 'text', ' autocomplete="street-address" required') +
         '<div class="doble"><label class="campo"><span>Región *</span><select data-c="region"><option value="">Elige tu región</option>' +
           KV_REGIONES.map(r => '<option' + (form.region === r ? ' selected' : '') + '>' + escapeHtml(r) + '</option>').join('') + '</select></label>' +
@@ -87,7 +95,9 @@
         '<label class="campo"><span>Nota para tu pedido (opcional)</span><textarea data-c="notas" rows="2">' + escapeHtml(form.notas || '') + '</textarea></label>' +
         '<h2 style="margin-top:14px">Pago</h2>' +
         (conTarjeta
-          ? '<div class="medio-unico"><b>💳 Tarjeta de débito o crédito</b>' + logosTarjetas() + '<span>Pago seguro con Mercado Pago. Al confirmar te llevamos a Mercado Pago para pagar.' + (mp.prueba ? ' <b>Modo de prueba: no se cobra dinero real.</b>' : '') + '</span></div>' +
+          ? '<div class="medio-unico"><div class="mp-cab"><img class="mp-logo" src="/assets/pagos/mercadopago.webp" alt="Mercado Pago" width="64" height="60">' +
+              '<div><b>Mercado Pago</b><small>Paga con tarjeta de débito o crédito</small>' + logosTarjetas() + '</div></div>' +
+              '<span>Al confirmar te llevamos a Mercado Pago para pagar de forma segura.' + (mp.prueba ? ' <b>Modo de prueba: no se cobra dinero real.</b>' : '') + '</span></div>' +
             '<a class="transf-wa" href="https://wa.me/' + whatsapp() + '?text=' + encodeURIComponent(mensajeTransferencia(total, envio)) + '" target="_blank" rel="noopener">' +
               '<b>¿Prefieres pagar por transferencia?</b><span>Escríbenos por WhatsApp con tu pedido y te damos los datos.</span></a>'
           : '<div class="transf">' + (kvTransferenciaLista(A)
@@ -113,7 +123,7 @@
         (dcto ? '<div class="fila"><span>Descuento</span><span>−' + formatCLP(dcto) + '</span></div>' : '') +
         '<div class="fila"><span>Envío' + (form.region ? (form.region === KV_REGION_RM ? ' (RM)' : ' (regiones)') : '') + '</span><span>' + (envio != null ? formatCLP(envio) : 'elige tu región') + '</span></div>' +
         '<div class="fila total"><span>Total</span><span>' + formatCLP(total) + '</span></div>' +
-        '<ul class="lista-confianza"><li>🚚 ' + (courier() ? courier('Despacho a todo Chile con ') : 'Despacho a todo Chile desde Santiago') + '</li><li>🛡️ 3 meses de garantía por fallas</li><li>💬 ¿Dudas? <a href="https://wa.me/' + whatsapp() + '">Escríbenos por WhatsApp</a></li></ul>' +
+        '<ul class="lista-confianza"><li>🚚 ' + (nombresCouriers() ? 'Despacho a todo Chile con ' + escapeHtml(nombresCouriers()) : 'Despacho a todo Chile desde Santiago') + '</li><li>🛡️ 3 meses de garantía por fallas</li><li>💬 ¿Dudas? <a href="https://wa.me/' + whatsapp() + '">Escríbenos por WhatsApp</a></li></ul>' +
       '</aside>';
     conectar();
   }
