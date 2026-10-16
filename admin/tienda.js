@@ -134,10 +134,11 @@
       el.src = u || el.dataset.original;
       el.style.objectPosition = focoValido((obtener(t, 'portada.colecciones.focos') || {})[el.dataset.kvColimg]);
     });
-    doc.querySelectorAll('[data-kv-banner]').forEach(sec => {
-      const b = ((obtener(t, 'coleccionPagina.banners') || {})[sec.dataset.kvBanner]) || {};
+    doc.querySelectorAll('[data-kv-banner], [data-kv-banner-pag]').forEach(sec => {
+      const b = (sec.dataset.kvBannerPag ? obtener(t, 'paginas.' + sec.dataset.kvBannerPag + '.portada') : ((obtener(t, 'coleccionPagina.banners') || {})[sec.dataset.kvBanner])) || {};
       const pc = A.urlImagen(b.pc) || A.urlImagen(b.movil), mo = A.urlImagen(b.movil) || pc;
       sec.hidden = !pc;
+      if (sec.dataset.kvBannerPag && sec.nextElementSibling) sec.nextElementSibling.classList.toggle('con-foto', !!pc);
       if (pc) { const img = sec.querySelector('img'), src = sec.querySelector('source'); if (img) img.src = pc; if (src) src.srcset = mo; sec.classList.toggle('solo-pc', !A.urlImagen(b.movil)); }
       const f1 = focoValido(b.foco), f2 = focoValido(b.focoMovil);
       if (f1) sec.style.setProperty('--foco', f1); else sec.style.removeProperty('--foco');
@@ -309,6 +310,9 @@
     chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['mensajes', 'textos', 'Mensajes que aparecen junto al botón (de a uno, máximo 6 por visita)']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
     producto: { nombre: 'Ficha de producto', ruta: 'producto', campos: [['beneficios', 'textos', 'Beneficios bajo el botón de compra']] }
   };
+  // páginas con foto de portada (Personalizar → Páginas)
+  const PAGINAS_FOTO = { nosotros: ['Nosotros', '/nosotros.html'], preguntas: ['Preguntas frecuentes', '/preguntas-frecuentes.html'], contacto: ['Contacto', '/contacto.html'],
+    envios: ['Envíos', '/envios.html'], devoluciones: ['Cambios y devoluciones', '/devoluciones.html'], privacidad: ['Privacidad', '/privacidad.html'] };
   const PAGINAS_PREV = [['/', 'Inicio'], ['/tienda/', 'Tienda'], ['col', 'Una colección'], ['prod', 'Un producto'], ['/nosotros.html', 'Nosotros'], ['/contacto.html', 'Contacto'], ['/envios.html', 'Envíos'], ['/preguntas-frecuentes.html', 'Preguntas frecuentes'], ['/devoluciones.html', 'Cambios y devoluciones']];
 
   let ed = null;   // estado del editor
@@ -348,8 +352,9 @@
         const a = e.target.closest('a,button'); if (a) e.preventDefault();
         const sec = e.target.closest('[data-kv-sec]');
         if (sec) { abrirSeccion(sec.dataset.kvSec, true); return; }
-        const ban = e.target.closest('[data-kv-banner]');
+        const ban = e.target.closest('[data-kv-banner]'), banPag = e.target.closest('[data-kv-banner-pag]');
         if (ban) abrirSeccion('col:' + ban.dataset.kvBanner, true);
+        else if (banPag) abrirSeccion('pag:' + banPag.dataset.kvBannerPag, true);
         else if (e.target.closest('.anuncio')) abrirSeccion('anuncio', true);
         else if (e.target.closest('.logo')) abrirSeccion('logo', true);
         else if (e.target.closest('.olas')) abrirSeccion('olas', true);
@@ -426,6 +431,7 @@
     const fila = ed.sec && A.$('#ed-panel [data-sec="' + CSS.escape(ed.sec) + '"]');
     if (fila) fila.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     if (ed.sec && ed.sec.indexOf('col:') === 0) { const c = A.colecciones().find(x => x.id === ed.sec.slice(4)); if (c) verColeccion(c.nombre); }
+    else if (ed.sec && ed.sec.indexOf('pag:') === 0) { const pg = PAGINAS_FOTO[ed.sec.slice(4)]; if (pg && ed.pagina !== pg[1]) verPagina(pg[1]); }
     else if (ed.sec && SECCIONES[ed.sec] && ed.pagina !== '/') verPagina('/');
   }
   function verPagina(u) {
@@ -468,7 +474,8 @@
       '<div class="ed-grupo">Ficha de producto</div>' + global('producto') +
       '<div class="ed-grupo">Pie de página</div>' + ['olas', 'pie'].map(global).join('') +
       '<div class="ed-grupo">Estilo y botones</div>' + ['colores', 'efectos', 'whatsapp', 'chat'].map(global).join('') +
-      '<div class="ed-grupo">Páginas</div><a class="ed-sec" href="#/contenido/paginas" style="text-decoration:none;color:inherit"><span class="chev"></span><span class="nombre">Nosotros, Envíos, Preguntas…</span>' + A.ic.externo + '</a>' +
+      '<div class="ed-grupo">Páginas</div>' + Object.keys(PAGINAS_FOTO).map(k => fila('pag:' + k, PAGINAS_FOTO[k][0])).join('') +
+      '<a class="ed-sec" href="#/contenido/paginas" style="text-decoration:none;color:inherit"><span class="chev"></span><span class="nombre">Textos de las páginas</span>' + A.ic.externo + '</a>' +
       '</div>';
     A.$$('[data-sec]', panel).forEach(f => f.addEventListener('click', (e) => { if (!e.target.closest('button')) abrirSeccion(f.dataset.sec); }));
     A.$$('[data-sub],[data-baja]', panel).forEach(b => b.addEventListener('click', () => {
@@ -526,6 +533,15 @@
         fotoFoco('Foto al abrir la colección · celular (opcional)', 'coleccionPagina.banners.' + id + '.movil', 'coleccionPagina.banners.' + id + '.focoMovil', A.urlImagen(b.movil) || A.urlImagen(b.pc), '16/9', { quitar: A.urlImagen(b.movil) ? 'Usar la del computador' : '', vercol: c.nombre, vacio: 'Usa la del computador' }) +
         '<p class="ayuda">Fotos horizontales 3:2 (1536×1024). Arrastra cada foto para elegir qué parte se ve.</p>' +
         '<a class="btn btn-chico" href="#/colecciones/' + encodeURIComponent(id) + '">Editar nombre, descripción y productos ' + A.ic.externo + '</a>';
+      def = { campos: [] };
+    }
+    if (k.indexOf('pag:') === 0) {
+      // una página: su foto de portada (computador y celular)
+      const id = k.slice(4), r = 'paginas.' + id + '.portada', b = obtener(ed.tema, r) || {};
+      html += fotoFoco('Foto de portada · computador', r + '.pc', r + '.foco', A.urlImagen(b.pc), '16/5', { quitar: 'Quitar', vacio: 'Sin foto: la página se ve solo con texto' }) +
+        fotoFoco('Foto de portada · celular (opcional)', r + '.movil', r + '.focoMovil', A.urlImagen(b.movil) || A.urlImagen(b.pc), '16/9', { quitar: A.urlImagen(b.movil) ? 'Usar la del computador' : '', vacio: 'Usa la del computador' }) +
+        '<p class="ayuda">Fotos horizontales 3:2 (1536×1024). Va arriba de la página, sobre el título. Arrastra cada foto para elegir qué parte se ve.</p>' +
+        '<a class="btn btn-chico" href="#/contenido/paginas">Editar los textos ' + A.ic.externo + '</a>';
       def = { campos: [] };
     }
     const base = def.ruta ? def.ruta + '.' : '';

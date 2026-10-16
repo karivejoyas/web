@@ -566,6 +566,20 @@ def estilo_foco(v):
     return (' style="object-position:%s"' % f) if f else ""
 
 
+def portada_ancha(datos, atributo, alt, clase=""):
+    """Foto ancha y baja con bordes redondeados (colecciones y páginas), con su
+    encuadre de computador y de celular. Sin foto queda oculta (la vista previa
+    del panel la muestra al subir una)."""
+    datos = datos or {}
+    pc, mov = imagen(datos.get("pc")), imagen(datos.get("movil"))
+    pc = pc or mov
+    f_pc, f_mov = foco(datos.get("foco")), foco(datos.get("focoMovil"))
+    vars_foco = ";".join(x for x in (("--foco:" + f_pc) if f_pc else "", ("--foco-m:" + f_mov) if f_mov else "") if x)
+    return ('<div class="col-portada%s%s" %s%s%s><picture><source media="(max-width:699px)"%s><img%s alt="%s" width="1600" height="600" fetchpriority="high" decoding="async"></picture></div>'
+            % (clase, "" if mov else " solo-pc", atributo, "" if pc else " hidden", (' style="%s"' % vars_foco) if vars_foco else "",
+               (' srcset="%s"' % e(mov or pc)) if pc else "", (' src="%s"' % e(pc)) if pc else "", e(alt))), bool(pc)
+
+
 def logo_url():
     return imagen((TEMA.get("logo") or {}).get("imagen")) or "/assets/logo-karive-web.png"
 
@@ -901,16 +915,10 @@ def coleccion(c, cols):
     otras = "".join('<a class="chip" href="/c/%s.html">%s</a>' % (e(o["slug"]), e(o["nombre"])) for o in cols if o["id"] != c["id"])
     # imagen de portada de la colección (Personalizar → Página de colección)
     ban = ((TEMA.get("coleccionPagina") or {}).get("banners") or {}).get(c["id"]) or {}
-    b_pc, b_mov = imagen(ban.get("pc")), imagen(ban.get("movil"))
-    b_pc = b_pc or b_mov
     migas = '<nav class="migas" aria-label="Estás en"><ol><li><a href="/">Inicio</a></li><li><a href="/tienda/">Ver todo</a></li><li aria-current="page">%s</li></ol></nav>' % e(c["nombre"])
     # la foto va arriba, sin nada encima; el título y el texto, debajo
-    f_pc, f_mov = foco(ban.get("foco")), foco(ban.get("focoMovil"))
-    vars_foco = ";".join(x for x in (("--foco:" + f_pc) if f_pc else "", ("--foco-m:" + f_mov) if f_mov else "") if x)
-    h += ('<div class="envoltura">%s<div class="col-portada%s" data-kv-banner="%s"%s%s>'
-          '<picture><source media="(max-width:699px)"%s><img%s alt="%s" width="1600" height="600" fetchpriority="high" decoding="async"></picture></div>'
-          % (migas, "" if b_mov else " solo-pc", e(c["id"]), "" if b_pc else " hidden", (' style="%s"' % vars_foco) if vars_foco else "",
-             (' srcset="%s"' % e(b_mov or b_pc)) if b_pc else "", (' src="%s"' % e(b_pc)) if b_pc else "", e(h1)))
+    foto, _ = portada_ancha(ban, 'data-kv-banner="%s"' % e(c["id"]), h1)
+    h += '<div class="envoltura">%s%s' % (migas, foto)
     h += """{cab}
   <ul class="grilla" style="margin-top:24px">{tarj}</ul>
   <h2 style="margin-top:48px">Otras colecciones</h2><div class="filtros">{otras}</div>
@@ -1028,10 +1036,14 @@ def opiniones_html(pid):
                        for r in sorted(lista, key=lambda r: r.get("fecha") or "", reverse=True))))
 
 
-def pagina_texto(ruta, titulo, desc, cuerpo_html, cols, actual="", jsonld=None, robots="index, follow"):
+def pagina_texto(ruta, titulo, desc, cuerpo_html, cols, actual="", jsonld=None, robots="index, follow", clave=""):
     h = cabeza(titulo, desc, ruta, SITIO + "assets/modelo-portada.jpg", jsonld, robots=robots)
     h += encabezado(cols, actual)
-    h += '<div class="envoltura"><div class="texto-pag">%s</div></div>\n' % cuerpo_html
+    foto, hay = ("", False)
+    if clave:   # foto de portada de la página (Personalizar → Páginas)
+        foto, hay = portada_ancha((TEMA["paginas"].get(clave) or {}).get("portada"), 'data-kv-banner-pag="%s"' % e(clave),
+                                  re.sub(r"<[^>]+>", "", cuerpo_html.split("</h1>")[0]), " pag-portada")
+    h += '<div class="envoltura">%s<div class="texto-pag%s">%s</div></div>\n' % (foto, " con-foto" if hay else "", cuerpo_html)
     h += pie(cols)
     escribir(ruta, h)
 
@@ -1063,7 +1075,7 @@ def pagina_tema(clave, ruta, actual="", jsonld=None, robots="index, follow"):
               % (kv("paginas.%s.titulo" % clave), tx(pg.get("titulo")),
                  clave, html_pagina(pg.get("html"))))
     pagina_texto(ruta, tp(pg.get("seoTitulo") or (pg.get("titulo") + " | " + MARCA)), tp(pg.get("seoDesc") or pg.get("titulo")),
-                 cuerpo, cols_global, actual, jsonld, robots)
+                 cuerpo, cols_global, actual, jsonld, robots, clave=clave)
 
 
 def legales_por_defecto():
@@ -1101,7 +1113,7 @@ def paginas_texto(cols):
                  '<h1%s>%s</h1><div class="faq" data-kv-lista="paginas.preguntas.items">' % (
                      kv("paginas.preguntas.titulo"), tx(pq.get("titulo"))) +
                  "".join("<details><summary>%s</summary><p>%s</p></details>" % (tx(it["q"]), tx(it.get("a"))) for it in items) +
-                 '</div><p style="margin-top:24px">¿Te quedó alguna duda? <a href="/contacto.html">Escríbenos</a>.</p>', cols, "preguntas", faq_ld)
+                 '</div><p style="margin-top:24px">¿Te quedó alguna duda? <a href="/contacto.html">Escríbenos</a>.</p>', cols, "preguntas", faq_ld, clave="preguntas")
     pagina_tema("nosotros", "/nosotros.html", "nosotros")
     pagina_tema("contacto", "/contacto.html", "contacto")
     pagina_tema("envios", "/envios.html")

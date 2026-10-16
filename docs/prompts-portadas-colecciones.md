@@ -76,3 +76,24 @@ Escena de taller artesanal: mesa de trabajo de madera con pinceles, pequeñas pi
 
 ## Foto del taller (portada, sección "Nuestro taller")
 Formato horizontal **4:3** (en ChatGPT pide 1536×1152, o usa 1536×1024: se recorta un poco arriba y abajo). Se sube en **Personalizar → Nuestro taller → Imagen → Cambiar**.
+
+## Fotos de portada de las páginas (Nosotros, Preguntas, Contacto)
+Mismo formato que las portadas de colección: pega **bloque de estilo + formato COMPUTADOR + escena**. Se suben en **Personalizar → Páginas → (la página)** y se arrastran para encuadrar.
+
+### Nosotros
+Adjuntar: 2 o 3 aros de colecciones distintas.
+```
+Escena: mesa de trabajo de un taller artesanal luminoso. Las manos de una artesana (sin mostrar la cara) terminan de armar un aro de flor de arcilla polimérica con un alicate fino; alrededor, flores de arcilla a medio terminar, ganchos de acero, un frasco con pinceles y, ya terminados, los aros de la foto adjunta sobre un paño de lino crema. Luz de ventana cálida de la tarde. Sensación de "hecho a mano, uno por uno".
+```
+
+### Preguntas frecuentes
+Adjuntar: 1 o 2 pares de aros.
+```
+Escena vista desde arriba (cenital): una cajita de regalo color crema abierta, con papel de seda lila y los aros de la foto adjunta adentro, una cinta de raso lila suelta, una tarjetita de agradecimiento en blanco (sin texto) y unas flores secas. Todo ordenado sobre una mesa de lino claro. Sensación de pedido listo para enviar y regalar.
+```
+
+### Contacto
+Adjuntar: 1 par de aros.
+```
+Escena: escritorio luminoso junto a una ventana. Un celular apoyado boca arriba con la pantalla apagada (negra, sin texto), una taza de té, un sobre de papel kraft cerrado con una cinta lila, unas flores secas en un florero pequeño y los aros de la foto adjunta sobre un platito de cerámica crema. Ambiente cercano y cálido, invita a conversar.
+```
