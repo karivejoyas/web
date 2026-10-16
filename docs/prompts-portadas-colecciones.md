@@ -97,3 +97,21 @@ Adjuntar: 1 par de aros.
 ```
 Escena: escritorio luminoso junto a una ventana. Un celular apoyado boca arriba con la pantalla apagada (negra, sin texto), una taza de té, un sobre de papel kraft cerrado con una cinta lila, unas flores secas en un florero pequeño y los aros de la foto adjunta sobre un platito de cerámica crema. Ambiente cercano y cálido, invita a conversar.
 ```
+
+### Envíos
+Adjuntar: 1 par de aros.
+```
+Escena: un paquete de envío pequeño y prolijo, de cartón kraft, abierto sobre una mesa de madera clara: dentro, papel de seda lila y una cajita crema con los aros de la foto adjunta. Al lado, un rollo de cinta de papel, una etiqueta en blanco (sin texto ni logos) y una ramita de flores secas. Luz de mañana. Sensación de pedido cuidado, listo para viajar a cualquier lugar de Chile.
+```
+
+### Cambios y devoluciones
+Adjuntar: 1 par de aros.
+```
+Escena tranquila y confiable: las manos de una mujer (sin mostrar la cara) sosteniendo con cuidado una cajita crema abierta con los aros de la foto adjunta, sobre una mesa de lino claro. Al lado, una tarjetita en blanco (sin texto) y una cinta de raso lila. Luz suave y cálida. Sensación de cuidado y atención cercana.
+```
+
+### Privacidad
+Sin aros (o 1 par pequeño al fondo).
+```
+Escena minimalista y serena: un rincón de escritorio color crema con un cuaderno cerrado de tapa de lino, un sobre lacrado con un sello de cera lila, una pluma dorada y una ramita de lavanda seca. Mucho espacio limpio, luz suave de ventana. Sensación de confianza, orden y discreción.
+```

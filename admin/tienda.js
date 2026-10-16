@@ -134,6 +134,14 @@
       el.src = u || el.dataset.original;
       el.style.objectPosition = focoValido((obtener(t, 'portada.colecciones.focos') || {})[el.dataset.kvColimg]);
     });
+    const pagoEl = doc.getElementById('pago');
+    if (pagoEl && doc.defaultView) {
+      const pg = t.pago || {};
+      pagoEl.dataset.tarjetas = pg.tarjetas === false ? '0' : '1';
+      pagoEl.dataset.courier = pg.courierNombre || '';
+      pagoEl.dataset.courierLogo = A.urlImagen(pg.courierLogo) || '';
+      doc.defaultView.dispatchEvent(new Event('kv-pago-repintar'));
+    }
     doc.querySelectorAll('[data-kv-banner], [data-kv-banner-pag]').forEach(sec => {
       const b = (sec.dataset.kvBannerPag ? obtener(t, 'paginas.' + sec.dataset.kvBannerPag + '.portada') : ((obtener(t, 'coleccionPagina.banners') || {})[sec.dataset.kvBanner])) || {};
       const pc = A.urlImagen(b.pc) || A.urlImagen(b.movil), mo = A.urlImagen(b.movil) || pc;
@@ -314,7 +322,7 @@
   // páginas con foto de portada (Personalizar → Páginas)
   const PAGINAS_FOTO = { nosotros: ['Nosotros', '/nosotros.html'], preguntas: ['Preguntas frecuentes', '/preguntas-frecuentes.html'], contacto: ['Contacto', '/contacto.html'],
     envios: ['Envíos', '/envios.html'], devoluciones: ['Cambios y devoluciones', '/devoluciones.html'], privacidad: ['Privacidad', '/privacidad.html'] };
-  const PAGINAS_PREV = [['/', 'Inicio'], ['/tienda/', 'Tienda'], ['col', 'Una colección'], ['prod', 'Un producto'], ['/nosotros.html', 'Nosotros'], ['/contacto.html', 'Contacto'], ['/envios.html', 'Envíos'], ['/preguntas-frecuentes.html', 'Preguntas frecuentes'], ['/devoluciones.html', 'Cambios y devoluciones']];
+  const PAGINAS_PREV = [['/', 'Inicio'], ['/tienda/', 'Tienda'], ['col', 'Una colección'], ['prod', 'Un producto'], ['/nosotros.html', 'Nosotros'], ['/contacto.html', 'Contacto'], ['/envios.html', 'Envíos'], ['/preguntas-frecuentes.html', 'Preguntas frecuentes'], ['/devoluciones.html', 'Cambios y devoluciones'], ['/finalizar-compra.html?vista=1', 'Página de pago']];
 
   let ed = null;   // estado del editor
   A.pagina('tienda/editor', (v) => abrirEditor(v, null), []);
@@ -433,6 +441,8 @@
     if (fila) fila.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     if (ed.sec && ed.sec.indexOf('col:') === 0) { const c = A.colecciones().find(x => x.id === ed.sec.slice(4)); if (c) verColeccion(c.nombre); }
     else if (ed.sec && ed.sec.indexOf('pag:') === 0) { const pg = PAGINAS_FOTO[ed.sec.slice(4)]; if (pg && ed.pagina !== pg[1]) verPagina(pg[1]); }
+    else if (ed.sec === 'pago' && ed.pagina.indexOf('/finalizar-compra') !== 0) verPagina('/finalizar-compra.html?vista=1');
+    else if (ed.sec === 'producto' && ed.pagina.indexOf('/p/') !== 0) { const sel = A.$('#ed-pagina'); if (sel) { sel.value = 'prod'; sel.dispatchEvent(new Event('change')); } }
     else if (ed.sec && SECCIONES[ed.sec] && ed.pagina !== '/') verPagina('/');
   }
   function verPagina(u) {

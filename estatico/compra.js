@@ -281,6 +281,14 @@
     try { A = await KV.ajustes(); } catch (e) { A = {}; }
     if (await vueltaPago()) return;
     items = await KV.carroItems();
+    // vista previa del panel (Personalizar): pedido de ejemplo, sin tocar el carrito
+    if (!items.length && window.top !== window && /[?&]vista\b/.test(location.search)) {
+      const lista = await KV.productos();
+      items = lista.filter(p => kvEnStock(p)).slice(0, 2).map(p => ({ p: p, qty: 1 }));
+      form.region = form.region || KV_REGION_RM;
+    }
     pintar();
   })();
+  // el panel avisa cuando cambia el logo de envío o los de tarjetas
+  window.addEventListener('kv-pago-repintar', () => { if (items.length) pintar(); });
 })();
