@@ -75,6 +75,7 @@
 
     const igSel = new Set();
     function igActualizarBarra() {
+      contarGrupos($('adm-ig-lista'), 'ig-sel');
       const n = igSel.size;
       $('adm-ig-selcount').textContent = n + (n === 1 ? ' producto seleccionado' : ' productos seleccionados') + (n > 1 ? ' → carrusel' : '');
       $('adm-ig-preview').disabled = n === 0;
@@ -105,26 +106,14 @@
         '</div>';
       const cats = kvCategorias(settings);
       const huer = enStock.filter(p => !cats.some(c => c.id === p.category));
-      // barra de acceso rápido: cada colección + la configuración del final
-      let nav = '<div class="adm-secnav">';
-      cats.forEach(cat => {
-        const n = enStock.filter(p => p.category === cat.id).length;
-        if (n) nav += '<button type="button" class="adm-secnav-btn" data-goto="ig-grupo-' + cat.id + '">' + escapeHtml(cat.nombre) + ' <span>' + n + '</span></button>';
-      });
-      if (huer.length) nav += '<button type="button" class="adm-secnav-btn" data-goto="ig-grupo-otros">Otros <span>' + huer.length + '</span></button>';
-      nav += '<button type="button" class="adm-secnav-btn adm-secnav-cfg" data-goto="ig-sec-config">⚙ Configuración</button>';
-      nav += '</div>';
-      let html = nav;
+      let html = '';
       cats.forEach(cat => {
         const items = enStock.filter(p => p.category === cat.id);
-        if (items.length) html += '<div class="ig-grupo-tit" id="ig-grupo-' + cat.id + '">' + escapeHtml(cat.nombre) + '</div>' + items.map(fila).join('');
+        if (items.length) html += grupoHtml('ig-grupo-' + cat.id, cat.nombre, items.length, items.map(fila).join(''));
       });
-      if (huer.length) html += '<div class="ig-grupo-tit" id="ig-grupo-otros">Otros</div>' + huer.map(fila).join('');
+      if (huer.length) html += grupoHtml('ig-grupo-otros', 'Otros', huer.length, huer.map(fila).join(''));
       cont.innerHTML = html;
-      cont.querySelectorAll('[data-goto]').forEach(n => n.addEventListener('click', e => {
-        const s = document.getElementById(e.currentTarget.dataset.goto);
-        if (s) s.scrollIntoView({ behavior: 'smooth', block: e.currentTarget.dataset.goto === 'ig-sec-config' ? 'start' : 'center' });
-      }));
+      conectarGrupos(cont);
       cont.querySelectorAll('[data-role="ig-img"]').forEach(n => n.addEventListener('click', e => descargarPostIG(e.currentTarget.dataset.id, e.currentTarget)));
       cont.querySelectorAll('[data-role="ig-txt"]').forEach(n => n.addEventListener('click', e => copiarCaptionIG(e.currentTarget.dataset.id, e.currentTarget)));
       cont.querySelectorAll('[data-role="ig-sel"]').forEach(n => n.addEventListener('change', e => {
@@ -386,6 +375,7 @@
     }
 
     function mlActualizarBarra() {
+      contarGrupos($('adm-ml-lista'), 'ml-sel');
       const n = mlSel.size;
       $('adm-ml-selcount').textContent = n + (n === 1 ? ' producto seleccionado' : ' productos seleccionados');
       $('adm-ml-revisar').disabled = n === 0;
@@ -425,36 +415,20 @@
 
       const cats = kvCategorias(settings);
       const huer = enStock.filter(p => !cats.some(c => c.id === p.category));
-      let nav = '<div class="adm-secnav">';
-      cats.forEach(cat => {
-        const n = enStock.filter(p => p.category === cat.id).length;
-        if (n) nav += '<button type="button" class="adm-secnav-btn" data-goto="ml-grupo-' + cat.id + '">' + escapeHtml(cat.nombre) + ' <span>' + n + '</span></button>';
-      });
-      if (huer.length) nav += '<button type="button" class="adm-secnav-btn" data-goto="ml-grupo-otros">Otros <span>' + huer.length + '</span></button>';
-      nav += '<button type="button" class="adm-secnav-btn" data-goto="ml-sec-ventas">💰 Mis ventas</button>';
-      nav += '<button type="button" class="adm-secnav-btn" data-goto="ml-sec-publicadas">📦 Mis publicaciones</button>';
-      nav += '<button type="button" class="adm-secnav-btn" data-goto="ml-sec-calidad">⭐ Calidad</button>';
-      nav += '<button type="button" class="adm-secnav-btn adm-secnav-cfg" data-goto="ml-sec-config">⚙ Configuración</button>';
-      nav += '</div>';
-
-      let html = nav;
+      let html = '';
       const grupo = (id, nombre, items) => {
         if (!items.length) return '';
         const libres = items.filter(p => !mlYaPublicado(p) && !kvMlProblemas(p, settings).length);
-        return '<div class="ig-grupo" id="' + id + '">' +
-          '<div class="adm-barra-sup"><h3 class="adm-seccion-titulo">' + escapeHtml(nombre) + '</h3>' +
-          (libres.length ? '<button type="button" class="adm-btn-borde" data-role="ml-todos" data-grupo="' + id + '">Marcar los ' + libres.length + ' que faltan</button>' : '') +
-          '</div>' + items.map(fila).join('') + '</div>';
+        const ya = items.filter(mlYaPublicado).length;
+        return grupoHtml(id, nombre, items.length, items.map(fila).join(''),
+          (libres.length ? '<div class="app-grupo-acc"><button type="button" class="adm-btn-borde" data-role="ml-todos" data-grupo="' + id + '">Marcar los ' + libres.length + ' que faltan</button></div>' : ''),
+          ya ? ya + ' publicado' + (ya > 1 ? 's' : '') : '');
       };
       cats.forEach(cat => { html += grupo('ml-grupo-' + cat.id, cat.nombre, enStock.filter(p => p.category === cat.id)); });
       html += grupo('ml-grupo-otros', 'Otros', huer);
 
       cont.innerHTML = html;
-      // los atajos de arriba (colecciones, ventas, publicaciones, configuración)
-      cont.querySelectorAll('[data-goto]').forEach(n => n.addEventListener('click', e => {
-        const s = document.getElementById(e.currentTarget.dataset.goto);
-        if (s) s.scrollIntoView({ behavior: 'smooth', block: /^ml-sec-/.test(e.currentTarget.dataset.goto) ? 'start' : 'center' });
-      }));
+      conectarGrupos(cont);
       mlActualizarBarra();
     }
 
@@ -468,6 +442,7 @@
       const b = e.target.closest('button[data-role="ml-todos"]'); if (!b) return;
       const cont = document.getElementById(b.dataset.grupo); if (!cont) return;
       cont.querySelectorAll('input[data-role="ml-sel"]:not(:disabled)').forEach(c => { c.checked = true; mlSel.add(c.dataset.id); });
+      mlActualizarBarra();
       mlActualizarBarra();
     });
     const mlDes = $('adm-ml-deseleccionar');
@@ -897,13 +872,25 @@
       paid: '✓ pagada', confirmed: 'confirmada', payment_required: 'esperando pago',
       payment_in_process: 'pago en proceso', cancelled: '✕ cancelada', invalid: 'inválida'
     };
-    $('adm-ml-ver-ventas').addEventListener('click', async () => {
+    // las ventas se traen una vez y las usan «Ventas» y «Resumen»
+    let mlVentas = null, mlVentasPidiendo = null, mlVentasError = '';
+    function mlTraerVentas() {
+      if (mlVentasPidiendo) return mlVentasPidiendo;
+      mlVentasPidiendo = mlPublicador({ accion: 'ml-ventas', limite: 50 }).then(d => {
+        if (!d || !d.ok) throw new Error((d && d.error) || 'No se pudo consultar.');
+        mlVentas = { ventas: d.ventas || [], total: d.total || (d.ventas || []).length, cuando: Date.now() };
+        mlVentasError = '';
+        return mlVentas;
+      }).catch(e => { mlVentasError = e.message; throw e; }).finally(() => { mlVentasPidiendo = null; });
+      return mlVentasPidiendo;
+    }
+    $('adm-ml-ver-ventas').addEventListener('click', () => mlPintarVentas(true));
+    async function mlPintarVentas(nuevas) {
       const cont = $('adm-ml-ventas'), info = $('adm-ml-ventas-contador');
       info.textContent = 'Consultando a Mercado Libre…';
       cont.innerHTML = '';
       try {
-        const d = await mlPublicador({ accion: 'ml-ventas', limite: 50 });
-        if (!d || !d.ok) { info.textContent = '❌ ' + ((d && d.error) || 'No se pudo consultar.'); return; }
+        const d = (!nuevas && mlVentas) || await mlTraerVentas();
         const v = d.ventas || [];
         info.textContent = v.length ? (v.length + ' venta(s) · ' + (d.total || v.length) + ' en total') : 'Todavía no tienes ventas en Mercado Libre.';
         cont.innerHTML = v.map(x => {
@@ -920,7 +907,156 @@
           '</div>';
         }).join('');
       } catch (e) { info.textContent = '❌ ' + e.message; }
-    });
+      if (nuevas) mlPintarResumen();
+    }
+
+    // ---------- resumen de Mercado Libre ----------
+    const ventaVale = (v) => !/^(cancelled|invalid|payment_required)$/.test(v.estado || '');
+    const fechaVenta = (v) => new Date(v.fecha || 0).getTime();
+    function periodoApp(clave) {
+      if (clave !== 'mes') return A.periodo(clave);
+      const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+      return { desde: new Date(hoy.getFullYear(), hoy.getMonth(), 1).getTime(), dias: hoy.getDate(), clave: 'mes' };
+    }
+    const PERIODOS_APP = [['7', '7 días'], ['30', '30 días'], ['mes', 'Este mes'], ['90', '90 días']];
+    const selectorPeriodo = (act, extra) => '<div class="selector-periodo"><div class="grupo-btn">' +
+      PERIODOS_APP.map(x => '<button class="btn btn-chico' + (act === x[0] ? ' activo' : '') + '" data-res-per="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>' + (extra || '') + '</div>';
+    const cambio = (ahora, antes) => {
+      if (antes == null) return '';
+      if (!antes) return ahora ? '<small class="res-sube">nuevo en este período</small>' : '';
+      const p = Math.round((ahora - antes) * 100 / antes);
+      return '<small class="' + (p >= 0 ? 'res-sube' : 'res-baja') + '">' + (p >= 0 ? '▲ ' : '▼ ') + Math.abs(p) + '% vs. período anterior</small>';
+    };
+    const formatoPesos = (v) => v >= 1000000 ? '$' + (Math.round(v / 100000) / 10).toString().replace('.', ',') + 'M' : v >= 1000 ? '$' + Math.round(v / 1000) + 'k' : '$' + v;
+    function barrasRes(filas, vacio) {
+      if (!filas.length) return '<p class="ayuda">' + vacio + '</p>';
+      const max = Math.max(...filas.map(f => f.n)) || 1;
+      return '<div class="barras-h">' + filas.map(f => '<div class="bh"><span title="' + escapeHtml(f.k) + '">' + escapeHtml(f.k) + '</span><div class="bh-pista"><div class="bh-relleno" style="width:' + Math.max(2, f.n * 100 / max) + '%"></div></div><b>' + (f.txt || f.n) + '</b></div>').join('') + '</div>';
+    }
+
+    let mlResPer = '30';
+    function mlPintarResumen() {
+      const cont = $('adm-ml-resumen'); if (!cont) return;
+      if (!String(settings.igPubUrl || '').trim() || !pubClave()) {
+        cont.innerHTML = '<div class="nota">Para ver el resumen de Mercado Libre falta conectar el publicador: <a href="#/config/notificaciones">Configuración → Notificaciones</a>.</div>';
+        return;
+      }
+      if (!mlVentas) {
+        if (mlVentasError) {
+          cont.innerHTML = '<div class="nota mal">No pude traer tus ventas: ' + escapeHtml(mlVentasError) + '</div><button class="adm-btn-solido" data-res-act>↻ Reintentar</button>';
+          cont.querySelector('[data-res-act]').addEventListener('click', () => { mlVentasError = ''; mlPintarResumen(); });
+          return;
+        }
+        cont.innerHTML = '<div class="res-cargando">' + A.cargandoHtml + '<p class="ayuda">Trayendo tus ventas de Mercado Libre…</p></div>';
+        mlTraerVentas().then(() => { mlPintarResumen(); }).catch(() => mlPintarResumen());
+        return;
+      }
+      const per = periodoApp(mlResPer), hasta = Date.now();
+      const todas = mlVentas.ventas.filter(ventaVale);
+      const enPer = todas.filter(v => fechaVenta(v) >= per.desde);
+      const masVieja = mlVentas.ventas.reduce((m, v) => Math.min(m, fechaVenta(v) || m), hasta);
+      const incompleto = mlVentas.total > mlVentas.ventas.length;          // ML solo entrega las últimas 50
+      const cubre = (desde) => !incompleto || masVieja <= desde;
+      const largo = per.clave === 'mes' ? per.dias * 864e5 : per.dias * 864e5;
+      const antDesde = per.desde - largo;
+      const anteriores = cubre(antDesde) ? todas.filter(v => fechaVenta(v) >= antDesde && fechaVenta(v) < per.desde) : null;
+      const suma = (l) => l.reduce((s, v) => s + (Number(v.total) || 0), 0);
+      const unidades = (l) => l.reduce((s, v) => s + (v.productos || []).reduce((t, p) => t + (Number(p.cantidad) || 1), 0), 0);
+      const tipo = settings.mlTipo || 'gold_special';
+      const quedan = enPer.reduce((s, v) => s + Math.max(0, (Number(v.total) || 0) - Math.round((Number(v.total) || 0) * (tipo === 'gold_pro' ? 0.20 : 0.0946)) - KV_ML_ENVIO_APROX), 0);
+      const total = suma(enPer);
+      // lo más vendido en el período
+      const top = {};
+      enPer.forEach(v => (v.productos || []).forEach(p => {
+        const k = p.titulo || '—'; top[k] = top[k] || { k: k, n: 0, plata: 0 };
+        top[k].n += Number(p.cantidad) || 1; top[k].plata += (Number(p.precio) || 0) * (Number(p.cantidad) || 1);
+      }));
+      const topL = Object.values(top).sort((a, b) => b.n - a.n || b.plata - a.plata).slice(0, 6).map(x => Object.assign(x, { txt: x.n + ' · ' + A.clp(x.plata) }));
+      // avisos
+      const ps = mlPubsCache || [];
+      const activos = ps.filter(p => p.estado === 'active'), pausados = ps.filter(p => p.estado === 'paused');
+      const sinStock = ps.filter(p => p.estado !== 'closed' && !(Number(p.stock) > 0));
+      const siempre = ps.filter(p => p.vendidos > 0).sort((a, b) => b.vendidos - a.vendidos).slice(0, 6).map(p => ({ k: p.titulo || p.id, n: p.vendidos }));
+      const ultimas = mlVentas.ventas.slice().sort((a, b) => fechaVenta(b) - fechaVenta(a)).slice(0, 5);
+
+      cont.innerHTML = selectorPeriodo(mlResPer, '<span class="ayuda">Actualizado ' + escapeHtml(A.hace(new Date(mlVentas.cuando).toISOString())) + '</span><button class="adm-btn-borde" data-res-act>↻ Actualizar</button>') +
+        (incompleto && !cubre(per.desde) ? '<div class="nota">Mercado Libre entrega tus últimas ' + mlVentas.ventas.length + ' ventas (de ' + mlVentas.total + '): en este período puede faltar alguna más antigua.</div>' : '') +
+        '<div class="metricas">' +
+          '<div class="metrica"><span>Vendido</span><b>' + A.clp(total) + '</b>' + cambio(total, anteriores && suma(anteriores)) + '</div>' +
+          '<div class="metrica"><span>Ventas</span><b>' + enPer.length + '</b>' + cambio(enPer.length, anteriores && anteriores.length) + '</div>' +
+          '<div class="metrica"><span>Unidades</span><b>' + unidades(enPer) + '</b><small>ticket promedio ' + A.clp(enPer.length ? total / enPer.length : 0) + '</small></div>' +
+          '<div class="metrica"><span>Te quedan (aprox.)</span><b>' + A.clp(quedan) + '</b><small>después de comisión y envío</small></div>' +
+        '</div>' +
+        '<div class="tarjeta res-tarjeta"><div class="tarjeta-cab"><h2>Ventas por día</h2></div>' +
+          A.grafico(A.serie(per, todas, fechaVenta, v => Number(v.total) || 0).map(d => Object.assign(d, { tip: A.clp(d.valor) })), { titulo: 'Ventas por día en Mercado Libre', formato: formatoPesos, alto: 180 }) + '</div>' +
+        '<div class="rejilla-2">' +
+          '<div class="tarjeta tarjeta-c"><h2 style="margin-bottom:12px">Lo más vendido en el período</h2>' + barrasRes(topL, 'Sin ventas en este período.') + '</div>' +
+          '<div class="tarjeta tarjeta-c"><h2 style="margin-bottom:12px">Tus avisos</h2>' +
+            (ps.length ? '<div class="res-chips"><button data-ir-pest="avisos"><b>' + activos.length + '</b> activos</button><button data-ir-pest="avisos"><b>' + pausados.length + '</b> pausados</button>' +
+              '<button data-ir-pest="avisos"' + (sinStock.length ? ' class="ojo"' : '') + '><b>' + sinStock.length + '</b> sin stock</button></div>' +
+              '<h3 class="res-sub">Más vendidos de siempre</h3>' + barrasRes(siempre, 'Todavía no hay avisos con ventas.')
+              : '<p class="ayuda">Revisando tus avisos…</p>') + '</div>' +
+        '</div>' +
+        '<div class="tarjeta tarjeta-c"><div class="res-cab"><h2>Últimas ventas</h2><button class="adm-btn-borde" data-ir-pest="ventas">Ver todas</button></div>' +
+          (ultimas.length ? '<div class="res-lista">' + ultimas.map(v => '<div class="res-fila"><span class="res-fecha">' + escapeHtml(v.fecha ? new Date(v.fecha).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }) : '') + '</span>' +
+            '<span class="res-que">' + escapeHtml((v.productos || []).map(p => (p.cantidad > 1 ? p.cantidad + '× ' : '') + p.titulo).join(', ')) + (ventaVale(v) ? '' : ' <em>(' + escapeHtml(ML_ESTADO_VENTA[v.estado] || v.estado) + ')</em>') + '</span>' +
+            '<b>' + A.clp(v.total) + '</b></div>').join('') + '</div>' : '<p class="ayuda">Todavía no tienes ventas en Mercado Libre.</p>') + '</div>';
+      cont.querySelectorAll('[data-res-per]').forEach(b => b.addEventListener('click', () => { mlResPer = b.dataset.resPer; mlPintarResumen(); }));
+      cont.querySelector('[data-res-act]').addEventListener('click', () => { mlVentas = null; mlPintarResumen(); if (mlCargarPubs) mlCargarPubs().then(mlPintarResumen); });
+      cont.querySelectorAll('[data-ir-pest]').forEach(b => b.addEventListener('click', () => A.appPestana('mercadolibre', b.dataset.irPest)));
+    }
+
+    // ---------- resumen de Instagram y Facebook ----------
+    let igResPer = '30', igPubs = null;
+    function igPintarResumen() {
+      const cont = $('adm-ig-resumen'); if (!cont) return;
+      if (igPubs == null) {
+        igPubs = [];
+        fetch('/instagram.json', { cache: 'no-store' }).then(r => r.json()).then(d => { igPubs = (d.publicaciones || []).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha))); igPintarResumen(); }).catch(() => {});
+      }
+      const per = periodoApp(igResPer);
+      const fv = (v) => new Date(v.creada || v.ultima || 0).getTime();
+      const vis = (A.visitas || []).filter(v => fv(v) >= per.desde);
+      const deIG = vis.filter(v => v.origenTipo === 'Instagram'), deFB = vis.filter(v => v.origenTipo === 'Facebook');
+      const redes = deIG.concat(deFB);
+      const pidieron = redes.filter(v => v.hizoPedido).length;
+      const enPer = igPubs.filter(x => new Date(x.fecha).getTime() >= per.desde);
+      const ultima = igPubs[0] ? new Date(igPubs[0].fecha).getTime() : 0;
+      const diasSin = ultima ? Math.floor((Date.now() - ultima) / 864e5) : null;
+      const ventas = (A.pedidos || []).filter(p => A.esVenta(p) && A.fechaPedido(p) >= per.desde);
+      const vistos = {};
+      redes.forEach(v => (v.productosIds || []).forEach(id => { vistos[id] = (vistos[id] || 0) + 1; }));
+      const topVistos = Object.keys(vistos).map(id => ({ p: (A.productos || []).find(x => x.id === id), n: vistos[id] })).filter(x => x.p).sort((a, b) => b.n - a.n).slice(0, 6)
+        .map(x => ({ k: x.p.name, n: x.n, txt: x.n + ' visita' + (x.n > 1 ? 's' : '') }));
+      const fechaCorta = (f) => f ? new Date(f).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }) : '';
+
+      cont.innerHTML = selectorPeriodo(igResPer) +
+        (diasSin != null && diasSin >= 7 ? '<div class="nota">Hace <b>' + diasSin + ' días</b> que no publicas en Instagram. <button class="adm-btn-borde" data-ir-pest="publicar" style="margin-left:6px">Elegir productos para publicar</button></div>' : '') +
+        '<div class="metricas">' +
+          '<div class="metrica"><span>Visitas desde Instagram</span><b>' + deIG.length + '</b><small>a tu web</small></div>' +
+          '<div class="metrica"><span>Visitas desde Facebook</span><b>' + deFB.length + '</b><small>a tu web</small></div>' +
+          '<div class="metrica"><span>Pedidos desde redes</span><b>' + pidieron + '</b><small>de quienes llegaron por Instagram o Facebook</small></div>' +
+          '<div class="metrica"><span>Ventas de la web</span><b>' + A.clp(ventas.reduce((s, p) => s + (Number(p.total) || 0), 0)) + '</b><small>' + ventas.length + ' pedido' + (ventas.length === 1 ? '' : 's') + ' en total · <a href="#/informes">ver informes</a></small></div>' +
+        '</div>' +
+        '<div class="tarjeta res-tarjeta"><div class="tarjeta-cab"><h2>Visitas desde Instagram y Facebook por día</h2></div>' +
+          A.grafico(A.serie(per, (A.visitas || []).filter(v => v.origenTipo === 'Instagram' || v.origenTipo === 'Facebook'), fv, () => 1).map(d => Object.assign(d, { tip: d.valor + ' visita' + (d.valor === 1 ? '' : 's') })), { titulo: 'Visitas desde redes por día', alto: 180 }) + '</div>' +
+        '<div class="rejilla-2">' +
+          '<div class="tarjeta tarjeta-c"><h2 style="margin-bottom:12px">Lo que más miran quienes llegan desde redes</h2>' + barrasRes(topVistos, 'Sin visitas desde redes en este período.') + '</div>' +
+          '<div class="tarjeta tarjeta-c"><div class="res-cab"><h2>Tus últimas publicaciones</h2>' + (igPubs.length ? '<span class="ayuda">' + enPer.length + ' en este período</span>' : '') + '</div>' +
+            (igPubs.length ? '<div class="res-ig">' + igPubs.slice(0, 6).map(x => '<a href="' + escapeHtml(x.url) + '" target="_blank" rel="noopener" title="' + escapeHtml(x.texto || '') + '"><img src="' + escapeHtml(x.img) + '" alt="" loading="lazy">' +
+              '<span>' + (x.tipo === 'VIDEO' ? '▶ ' : '') + escapeHtml(fechaCorta(x.fecha)) + '</span></a>').join('') + '</div>'
+              : '<p class="ayuda">Aún no hay publicaciones de Instagram en la web. Aparecen cuando el publicador las trae (Apps Script, web.gs).</p>') + '</div>' +
+        '</div>' +
+        '<p class="ayuda">Las visitas cuentan a quienes entraron a tu web desde un enlace de Instagram o Facebook (perfil, historias o publicaciones).</p>';
+      cont.querySelectorAll('[data-res-per]').forEach(b => b.addEventListener('click', () => { igResPer = b.dataset.resPer; igPintarResumen(); }));
+      cont.querySelectorAll('[data-ir-pest]').forEach(b => b.addEventListener('click', () => A.appPestana('instagram', b.dataset.irPest)));
+    }
+
+    function alCambiarPestana(app, k) {
+      if (app === 'mercadolibre' && k === 'resumen') mlPintarResumen();
+      if (app === 'mercadolibre' && k === 'ventas' && !$('adm-ml-ventas').children.length) mlPintarVentas(false);
+      if (app === 'instagram' && k === 'resumen') igPintarResumen();
+    }
 
     // ---------- publicaciones ya hechas (precio, stock, pausar) ----------
     $('adm-ml-ver-pubs').addEventListener('click', () => mlCargarPubs());
@@ -1441,6 +1577,7 @@
         if (!d || !d.ok) { info.textContent = '❌ ' + ((d && d.error) || 'No se pudo consultar.'); return; }
         mlPubsCache = d.publicaciones || [];
         mlPintarPubs();
+        if ($('ml-sec-resumen') && !$('ml-sec-resumen').classList.contains('fuera-pest')) mlPintarResumen();
       } catch (e) { info.textContent = '❌ ' + e.message; }
     }
 
@@ -2171,7 +2308,7 @@
       btn.disabled = false; btn.textContent = '⬇ Descargar todas las imágenes';
     });
 
-    return { renderIG: renderIG, renderML: renderML, poblarML: poblarML, traerClavesIA: traerClavesIA, renderIAUso: renderIAUso };
+    return { renderIG: renderIG, renderML: renderML, poblarML: poblarML, traerClavesIA: traerClavesIA, renderIAUso: renderIAUso, alCambiarPestana: alCambiarPestana, igPintarResumen: igPintarResumen };
   }
 
   // ---------- carga (una sola vez) ----------
@@ -2224,9 +2361,115 @@
     Object.keys(paneles).forEach(k => { if (!guarda.contains(paneles[k]) && !paneles[k].isConnected) guarda.appendChild(paneles[k]); });
   });
 
+  // ---------- colecciones desplegables y buscador (Publicar) ----------
+  const gruposAbiertos = new Set();
+  function grupoHtml(id, nombre, n, filas, arriba, extra) {
+    return '<details class="app-grupo" id="' + id + '"' + (gruposAbiertos.has(id) ? ' open' : '') + '><summary>' +
+      '<span class="app-grupo-nom">' + A.h(nombre) + '</span><span class="app-grupo-n">' + n + '</span>' +
+      (extra ? '<span class="app-grupo-extra">' + A.h(extra) + '</span>' : '') + '<span class="app-grupo-sel" data-sel></span>' +
+      '<svg class="chev" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M6 8l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '</summary><div class="app-grupo-c">' + (arriba || '') + filas + '</div></details>';
+  }
+  function conectarGrupos(cont) {
+    if (!cont) return;
+    cont.querySelectorAll('details.app-grupo').forEach(d => d.addEventListener('toggle', () => {
+      if (cont.dataset.buscando) return;                 // el buscador abre y cierra solo
+      if (d.open) gruposAbiertos.add(d.id); else gruposAbiertos.delete(d.id);
+    }));
+    buscarEn(cont);
+  }
+  function contarGrupos(cont, rol) {
+    if (!cont) return;
+    cont.querySelectorAll('details.app-grupo').forEach(d => {
+      const n = d.querySelectorAll('input[data-role="' + rol + '"]:checked').length, el = d.querySelector('[data-sel]');
+      if (el) el.textContent = n ? '✓ ' + n + ' marcado' + (n > 1 ? 's' : '') : '';
+    });
+  }
+  /* filtra los productos de la lista por nombre o código; abre las colecciones con resultados */
+  function buscarEn(cont) {
+    const caja = cont && cont.parentNode && cont.parentNode.querySelector('.app-buscar[data-lista="' + cont.id + '"] input');
+    const q = A.sinTildes((caja && caja.value || '').trim());
+    if (q) cont.dataset.buscando = '1'; else delete cont.dataset.buscando;
+    let total = 0;
+    cont.querySelectorAll('details.app-grupo').forEach(d => {
+      let n = 0;
+      d.querySelectorAll('.ig-fila').forEach(f => {
+        const ok = !q || A.sinTildes(f.querySelector('.ig-info') ? f.querySelector('.ig-info').textContent : f.textContent).indexOf(q) !== -1;
+        f.hidden = !ok; if (ok) n++;
+      });
+      total += n;
+      d.hidden = !!q && !n;
+      d.open = q ? n > 0 : gruposAbiertos.has(d.id);
+    });
+    const msg = cont.parentNode.querySelector('.app-buscar[data-lista="' + cont.id + '"] .app-buscar-msg');
+    if (msg) msg.textContent = q ? (total ? total + ' resultado' + (total > 1 ? 's' : '') : 'Nada con «' + caja.value.trim() + '»') : '';
+  }
+  function prepararBuscador(panel) {
+    panel.querySelectorAll('.app-buscar[data-lista]').forEach(b => {
+      if (b.dataset.listo) return; b.dataset.listo = '1';
+      b.innerHTML = '<div class="app-buscar-caja">' + A.ic.buscar + '<input type="search" class="adm-input" placeholder="Buscar por nombre o código…" aria-label="Buscar producto"></div>' +
+        '<span class="app-buscar-msg"></span>' +
+        '<button type="button" class="adm-btn-borde" data-todas="1">Abrir todas</button><button type="button" class="adm-btn-borde" data-todas="0">Cerrar todas</button>';
+      const cont = () => panel.querySelector('#' + b.dataset.lista);
+      b.querySelector('input').addEventListener('input', () => buscarEn(cont()));
+      b.querySelectorAll('[data-todas]').forEach(x => x.addEventListener('click', () => {
+        const c = cont(); if (!c) return;
+        b.querySelector('input').value = '';
+        c.querySelectorAll('details.app-grupo').forEach(d => { if (x.dataset.todas === '1') gruposAbiertos.add(d.id); else gruposAbiertos.delete(d.id); });
+        buscarEn(c);
+      }));
+    });
+  }
+
+  // ---------- pestañas de cada app ----------
+  const PESTANAS = {
+    mercadolibre: [['resumen', '📊', 'Resumen'], ['publicar', '➕', 'Publicar'], ['ventas', '💰', 'Ventas'], ['avisos', '📦', 'Mis avisos'], ['calidad', '⭐', 'Calidad'], ['ajustes', '⚙️', 'Ajustes']],
+    instagram: [['resumen', '📊', 'Resumen'], ['publicar', '➕', 'Publicar'], ['texto', '✍️', 'Texto y hashtags']],
+    ia: [['preguntar', '💬', 'Preguntar'], ['claves', '🔑', 'Claves y uso']]
+  };
+  const pestanaGuardada = (app) => { try { return localStorage.getItem('kv_app_pest_' + app) || ''; } catch (e) { return ''; } };
+  function pestanas(app, elegida) {
+    const panel = paneles[app], defs = PESTANAS[app]; if (!panel || !defs) return;
+    let nav = panel.querySelector('.app-pestanas');
+    if (!nav) {
+      nav = document.createElement('div');
+      nav.className = 'app-pestanas'; nav.setAttribute('role', 'tablist');
+      nav.innerHTML = defs.map(d => '<button type="button" role="tab" data-pest="' + d[0] + '"><span aria-hidden="true">' + d[1] + '</span>' + d[2] + '</button>').join('');
+      panel.insertBefore(nav, panel.firstChild);
+      nav.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-pest]'); if (!b) return;
+        pestanas(app, b.dataset.pest);
+        // si estabas más abajo, la pestaña nueva se ve desde su comienzo
+        const sup = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sup')) || 56;
+        const y = panel.getBoundingClientRect().top + window.scrollY - sup - 8;
+        if (window.scrollY > y) window.scrollTo(0, Math.max(0, y));
+      });
+      // secciones plegables (Ajustes, Texto y hashtags): se abren y cierran tocando el título
+      panel.querySelectorAll('[data-pliegue]').forEach(sec => {
+        const t = sec.querySelector('.adm-seccion-titulo'); if (!t) return;
+        sec.classList.add('plegable'); if (sec.dataset.pliegue !== 'abierto') sec.classList.add('cerrado');
+        t.setAttribute('role', 'button'); t.tabIndex = 0;
+        t.insertAdjacentHTML('beforeend', '<svg class="chev" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M6 8l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+        const alternar = () => { sec.classList.toggle('cerrado'); t.setAttribute('aria-expanded', !sec.classList.contains('cerrado')); };
+        t.setAttribute('aria-expanded', !sec.classList.contains('cerrado'));
+        t.addEventListener('click', alternar);
+        t.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternar(); } });
+      });
+      prepararBuscador(panel);
+    }
+    let k = elegida || pestanaGuardada(app);
+    if (!defs.some(d => d[0] === k)) k = defs[0][0];
+    try { localStorage.setItem('kv_app_pest_' + app, k); } catch (e) {}
+    nav.querySelectorAll('[data-pest]').forEach(b => b.setAttribute('aria-selected', b.dataset.pest === k ? 'true' : 'false'));
+    panel.querySelectorAll('[data-tab]').forEach(el => el.classList.toggle('fuera-pest', el.dataset.tab !== k));
+    panel.dataset.pest = k;
+    if (apps && apps.alCambiarPestana) apps.alCambiarPestana(app, k);
+  }
+  A.appPestana = (app, k) => pestanas(app, k);
+
   const APPS = {
-    mercadolibre: { titulo: 'Mercado Libre', sub: 'Publicar, precios, stock, ventas, duplicados y calidad de los avisos.' },
-    instagram: { titulo: 'Instagram y Facebook', sub: 'Imágenes de tus productos y publicaciones en tus redes.' },
+    mercadolibre: { titulo: 'Mercado Libre', sub: 'Resumen de ventas, publicar, precios, stock y calidad de los avisos.' },
+    instagram: { titulo: 'Instagram y Facebook', sub: 'Resumen de tus redes, imágenes de tus productos y publicaciones.' },
     ia: { titulo: 'Asistente IA', sub: 'Preguntas sobre tu catálogo y las claves de la IA (también las usa el chat de la web).' }
   };
   async function mostrar(vista, app) {
@@ -2240,6 +2483,7 @@
     if (!lugar.isConnected) return;               // ya te fuiste a otra página
     lugar.innerHTML = '';
     lugar.appendChild(paneles[app]);
+    pestanas(app);
     if (app === 'mercadolibre') mlAlEntrar();
     if (app === 'ia') { apps.traerClavesIA(); apps.renderIAUso(); }
   }
