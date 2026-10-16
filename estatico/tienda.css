@@ -650,6 +650,7 @@ html[data-tr="vuela"] .ficha-foto img{view-transition-name:foto}
 @keyframes col-asienta{from{transform:scale(1.08);opacity:.3}}
 .col-cab h1{margin-top:0}
 /* foto de portada de las páginas (Nosotros, Preguntas, Contacto…) */
-.pag-portada{margin-top:26px;margin-bottom:0}
+.pag-portada{margin:26px auto 0;max-width:760px;aspect-ratio:16/6}
+@media (max-width:699px){.pag-portada{aspect-ratio:16/9}}
 .texto-pag.con-foto{padding-top:22px}
 @media (prefers-reduced-motion:reduce){.js .col-portada img{animation:none!important;opacity:1!important;transform:none!important}}

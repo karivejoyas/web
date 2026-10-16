@@ -538,9 +538,9 @@
     if (k.indexOf('pag:') === 0) {
       // una página: su foto de portada (computador y celular)
       const id = k.slice(4), r = 'paginas.' + id + '.portada', b = obtener(ed.tema, r) || {};
-      html += fotoFoco('Foto de portada · computador', r + '.pc', r + '.foco', A.urlImagen(b.pc), '16/5', { quitar: 'Quitar', vacio: 'Sin foto: la página se ve solo con texto' }) +
+      html += fotoFoco('Foto de portada · computador', r + '.pc', r + '.foco', A.urlImagen(b.pc), '16/6', { quitar: 'Quitar', vacio: 'Sin foto: la página se ve solo con texto' }) +
         fotoFoco('Foto de portada · celular (opcional)', r + '.movil', r + '.focoMovil', A.urlImagen(b.movil) || A.urlImagen(b.pc), '16/9', { quitar: A.urlImagen(b.movil) ? 'Usar la del computador' : '', vacio: 'Usa la del computador' }) +
-        '<p class="ayuda">Fotos horizontales 3:2 (1536×1024). Va arriba de la página, sobre el título. Arrastra cada foto para elegir qué parte se ve.</p>' +
+        '<p class="ayuda">Fotos horizontales 3:2 (1536×1024). Va arriba de la página, del mismo ancho que el texto. Arrastra cada foto para elegir qué parte se ve.</p>' +
         '<a class="btn btn-chico" href="#/contenido/paginas">Editar los textos ' + A.ic.externo + '</a>';
       def = { campos: [] };
     }
