@@ -26,8 +26,26 @@
   /* Lo que se ve (o se verá en minutos) en la web: lo armado + lo guardado después. */
   A.temaVigente = function () {
     if (!A.temaPublicado) return null;
-    return actualizarTextos(A.mezclar(A.mezclar(A.temaPublicado.defecto, A.temaPublicado.tema), (A.web || {}).tema || {}));
+    return actualizarTextos(migrar(A.mezclar(A.mezclar(A.temaPublicado.defecto, A.temaPublicado.tema), (A.web || {}).tema || {})));
   };
+  /* Igual que migrar() en tema.py: los textos de fábrica antiguos (con garantía
+     de 3 meses, acero, etc.) pasan a los nuevos; lo que editaste no se toca.
+     Y «Sobre nosotros» toma el lugar de «Diseños a pedido». */
+  function migrar(t) {
+    t = A.copia(t);
+    ((A.temaPublicado || {}).migraciones || []).forEach(([ruta, marca, nuevo]) => {
+      const v = obtener(t, ruta);
+      if (v != null && JSON.stringify(v).indexOf(marca) !== -1) poner(t, ruta, A.copia(nuevo));
+    });
+    const p = t.portada || {}, orden = (p.orden || []).slice();
+    if (orden.length && orden.indexOf('sobre') === -1) {
+      const i = orden.indexOf('especial');
+      if (i !== -1) { orden[i] = 'sobre'; p.ocultas = (p.ocultas || []).concat((p.ocultas || []).indexOf('especial') === -1 ? ['especial'] : []); }
+      else orden.push('sobre');
+      p.orden = orden;
+    }
+    return t;
+  }
   /* Igual que en construir.py: textos antiguos de fábrica → los nuevos, y en el
      menú «Tienda» pasa a llamarse «Ver todo». */
   function actualizarTextos(t) {
@@ -61,10 +79,10 @@
   A.temaObtener = obtener;
 
   // ---------- textos del tema → HTML (igual que tema.py) ----------
-  const VARS = () => {
-    const e = (A.temaPublicado && A.temaPublicado.envio) || { rm: 2990, regiones: 3990 };
-    const t = A.settings.envioTarifas || {};
-    return { envio_rm: A.clp(t.rm || e.rm), envio_regiones: A.clp(t.regiones || e.regiones) };
+  const VARS = () => {   // igual que variables_envio() en construir.py
+    const r = kvEnvioRango(A.settings.envioTarifas || {});
+    const rango = (a, b) => a === b ? A.clp(a) : A.clp(a) + ' a ' + A.clp(b);
+    return { envio_rm: A.clp(r.rm), envio_regiones: rango(r.regMin, r.regMax), envio_min: A.clp(r.min), envio_max: A.clp(r.max), envio_rango: rango(r.min, r.max) };
   };
   function reemplazos(s, extra) { Object.keys(extra).forEach(k => { s = s.split('{' + k + '}').join(extra[k]); }); return s; }
   A.textoTema = function (s) {
@@ -198,6 +216,9 @@
       if (f1) sec.style.setProperty('--foco', f1); else sec.style.removeProperty('--foco');
       if (f2) sec.style.setProperty('--foco-m', f2); else sec.style.removeProperty('--foco-m');
     });
+    doc.querySelectorAll('[data-kv-coltit]').forEach(el => { if (!el.dataset.original) el.dataset.original = el.textContent; el.textContent = obtener(t, 'coleccionPagina.titulos.' + el.dataset.kvColtit) || el.dataset.original; });
+    doc.querySelectorAll('[data-kv-coldesc]').forEach(el => { const v = obtener(t, 'coleccionPagina.descripciones.' + el.dataset.kvColdesc); if (v) el.textContent = v; });
+    doc.querySelectorAll('[data-kv-circulo]').forEach(el => { const v = String(obtener(t, 'portada.taller.circulo') || 'Hecho a mano · Mostacilla · Arcilla').toUpperCase().replace(/[\s·]+$/, '') + ' ·'; el.textContent = v; });
     doc.querySelectorAll('[data-kv-img]').forEach(el => { el.style.objectPosition = focoValido(obtener(t, el.dataset.kvImg + 'Foco')); });
     doc.querySelectorAll('[data-kv-img]').forEach(el => { const u = A.urlImagen(obtener(t, el.dataset.kvImg)); if (u) { el.src = u; el.removeAttribute('srcset'); } });
     doc.querySelectorAll('[data-kv-html]').forEach(el => {
@@ -345,11 +366,14 @@
     hero: { nombre: 'Portada principal', ruta: 'portada.hero', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton1', 'boton', 'Botón principal'], ['boton2', 'boton', 'Botón secundario'], ['imagen', 'imagen', 'Imagen', { aspecto: '4/3' }], ['imagenAlt', 'texto', 'Descripción de la imagen (para Google)'], ['sello', 'texto', 'Sello sobre la imagen'], ['tarjetaNuevo', 'si', 'Mostrar el último producto subido sobre la foto']] },
     cinta: { nombre: 'Cinta en movimiento', ruta: 'portada.cinta', campos: [['items', 'textos', 'Frases que pasan']], ayuda: 'Frases cortas. Se desplazan solas y se detienen al pasar el mouse.' },
     confianza: { nombre: 'Beneficios', ruta: 'portada.confianza', campos: [['items', 'objetos', 'Beneficios', { icono: 'Ícono', titulo: 'Título', texto: 'Texto' }]] },
-    colecciones: { nombre: 'Colecciones', ruta: 'portada.colecciones', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace']], ayuda: 'Las fotos de cada colección se cambian más abajo, en el grupo «Colecciones» (una por una).' },
+    colecciones: { nombre: 'Colecciones', ruta: 'portada.colecciones', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['botonTarjeta', 'texto', 'Texto al pasar sobre una colección (ej: Ver colección)']], ayuda: 'Las fotos de cada colección se cambian más abajo, en el grupo «Colecciones» (una por una).' },
     favoritos: { nombre: 'Los más queridos', ruta: 'portada.favoritos', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántos productos']], ayuda: 'Muestra la lista de «Lo más visto» (Descuentos) y la completa con un producto de cada colección.' },
-    taller: { nombre: 'Nuestro taller', ruta: 'portada.taller', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['imagen', 'imagen', 'Imagen', { aspecto: '4/3' }], ['imagenAlt', 'texto', 'Descripción de la imagen'], ['pasos', 'textos', 'Pasos'], ['boton', 'boton', 'Botón']] },
+    taller: { nombre: 'Nuestro taller', ruta: 'portada.taller', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['imagen', 'imagen', 'Imagen', { aspecto: '4/3' }], ['imagenAlt', 'texto', 'Descripción de la imagen'], ['pasos', 'textos', 'Pasos'], ['boton', 'boton', 'Botón'], ['circulo', 'texto', 'Texto del círculo que gira sobre la foto']] },
     nuevos: { nombre: 'Lo nuevo', ruta: 'portada.nuevos', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántos productos']], ayuda: 'Muestra los productos subidos más recientemente.' },
     instagram: { nombre: 'Instagram', ruta: 'portada.instagram', campos: [['titulo', 'texto', 'Título'], ['enlace', 'texto', 'Texto del enlace'], ['cantidad', 'numero', 'Cuántas publicaciones (máximo 12)']], ayuda: 'Muestra tus últimos videos (reels) de Instagram con el mismo estilo de las colecciones. Se actualizan solos cuando subes uno nuevo (Apps → Instagram).' },
+    sobre: { nombre: 'Sobre nosotros', ruta: 'portada.sobre', campos: [['antetitulo', 'texto', 'Texto chico de arriba'], ['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton', 'boton', 'Botón'],
+      ['imagenes.0', 'imagen', 'Foto grande del centro (vertical)'], ['imagenes.1', 'imagen', 'Foto chica 1 (arriba a la izquierda)'], ['imagenes.2', 'imagen', 'Foto chica 2 (arriba a la derecha)'], ['imagenes.3', 'imagen', 'Foto chica 3 (abajo a la derecha)'], ['imagenes.4', 'imagen', 'Foto chica 4 (abajo a la izquierda)']],
+      ayuda: 'Al aparecer en pantalla, las 4 fotos chicas se abren en abanico alrededor de la grande. Las chicas se recortan cuadradas: mejor fotos con el aro al centro.' },
     especial: { nombre: 'Diseños a pedido', ruta: 'portada.especial', campos: [['titulo', 'texto', 'Título'], ['texto', 'area', 'Texto'], ['boton', 'texto', 'Texto del botón'], ['mensaje', 'area', 'Mensaje que se escribe solo en WhatsApp']] }
   };
   const EFECTOS_PORTADA = { destello: 'Destello: la foto se descubre y la cruza una luz', lento: 'Movimiento lento: la foto se acerca despacio, siempre', cortina: 'Cortina morada que la descubre', arco: 'Arco que se abre', profundidad: 'Profundidad: se mueve con el mouse', ninguno: 'Sin efecto' };
@@ -364,7 +388,8 @@
     efectos: { nombre: 'Efectos y movimiento', ruta: 'efectos', campos: [['portada', 'opciones', 'Efecto de la foto de portada', EFECTOS_PORTADA], ['transicion', 'opciones', 'Al abrir una colección o un producto', TRANSICIONES]], ayuda: 'La transición entre páginas se ve en Chrome, Edge y Safari (iPhone) actualizados; en los demás la página simplemente cambia. Quien tenga activado «reducir movimiento» no ve efectos.' },
     olas: { nombre: 'Olas antes del pie', ruta: 'olas', campos: [['activo', 'si', 'Mostrar las olas'], ['animacion', 'si', 'Que se muevan'], ['rotar', 'si', 'Darlas vuelta (de derecha a izquierda)'], ['alto', 'rango', 'Alto en el computador', { min: 30, max: 220 }], ['altoMovil', 'rango', 'Alto en el celular', { min: 20, max: 160 }], ['color', 'colorOpc', 'Color de las olas']], ayuda: 'Si no eliges color, usan el del pie de página (Colores → Color oscuro).' },
     chat: { nombre: 'Asistente (chat)', ruta: 'chat', campos: [['activo', 'si', 'Mostrar el asistente'], ['nombre', 'texto', 'Nombre'], ['saludo', 'area', 'Saludo'], ['mensajes', 'textos', 'Mensajes que aparecen junto al botón (de a uno, máximo 6 por visita)']], ayuda: 'Responde con la IA del publicador (Apps → Asistente IA) y, si no está disponible, con respuestas automáticas que usan tus productos, precios y envíos reales.' },
-    producto: { nombre: 'Ficha de producto', ruta: 'producto', campos: [['beneficios', 'textos', 'Beneficios bajo el botón de compra']] },
+    producto: { nombre: 'Ficha de producto', ruta: 'producto', campos: [['beneficios', 'textos', 'Beneficios bajo el botón de compra'], ['verDetalle', 'texto', 'Texto al pasar sobre un producto (ej: Ver detalle)']],
+      ayuda: 'El nombre, el precio, las fotos y la descripción de cada producto se cambian en Productos (toca un producto en la vista previa y aparece el botón para editarlo).' },
     pago: { nombre: 'Pago y envíos', ruta: 'pago', campos: [['tarjetas', 'si', 'Mostrar las tarjetas que acepta Mercado Pago (Visa, Mastercard, American Express)'], ['couriers', 'couriers', 'Empresas de envío']], ayuda: 'El pago es con Mercado Pago (su logo siempre se muestra). Las empresas de envío aparecen en la página de pago y en la página Envíos, bajo la tabla de precios. Sirve cualquier logo: si viene con margen blanco, se recorta solo.' }
   };
   // páginas con foto de portada (Personalizar → Páginas)
@@ -404,23 +429,55 @@
     marco.addEventListener('load', () => {
       const doc = marco.contentDocument; if (!doc) return;
       A.aplicarTema(doc, ed.tema);
-      // tocar algo en la vista abre su sección; los enlaces no navegan
+      // Como en Shopify: tocar algo en la vista abre su sección y marca el campo
+      // exacto (un texto, una foto, una pregunta…). Tocar una colección entra a
+      // ella; tocar un producto abre su ficha. Los enlaces no navegan.
       doc.addEventListener('click', (e) => {
         const a = e.target.closest('a,button'); if (a) e.preventDefault();
-        const sec = e.target.closest('[data-kv-sec]');
-        if (sec) { abrirSeccion(sec.dataset.kvSec, true); return; }
-        const ban = e.target.closest('[data-kv-banner]'), banPag = e.target.closest('[data-kv-banner-pag]');
-        if (ban) abrirSeccion('col:' + ban.dataset.kvBanner, true);
-        else if (banPag) abrirSeccion('pag:' + banPag.dataset.kvBannerPag, true);
-        else if (e.target.closest('.anuncio')) abrirSeccion('anuncio', true);
-        else if (e.target.closest('.logo')) abrirSeccion('logo', true);
-        else if (e.target.closest('.olas')) abrirSeccion('olas', true);
-        else if (e.target.closest('.chat-btn')) abrirSeccion('chat', true);
-        else if (e.target.closest('.wa-flota')) abrirSeccion('whatsapp', true);
-        else if (e.target.closest('.pie')) abrirSeccion('pie', true);
+        const t = e.target;
+        // 1) un campo concreto
+        const campo = t.closest('[data-kv],[data-kv-img],[data-kv-html],[data-kv-lista],[data-kv-coldesc],[data-kv-coltit],[data-kv-circulo],[data-kv-colimg]');
+        const ruta = campo && (campo.dataset.kv || campo.dataset.kvImg || campo.dataset.kvHtml || campo.dataset.kvLista ||
+          (campo.dataset.kvColdesc && 'coleccionPagina.descripciones.' + campo.dataset.kvColdesc) || (campo.dataset.kvColtit && 'coleccionPagina.titulos.' + campo.dataset.kvColtit) ||
+          (campo.dataset.kvCirculo != null && 'portada.taller.circulo'));
+        // una tarjeta de colección (portada): entra a esa colección
+        const tarjCol = t.closest('.coleccion:not(.ig-tarjeta)');
+        if (tarjCol && !(campo && campo.dataset.kv)) {
+          const img = tarjCol.querySelector('[data-kv-colimg]');
+          if (img) { abrirSeccion('col:' + img.dataset.kvColimg, true); return; }
+        }
+        // un producto: se abre su ficha (sus datos se editan en Productos)
+        const tarjProd = t.closest('[data-tarjeta]');
+        if (tarjProd && !(campo && campo.dataset.kv)) {
+          const l = tarjProd.querySelector('a[href^="/p/"]');
+          if (l) { verPagina(l.getAttribute('href')); ed.prodId = tarjProd.dataset.tarjeta; abrirSeccion('producto', true); return; }
+        }
+        let rutaCampo = ruta;
+        if (campo && campo.dataset.kvLista && ruta) {   // un ítem de una lista: el que tocaste
+          const hijo = Array.from(campo.children).find(x => x.contains(t));
+          const i = hijo ? Array.from(campo.children).filter(x => !x.classList.contains('cinta-copia') && !x.classList.contains('cinta-sep')).indexOf(hijo) : -1;
+          if (i >= 0) rutaCampo = ruta + '.' + i;
+        }
+        const k = ruta && seccionDeRuta(ruta);
+        if (k === 'menu') { A.toast('El menú se cambia en Navegación: toca «Menú» en la lista de la izquierda.'); return; }
+        if (k) { abrirSeccion(k, true); marcarCampo(rutaCampo); return; }
+        // 2) bloques sin campo propio
+        const ban = t.closest('[data-kv-banner]'), banPag = t.closest('[data-kv-banner-pag]');
+        if (ban) return abrirSeccion('col:' + ban.dataset.kvBanner, true);
+        if (banPag) return abrirSeccion('pag:' + banPag.dataset.kvBannerPag, true);
+        const sec = t.closest('[data-kv-sec]');
+        if (sec) return abrirSeccion(sec.dataset.kvSec, true);
+        const pares = [['.anuncio', 'anuncio'], ['.logo', 'logo'], ['.olas', 'olas'], ['.chat-btn,.chat-globo,.chat-caja', 'chat'], ['.wa-flota', 'whatsapp'],
+          ['.pie', 'pie'], ['#pago,.pago', 'pago'], ['[data-ficha],.ficha', 'producto'], ['.migas,.filtros,#grilla-tienda', 'col:todo']];
+        for (const [sel, sk] of pares) if (t.closest(sel)) { if (sk === 'producto') { const f = t.closest('[data-ficha]'); if (f) ed.prodId = f.dataset.ficha; } return abrirSeccion(sk, true); }
+        const pag = PAGINA_DE_RUTA[ed.pagina]; if (pag) return abrirSeccion('pag:' + pag, true);
+        if (/^\/p\//.test(ed.pagina)) { const f = doc.querySelector('[data-ficha]'); if (f) ed.prodId = f.dataset.ficha; return abrirSeccion('producto', true); }
+        if (/^\/tienda\//.test(ed.pagina)) return abrirSeccion('col:todo', true);
+        const ct = doc.querySelector('[data-kv-coltit]'); if (ct) return abrirSeccion('col:' + ct.dataset.kvColtit, true);
       }, true);
       const css = doc.createElement('style');
-      css.textContent = '[data-kv-sec]:hover{outline:2px dashed rgba(91,42,130,.45);outline-offset:-2px;cursor:pointer}[data-kv-sec].kv-sel{outline:2px solid #5B2A82;outline-offset:-2px}';
+      css.textContent = '[data-kv-sec]:hover{outline:2px dashed rgba(91,42,130,.45);outline-offset:-2px;cursor:pointer}[data-kv-sec].kv-sel{outline:2px solid #5B2A82;outline-offset:-2px}' +
+        '[data-kv]:hover,[data-kv-img]:hover,[data-kv-html]:hover,[data-kv-lista]:hover,[data-kv-coldesc]:hover,[data-kv-coltit]:hover,[data-kv-banner]:hover,[data-kv-banner-pag]:hover,.coleccion:hover,[data-tarjeta]:hover{outline:1.5px solid rgba(91,42,130,.7);outline-offset:2px;border-radius:4px;cursor:pointer}';
       doc.head.appendChild(css);
       marcarSeleccion();
     });
@@ -479,6 +536,32 @@
       if (s) { s.classList.add('kv-sel'); s.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     }
   }
+  /* De la ruta de un texto o foto del tema a la sección del editor que lo tiene. */
+  const PAGINA_DE_RUTA = { '/nosotros.html': 'nosotros', '/contacto.html': 'contacto', '/envios.html': 'envios', '/preguntas-frecuentes.html': 'preguntas', '/devoluciones.html': 'devoluciones', '/privacidad.html': 'privacidad' };
+  function seccionDeRuta(r) {
+    const p = r.split('.');
+    if (p[0] === 'portada' && SECCIONES[p[1]]) return p[1];
+    if (p[0] === 'paginas' && PAGINAS_FOTO[p[1]]) return 'pag:' + p[1];
+    if (p[0] === 'coleccionPagina' && p[2]) return 'col:' + p[2];
+    if (p[0] === 'tiendaPagina') return 'col:todo';
+    if (p[0] === 'menu' || p[0] === 'menuPie') return p[0] === 'menu' ? 'menu' : 'pie';
+    if (GLOBALES[p[0]]) return p[0];
+    return null;
+  }
+  /* Deja a la vista y resalta el campo que corresponde a esa ruta. */
+  function marcarCampo(ruta) {
+    setTimeout(() => {
+      const panel = A.$('#ed-panel'); if (!panel) return;
+      const esc = CSS.escape(ruta);
+      let el = panel.querySelector('[data-r="' + esc + '"],[data-img="' + esc + '"],[data-rico-campo="' + esc + '"],[data-r^="' + esc + '."]');
+      if (!el) return;
+      const caja = el.closest('.campo,.ed-foto,.ed-lista-item,[data-rico-campo]') || el;
+      caja.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      caja.classList.remove('ed-marcado'); void caja.offsetWidth; caja.classList.add('ed-marcado');
+      const foco = caja.querySelector('input:not([type=color]):not([type=range]):not([type=checkbox]),textarea,.rico-area');
+      if (foco && !/^(1|true)$/.test(foco.dataset.noFoco || '')) foco.focus({ preventScroll: true });
+    }, 60);
+  }
   /* Abre una sección en su desplegable (y cierra la anterior). Tocar la que
      está abierta la cierra; desde la vista previa siempre se abre. */
   function abrirSeccion(k, forzar) {
@@ -487,7 +570,8 @@
     pintarPanel(); marcarSeleccion();
     const fila = ed.sec && A.$('#ed-panel [data-sec="' + CSS.escape(ed.sec) + '"]');
     if (fila) fila.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    if (ed.sec && ed.sec.indexOf('col:') === 0) { const c = A.colecciones().find(x => x.id === ed.sec.slice(4)); if (c) verColeccion(c.nombre); }
+    if (ed.sec === 'col:todo') { if (ed.pagina !== '/tienda/') verPagina('/tienda/'); }
+    else if (ed.sec && ed.sec.indexOf('col:') === 0) { const c = A.colecciones().find(x => x.id === ed.sec.slice(4)); if (c) verColeccion(c.nombre); }
     else if (ed.sec && ed.sec.indexOf('pag:') === 0) { const pg = PAGINAS_FOTO[ed.sec.slice(4)]; if (pg && ed.pagina !== pg[1]) verPagina(pg[1]); }
     else if (ed.sec === 'pago' && ed.pagina.indexOf('/finalizar-compra') !== 0) verPagina('/finalizar-compra.html?vista=1');
     else if (ed.sec === 'producto' && ed.pagina.indexOf('/p/') !== 0) { const sel = A.$('#ed-pagina'); if (sel) { sel.value = 'prod'; sel.dispatchEvent(new Event('change')); } }
@@ -528,7 +612,7 @@
         '<button class="mini" data-ojo="' + k + '" title="' + (ocultas.indexOf(k) !== -1 ? 'Mostrar' : 'Ocultar') + '">' + (ocultas.indexOf(k) !== -1 ? A.ic.ojoNo : A.ic.ojo) + '</button>',
         ocultas.indexOf(k) !== -1 ? ' oculta' : '')).join('') +
       '<div class="ed-grupo">Colecciones</div>' +
-      A.colecciones().map(c => fila('col:' + c.id, c.nombre)).join('') +
+      fila('col:todo', 'Ver todo (todos los productos)') + A.colecciones().map(c => fila('col:' + c.id, c.nombre)).join('') +
       '<a class="ed-sec" href="#/colecciones" style="text-decoration:none;color:inherit"><span class="chev"></span><span class="nombre">Nombres, orden y productos</span>' + A.ic.externo + '</a>' +
       '<div class="ed-grupo">Producto y compra</div>' + ['producto', 'pago'].map(global).join('') +
       '<div class="ed-grupo">Pie de página</div>' + ['olas', 'pie'].map(global).join('') +
@@ -582,16 +666,28 @@
   function pintarFormulario(panel, k) {
     let def = SECCIONES[k] || GLOBALES[k];
     let html = '<div class="ed-form">';
-    if (k.indexOf('col:') === 0) {
+    if (k === 'col:todo') {
+      // la página «Ver todo» (/tienda/): título, texto y foto de portada
+      const b = obtener(ed.tema, 'coleccionPagina.banners.todo') || {};
+      html += '<label class="campo"><span>Título</span><input data-r="tiendaPagina.titulo" value="' + h(obtener(ed.tema, 'tiendaPagina.titulo') || '') + '"></label>' +
+        '<label class="campo"><span>Texto junto a la cantidad de productos</span><input data-r="tiendaPagina.texto" value="' + h(obtener(ed.tema, 'tiendaPagina.texto') || '') + '"></label>' +
+        fotoFoco('Foto de portada · computador', 'coleccionPagina.banners.todo.pc', 'coleccionPagina.banners.todo.foco', A.urlImagen(b.pc), '16/5', { quitar: 'Quitar', vacio: 'Sin foto: la página se ve sin portada' }) +
+        fotoFoco('Foto de portada · celular (opcional)', 'coleccionPagina.banners.todo.movil', 'coleccionPagina.banners.todo.focoMovil', A.urlImagen(b.movil) || A.urlImagen(b.pc), '16/9', { quitar: A.urlImagen(b.movil) ? 'Usar la del computador' : '', vacio: 'Usa la del computador' }) +
+        '<p class="ayuda">Fotos horizontales 3:2 (1536×1024). Arrastra cada foto para elegir qué parte se ve.</p>';
+      def = { campos: [] };
+    }
+    else if (k.indexOf('col:') === 0) {
       // una colección: foto de la tarjeta y foto al abrirla (computador y celular)
       const id = k.slice(4), c = A.colecciones().find(x => x.id === id) || { nombre: id };
       const b = obtener(ed.tema, 'coleccionPagina.banners.' + id) || {};
       const tarjeta = A.urlImagen((obtener(ed.tema, 'portada.colecciones.imagenes') || {})[id]) || imgColActual(id);
-      html += fotoFoco('Foto de la tarjeta en la portada', 'portada.colecciones.imagenes.' + id, 'portada.colecciones.focos.' + id, tarjeta, '4/5', { quitar: 'Usar la actual' }) +
+      html += '<label class="campo"><span>Título al abrir la colección</span><input data-r="coleccionPagina.titulos.' + h(id) + '" value="' + h(obtener(ed.tema, 'coleccionPagina.titulos.' + id) || '') + '" placeholder="Si lo dejas vacío se usa el de siempre"></label>' +
+        '<label class="campo"><span>Descripción (se ve arriba al abrir la colección)</span><textarea data-r="coleccionPagina.descripciones.' + h(id) + '" rows="4">' + h(obtener(ed.tema, 'coleccionPagina.descripciones.' + id) || '') + '</textarea></label>' +
+        fotoFoco('Foto de la tarjeta en la portada', 'portada.colecciones.imagenes.' + id, 'portada.colecciones.focos.' + id, tarjeta, '4/5', { quitar: 'Usar la actual' }) +
         fotoFoco('Foto al abrir la colección · computador', 'coleccionPagina.banners.' + id + '.pc', 'coleccionPagina.banners.' + id + '.foco', A.urlImagen(b.pc), '16/5', { quitar: 'Quitar', vercol: c.nombre, vacio: 'Sin foto: la colección se ve sin portada' }) +
         fotoFoco('Foto al abrir la colección · celular (opcional)', 'coleccionPagina.banners.' + id + '.movil', 'coleccionPagina.banners.' + id + '.focoMovil', A.urlImagen(b.movil) || A.urlImagen(b.pc), '16/9', { quitar: A.urlImagen(b.movil) ? 'Usar la del computador' : '', vercol: c.nombre, vacio: 'Usa la del computador' }) +
         '<p class="ayuda">Fotos horizontales 3:2 (1536×1024). Arrastra cada foto para elegir qué parte se ve.</p>' +
-        '<a class="btn btn-chico" href="#/colecciones/' + encodeURIComponent(id) + '">Editar nombre, descripción y productos ' + A.ic.externo + '</a>';
+        '<a class="btn btn-chico" href="#/colecciones/' + encodeURIComponent(id) + '">Editar nombre y productos ' + A.ic.externo + '</a>';
       def = { campos: [] };
     }
     if (k.indexOf('pag:') === 0) {
@@ -600,8 +696,12 @@
       html += fotoFoco('Foto de portada · computador', r + '.pc', r + '.foco', A.urlImagen(b.pc), '16/6', { quitar: 'Quitar', vacio: 'Sin foto: la página se ve solo con texto' }) +
         fotoFoco('Foto de portada · celular (opcional)', r + '.movil', r + '.focoMovil', A.urlImagen(b.movil) || A.urlImagen(b.pc), '16/9', { quitar: A.urlImagen(b.movil) ? 'Usar la del computador' : '', vacio: 'Usa la del computador' }) +
         '<p class="ayuda">Fotos horizontales 3:2 (1536×1024). Va arriba de la página, del mismo ancho que el texto. Arrastra cada foto para elegir qué parte se ve.</p>' +
-        '<a class="btn btn-chico" href="#/contenido/paginas">Editar los textos ' + A.ic.externo + '</a>';
-      def = { campos: [] };
+        (id === 'envios' ? '<a class="btn btn-chico" href="#/config/envios">Cambiar los precios de envío por región ' + A.ic.externo + '</a>' : '') +
+        (id === 'contacto' ? '<a class="btn btn-chico" href="#/config/general">Cambiar WhatsApp, Instagram y correo ' + A.ic.externo + '</a>' : '');
+      const vars = 'Puedes escribir {envio_rm}, {envio_regiones} o {envio_rango} para los costos de envío' + (id === 'envios' ? ', y {tabla_envios} para la tabla de precios por región' : '') +
+        (id === 'contacto' || id === 'devoluciones' ? ', y {tarjetas_contacto} para los botones de WhatsApp, Instagram y correo' : '') + '. Se reemplazan solos.';
+      def = { ruta: 'paginas.' + id, campos: [['antetitulo', 'texto', 'Texto chico de arriba'], ['titulo', 'texto', 'Título'],
+        id === 'preguntas' ? ['items', 'objetos', 'Preguntas y respuestas', { q: 'Pregunta', a: 'Respuesta' }] : ['html', 'rico', 'Contenido de la página', { ayuda: h(vars) }]] };
     }
     const base = def.ruta ? def.ruta + '.' : '';
     const val = (c) => obtener(ed.tema, base + c);
@@ -641,6 +741,10 @@
             (u ? '<button class="btn btn-chico btn-plano" data-imgquitar="' + ruta + '.' + i + '.logo" title="Quitar el logo">✕</button>' : '') + '</div></div>';
         }).join('') + '<button class="btn btn-chico" data-lmas="' + ruta + '|objetos">' + A.ic.mas + ' Agregar empresa de envío</button>';
       }
+      else if (tipo === 'rico') {
+        html += '<div class="campo" data-rico-campo="' + ruta + '"><span>' + h(etq) + '</span>' + A.editorRico('ed-rico-' + c.replace(/\W/g, ''), v || '') +
+          (sub && sub.ayuda ? '<small>' + sub.ayuda + '</small>' : '') + '</div>';
+      }
       else if (tipo === 'bannersCol') {
         html += '<span class="etq">' + h(etq) + '</span>' + A.colecciones().map(c => {
           const b = (v || {})[c.id] || {}, pc = A.urlImagen(b.pc), mo = A.urlImagen(b.movil);
@@ -667,13 +771,22 @@
           '<button class="mini" data-lsub="' + ruta + '|' + i + '"' + (i ? '' : ' disabled') + '>' + A.ic.arriba + '</button><button class="mini" data-lbaja="' + ruta + '|' + i + '"' + (i < lista.length - 1 ? '' : ' disabled') + '>' + A.ic.abajo + '</button><button class="mini" data-lborrar="' + ruta + '|' + i + '" style="color:var(--rojo)">' + A.ic.basura + '</button></div>' +
           (tipo === 'textos' ? '<textarea class="inp" rows="2" data-r="' + ruta + '.' + i + '">' + h(it) + '</textarea>'
             : Object.keys(sub).map(sk => sk === 'icono' ? selectorIcono(ruta + '.' + i + '.icono', it.icono)
+              : sk === 'a' ? '<textarea class="inp" rows="4" data-r="' + ruta + '.' + i + '.' + sk + '" placeholder="' + h(sub[sk]) + '" style="margin-bottom:6px">' + h(it[sk] || '') + '</textarea>'
               : '<input class="inp" data-r="' + ruta + '.' + i + '.' + sk + '" value="' + h(it[sk] || '') + '" placeholder="' + h(sub[sk]) + '" style="margin-bottom:6px">').join('')) + '</div>').join('') +
           '<button class="btn btn-chico" data-lmas="' + ruta + '|' + tipo + '">' + A.ic.mas + ' Agregar</button>';
       }
     });
     if (k === 'colores') html += '<button class="btn btn-chico mt" id="ed-col-orig">Volver a los colores originales</button>';
+    if (k === 'producto' && ed.prodId) {
+      const pr = (A.productos || []).find(x => x.id === ed.prodId);
+      html += '<a class="btn btn-chico mt" href="#/productos/' + encodeURIComponent(ed.prodId) + '">Editar ' + h(pr ? pr.name : 'este producto') + ' (nombre, precio, fotos) ' + A.ic.externo + '</a>';
+    }
     html += '</div>';
     panel.innerHTML = html;
+    A.$$('[data-rico-campo]', panel).forEach(c => {
+      const caja = c.querySelector('.rico');
+      A.conectarRico(caja, () => { poner(ed.tema, c.dataset.ricoCampo, A.leerRico(caja)); cambio(); });
+    });
     // encuadre: arrastrar la foto
     A.$$('[data-foco]', panel).forEach(caja => {
       const img = caja.querySelector('img'); let ini = null;

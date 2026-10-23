@@ -75,10 +75,15 @@
   }
 
   /* Costos de envío: los que se fijan en el panel (Configuración → Envíos). */
+  /* "Envío: $2.990 en la RM · de $3.990 a $5.990 en regiones, según tu región." */
+  function textoEnvio() {
+    const r = kvEnvioRango(window.kvEnvioTarifas);
+    return 'Envío: ' + formatCLP(r.rm) + ' en la Región Metropolitana · ' + (r.regMin === r.regMax ? formatCLP(r.regMin) + ' al resto de Chile.' : 'de ' + formatCLP(r.regMin) + ' a ' + formatCLP(r.regMax) + ' en regiones, según tu región (se calcula al pagar).');
+  }
   function usarTarifas(v) {
     const t = (v && v.envioTarifas) || {};
-    const rm = Number(t.rm) || 2990, reg = Number(t.regiones) || 3990;
-    window.kvEnvioCosto = function (region) { return region === KV_REGION_RM ? rm : reg; };
+    window.kvEnvioCosto = function (region) { return kvEnvioDe(t, region); };
+    window.kvEnvioTarifas = t;
   }
 
   /* ---------- productos ----------
@@ -229,7 +234,7 @@
       '<div class="cantidad"><button type="button" data-qty="-1" data-id="' + it.p.id + '" aria-label="Quitar uno">−</button><span>' + it.qty + '</span>' +
       '<button type="button" data-qty="1" data-id="' + it.p.id + '" aria-label="Agregar uno">+</button></div></div>').join('') +
       '</div><div class="carro-pie"><div class="fila total"><span>Subtotal</span><span>' + formatCLP(sub) + '</span></div>' +
-      '<p class="nota">Envío: ' + formatCLP(kvEnvioCosto(KV_REGION_RM)) + ' en la Región Metropolitana · ' + formatCLP(kvEnvioCosto('')) + ' al resto de Chile. Si tienes un cupón, lo aplicas al pagar.</p>' +
+      '<p class="nota">' + textoEnvio() + ' Si tienes un cupón, lo aplicas al pagar.</p>' +
       '<a class="btn btn-1 btn-bloque" href="/finalizar-compra.html">Finalizar compra</a>' +
       '<button type="button" class="btn btn-2 btn-bloque" style="margin-top:8px" data-cerrar="cajon-carro">Seguir comprando</button></div></div>';
     cont.querySelectorAll('[data-qty]').forEach(b => b.addEventListener('click', async () => {
@@ -456,6 +461,15 @@
     const pausa = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('quieta', !e.isIntersecting)));
     $$('.cinta, .franja, .olas, .hero-marco').forEach(el => pausa.observe(el));
   } else $$('[data-revelar]').forEach(el => el.classList.add('visto'));
+  // «Sobre nosotros»: al aparecer, las fotos se abren en abanico y el texto sube en cascada
+  const entrarSobre = (el) => {
+    el.classList.add('is-entered');
+    el.querySelectorAll('.kv-anim.kv-hidden').forEach(a => { a.classList.remove('kv-hidden'); a.classList.add(a.dataset.kvAnim); });
+  };
+  if ('IntersectionObserver' in window) {
+    const ioSobre = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { entrarSobre(e.target); ioSobre.unobserve(e.target); } }), { rootMargin: '0px 0px -200px 0px' });
+    $$('.kv-aiwt').forEach(el => ioSobre.observe(el));
+  } else $$('.kv-aiwt').forEach(entrarSobre);
   // efecto "profundidad con el mouse" en la foto de portada: las capas se
   // mueven a distintas velocidades (en celular queda quieta)
   const marco = $('.hero-img-marco');

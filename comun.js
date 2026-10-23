@@ -969,7 +969,21 @@ var KV_COMUNAS = {
   "Magallanes": ["Antártica", "Cabo de Hornos", "Laguna Blanca", "Natales", "Porvenir", "Primavera", "Punta Arenas", "Río Verde", "San Gregorio", "Timaukel", "Torres del Paine"]
 };
 function kvComunasDe(region) { return (region && KV_COMUNAS[region]) || []; }
-function kvEnvioCosto(region) { return region === KV_REGION_RM ? 2990 : 3990; }
+/* Costo de envío de una región. tarifas = settings.envioTarifas:
+   { rm, regiones, porRegion: { 'Valparaíso': 3990, ... } } (Configuración → Envío). */
+function kvEnvioDe(tarifas, region) {
+  const t = tarifas || {}, por = t.porRegion || {};
+  const n = Number(por[region]);
+  if (n > 0) return n;
+  return region === KV_REGION_RM ? (Number(t.rm) || 2990) : (Number(t.regiones) || 3990);
+}
+/* Lo más barato y lo más caro (para los textos: "de $2.990 a $5.990"). */
+function kvEnvioRango(tarifas) {
+  const vals = KV_REGIONES.map(r => kvEnvioDe(tarifas, r));
+  const reg = KV_REGIONES.filter(r => r !== KV_REGION_RM).map(r => kvEnvioDe(tarifas, r));
+  return { min: Math.min.apply(null, vals), max: Math.max.apply(null, vals), regMin: Math.min.apply(null, reg), regMax: Math.max.apply(null, reg), rm: kvEnvioDe(tarifas, KV_REGION_RM) };
+}
+function kvEnvioCosto(region) { return kvEnvioDe(null, region); }
 
 /* Un correo mal escrito es una venta que se pierde en silencio: la clienta no
    recibe nada y despues el panel no puede avisarle el envio. Estas son las

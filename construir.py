@@ -23,6 +23,19 @@ gen = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gen)
 import tema as T
 
+_organizacion = gen.organizacion
+
+
+def _organizacion_web():
+    """La de paginas-producto.py, con la descripción de la web nueva."""
+    o = _organizacion()
+    o["description"] = ("Joyería artesanal hecha a mano en Chile: aros de arcilla polimérica, argollas de cristal y mostacillas, "
+                        "corazones, conchitas y charms. Envíos a todo Chile.")
+    return o
+
+
+gen.organizacion = _organizacion_web
+
 SITIO = "https://karivejoyas.cl/"
 DIST = "dist"
 EST = "estatico"
@@ -31,6 +44,24 @@ MARCA = gen.MARCA
 WA = gen.WHATSAPP
 IG, FBK = gen.INSTAGRAM, gen.FACEBOOK
 ENV_RM, ENV_RESTO = gen.ENVIO_RM, gen.ENVIO_RESTO
+ENV_POR_REGION = {}          # Configuración → Envío: precio de cada región (si se fijó)
+REGIONES = ["Arica y Parinacota", "Tarapacá", "Antofagasta", "Atacama", "Coquimbo", "Valparaíso", "Metropolitana de Santiago",
+            "O'Higgins", "Maule", "Ñuble", "Biobío", "La Araucanía", "Los Ríos", "Los Lagos", "Aysén", "Magallanes"]
+REGION_RM = "Metropolitana de Santiago"
+
+
+def envio_de(region):
+    """Lo mismo que kvEnvioDe() en comun.js."""
+    n = ENV_POR_REGION.get(region) or 0
+    if n > 0:
+        return n
+    return ENV_RM if region == REGION_RM else ENV_RESTO
+
+
+def envio_rango():
+    otras = [envio_de(r) for r in REGIONES if r != REGION_RM]
+    todas = otras + [envio_de(REGION_RM)]
+    return min(todas), max(todas), min(otras), max(otras)
 CORREO = "karive.joyas@gmail.com"
 WA_MSG = ""
 RESENAS = []
@@ -107,7 +138,7 @@ def solo_digitos(s):
 
 def ajustes_tienda():
     """WhatsApp, redes, correo y envíos: lo que se edita en el panel."""
-    global WA, IG, FBK, ENV_RM, ENV_RESTO, CORREO, WA_MSG, TEMA, VARS, RESENAS
+    global WA, IG, FBK, ENV_RM, ENV_RESTO, ENV_POR_REGION, CORREO, WA_MSG, TEMA, VARS, RESENAS
     s = leer_doc("catalog/settings", ["whatsapp", "instagram", "facebook", "whatsappMsg", "envioTarifas", "resenas"])
     RESENAS = [r for r in (s.get("resenas") or []) if isinstance(r, dict) and r.get("producto")]
     wa = solo_digitos(s.get("whatsapp"))
@@ -127,10 +158,16 @@ def ajustes_tienda():
         ENV_RM = int(tar["rm"])
     if int(tar.get("regiones") or 0) > 0:
         ENV_RESTO = int(tar["regiones"])
+    for r, n in (tar.get("porRegion") or {}).items():
+        try:
+            if int(n or 0) > 0:
+                ENV_POR_REGION[r] = int(n)
+        except (TypeError, ValueError):
+            pass
     web = leer_doc("catalog/web")
-    TEMA = T.actualizar_textos(T.mezclar(T.TEMA_DEFECTO, web.get("tema") or {}))
+    TEMA = T.actualizar_textos(T.migrar(T.mezclar(T.TEMA_DEFECTO, web.get("tema") or {})))
     CORREO = ((web.get("general") or {}).get("correo") or CORREO).strip()
-    VARS = {"envio_rm": pesos(ENV_RM), "envio_regiones": pesos(ENV_RESTO)}
+    VARS = variables_envio()
 
 
 MEDIOS = {}
@@ -544,7 +581,7 @@ def ig_html(IGD, pubs):
             u=e(x["url"]), img=e(x["img"]), alt=e(titulo(x.get("texto"))), t=e(titulo(x.get("texto"))), f=e(fecha_corta(x.get("fecha"))), i=i,
             fl=FLECHA_DER, play=IG_PLAY if x.get("tipo") in ("VIDEO", "REELS") else "")
         for i, x in enumerate(elegidas))
-    return ('<section class="seccion envoltura" id="instagram"><div class="seccion-cab"><h2%s>%s</h2><a class="ver-todo" href="%s" target="_blank" rel="noopener"%s>%s</a></div>'
+    return ('<section class="seccion envoltura" id="instagram"><div class="seccion-cab"><h2 class="con-ig"><span class="ig-logo" aria-hidden="true">' + REDES_ICONOS["instagram"] + '</span><span%s>%s</span></h2><a class="ver-todo" href="%s" target="_blank" rel="noopener"%s>%s</a></div>'
             '<div class="colecciones ig-grilla">%s</div></section>'
             % (kv("portada.instagram.titulo"), tx(IGD.get("titulo")), e(IG), kv("portada.instagram.enlace"), tx(IGD.get("enlace")), tarj))
 
@@ -746,7 +783,7 @@ def tarjeta(p, i=0, lazy=True):
         etiqueta = '<span class="etiqueta">Últimas</span>'
     precio = pesos(p["vigente"]) + (("<s>%s</s>" % pesos(p["precio"])) if p["rebajado"] else "")
     return ('<li class="tarjeta" data-tarjeta="{id}" data-col="{col}" data-precio="{pv}" data-i="{i}" data-n="{n}" style="--i:{im}">'
-            '<a class="tarjeta-foto" href="{url}"><img src="{img}" alt="{alt}" width="480" height="480"{lz}>{et}<span class="tarjeta-ver" aria-hidden="true">Ver detalle ' + FLECHA_DER + '</span></a>'
+            '<a class="tarjeta-foto" href="{url}"><img src="{img}" alt="{alt}" width="480" height="480"{lz}>{et}<span class="tarjeta-ver" aria-hidden="true"><span data-kv="producto.verDetalle">' + e((TEMA.get("producto") or {}).get("verDetalle") or "Ver detalle") + '</span> ' + FLECHA_DER + '</span></a>'
             '<div class="tarjeta-txt"><a class="tarjeta-nombre" href="{url}">{nom}</a><span class="precio">{precio}</span>'
             '<div class="agregar"><button type="button" class="btn btn-2" data-agregar="{id}"{dis}>{txt}</button></div></div></li>').format(
         id=e(p["id"]), col=e(p["col"]["slug"]), pv=p["vigente"], i=i, im=i % 4, n=p["creado"][:19].replace("-", "").replace(":", "").replace("T", ""),
@@ -763,8 +800,11 @@ def escribir(ruta, contenido):
 
 # --------------------------------------------------------------- páginas
 
-SELLO_GIRA = ('<svg class="sello-gira" viewBox="0 0 120 120" aria-hidden="true"><defs><path id="circ" d="M60 60m-44 0a44 44 0 1 1 88 0a44 44 0 1 1-88 0"/></defs>'
-              '<text><textPath href="#circ">HECHO A MANO · SANTIAGO DE CHILE · KARIVÉ ·</textPath></text><path d="M60 47c1.6 6.4 4.6 9.4 11 11-6.4 1.6-9.4 4.6-11 11-1.6-6.4-4.6-9.4-11-11 6.4-1.6 9.4-4.6 11-11Z"/></svg>')
+def sello_gira(texto):
+    """El círculo que gira (Nuestro taller). Su texto se cambia en Personalizar → Nuestro taller."""
+    t = (str(texto or "").strip() or "Hecho a mano · Mostacilla · Arcilla").upper().rstrip(" ·") + " ·"
+    return ('<svg class="sello-gira" viewBox="0 0 120 120" aria-hidden="true"><defs><path id="circ" d="M60 60m-44 0a44 44 0 1 1 88 0a44 44 0 1 1-88 0"/></defs>'
+            '<text textLength="272" lengthAdjust="spacing"><textPath href="#circ" data-kv-circulo>%s</textPath></text><path d="M60 47c1.6 6.4 4.6 9.4 11 11-6.4 1.6-9.4 4.6-11 11-1.6-6.4-4.6-9.4-11-11 6.4-1.6 9.4-4.6 11-11Z"/></svg>' % e(t))
 
 
 FLECHA_DER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
@@ -819,6 +859,26 @@ def boton(b, clase, ruta):
     return '<a class="btn %s" href="%s"%s>%s</a>' % (clase, e(b.get("url") or "/"), kv(ruta), e(b.get("texto") or ""))
 
 
+def sobre_html(SO):
+    """«Sobre nosotros»: texto a la izquierda y 5 fotos que se abren en abanico
+    alrededor de la grande al aparecer en pantalla (estilo Ecomify)."""
+    fotos = list(SO.get("imagenes") or []) + [""] * 5
+    defecto = T.T_SOBRE["imagenes"]
+    imgs = "".join('<img class="kv-aiwt__img kv-aiwt__img--%d" src="%s" alt="" width="600" height="%d" loading="lazy" data-kv-img="portada.sobre.imagenes.%d">'
+                   % (i + 1, e(imagen(fotos[i]) or defecto[i]), 800 if i == 0 else 600, i) for i in range(5))
+    cab = lambda clase: ('<div class="%s kv-anim kv-anim--fast kv-hidden" data-kv-anim="kv-fadeInUp" style="animation-delay:400ms"><p class="kv-aiwt__subtitle"%s>%s</p></div>'
+                         '<div class="%s kv-anim kv-anim--fast kv-hidden" data-kv-anim="kv-fadeInUp" style="animation-delay:600ms"><h2 class="kv-aiwt__title"%s>%s</h2></div>'
+                         % (clase, kv("portada.sobre.antetitulo"), tx(SO.get("antetitulo")), clase, kv("portada.sobre.titulo"), tx(SO.get("titulo"))))
+    return ('<section class="kv-aiwt" id="sobre-nosotros"><div class="kv-aiwt__container">'
+            '<div class="kv-aiwt__mobile-head">%s</div>'
+            '<div class="kv-aiwt__row"><div class="kv-aiwt__col kv-aiwt__fotos">%s</div>'
+            '<div class="kv-aiwt__col kv-aiwt__text kv-anim kv-anim--faster kv-hidden" data-kv-anim="kv-fadeInLeft">%s'
+            '<div class="kv-anim kv-anim--fast kv-hidden" data-kv-anim="kv-fadeInUp" style="animation-delay:800ms"><div class="kv-aiwt__desc"><p%s>%s</p></div></div>'
+            '<div class="kv-aiwt__cta kv-anim kv-anim--fast kv-hidden" data-kv-anim="kv-fadeInUp" style="animation-delay:1200ms">%s</div>'
+            '</div></div></div></section>'
+            % (cab("kv-aiwt__m"), imgs, cab("kv-aiwt__desk"), kv("portada.sobre.texto"), tx(SO.get("texto")), boton(SO.get("boton"), "kv-aiwt__btn", "portada.sobre.boton")))
+
+
 def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     P = TEMA["portada"]
     vis = [p for p in prods if p["hay"]]
@@ -850,7 +910,7 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
         img = imagen(img_tema.get(c["id"])) or img_cols.get(c["id"]) or c["_prods"][0]["img"]
         w, hh = medidas_dist(img)
         return ('<a class="coleccion" href="/c/{s}.html" style="--i:{i}" data-revelar>'
-                '<span class="coleccion-foto"><img src="{img}" alt="{alt}" loading="lazy" width="{w}" height="{hh}" data-kv-colimg="{cid}"{foco}><span class="coleccion-ver" aria-hidden="true">Ver colección ' + FLECHA_DER + '</span></span>'
+                '<span class="coleccion-foto"><img src="{img}" alt="{alt}" loading="lazy" width="{w}" height="{hh}" data-kv-colimg="{cid}"{foco}><span class="coleccion-ver" aria-hidden="true"><span data-kv="portada.colecciones.botonTarjeta">' + e(((TEMA.get("portada") or {}).get("colecciones") or {}).get("botonTarjeta") or "Ver colección") + '</span> ' + FLECHA_DER + '</span></span>'
                 '<span class="coleccion-txt"><b>{n}</b><small>{k} modelos</small></span></a>').format(
             s=e(c["slug"]), img=e(img), alt=e(gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0]), w=w, hh=hh,
             n=e(c["nombre"]), k=len(c["_prods"]), cid=e(c["id"]), i=i, foco=estilo_foco((P["colecciones"].get("focos") or {}).get(c["id"])))
@@ -895,7 +955,7 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
       <p style="margin-top:18px">{bt}</p>
     </div>
   </div>
-</section>""".format(sello=SELLO_GIRA, img=e(imagen(TA.get("imagen")) or "/assets/modelo-argollas.jpg"), alt=e(TA.get("imagenAlt") or MARCA), foco_taller=estilo_foco(TA.get("imagenFoco")),
+</section>""".format(sello=sello_gira(TA.get("circulo")), img=e(imagen(TA.get("imagen")) or "/assets/modelo-argollas.jpg"), alt=e(TA.get("imagenAlt") or MARCA), foco_taller=estilo_foco(TA.get("imagenFoco")),
                      k1=kv("portada.taller.antetitulo"), ante=tx(TA.get("antetitulo")), k2=kv("portada.taller.titulo"), tit=tx(TA.get("titulo")),
                      k3=kv("portada.taller.texto"), txt=tx(TA.get("texto")), bt=boton(TA.get("boton"), "btn-oro", "portada.taller.boton"),
                      pasos="".join('<li><span class="n">%d</span><span>%s</span></li>' % (i + 1, tx(x)) for i, x in enumerate(TA.get("pasos") or [])))
@@ -908,6 +968,7 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
 </section>""".format(k1=kv("portada.especial.antetitulo"), ante=tx(ES.get("antetitulo")), k2=kv("portada.especial.titulo"), tit=tx(ES.get("titulo")),
                      k3=kv("portada.especial.texto"), txt=tx(ES.get("texto")), wa=WA, wat=gen.urllib.parse.quote(ES.get("mensaje") or ""),
                      i_wa=ICONOS["wa"], k4=kv("portada.especial.boton"), bt=tx(ES.get("boton")))
+    sec["sobre"] = sobre_html(P.get("sobre") or {})
     ig = ig_html(P.get("instagram") or {}, list(ig_pubs))
     if ig:
         sec["instagram"] = ig
@@ -941,27 +1002,53 @@ def tienda(prods, cols):
     h += encabezado(cols, "tienda")
     chips = '<button type="button" class="chip" data-filtro="">Todo</button>' + "".join(
         '<button type="button" class="chip" data-filtro="%s">%s</button>' % (e(c["slug"]), e(c["nombre"])) for c in cols)
+    TP = TEMA.get("tiendaPagina") or {}
+    foto, _ = portada_ancha(((TEMA.get("coleccionPagina") or {}).get("banners") or {}).get("todo") or {}, 'data-kv-banner="todo"', TP.get("titulo") or "Todos los aros")
     h += """<section class="envoltura" style="padding-top:28px">
-  <h1>Aros hechos a mano</h1>
-  <p style="color:var(--suave)"><span id="cuenta">{n} productos</span> · envío a todo Chile</p>
+  {foto}<h1{k1}>{tit}</h1>
+  <p style="color:var(--suave)"><span id="cuenta">{n} productos</span> · <span{k2}>{txt}</span></p>
   <div class="filtros" role="group" aria-label="Filtrar por colección">{chips}
     <select id="orden" aria-label="Ordenar"><option value="recomendado">Recomendados</option><option value="nuevos">Más nuevos</option><option value="menor">Menor precio</option><option value="mayor">Mayor precio</option></select></div>
   <ul class="grilla" id="grilla-tienda">{tarj}</ul>
 </section>
 <script>(function(){{var o=new URLSearchParams(location.search).get('orden');if(o){{var s=document.getElementById('orden');if(s)s.value=o;}}}})();</script>
-""".format(n=len(vis), chips=chips, tarj="".join(tarjeta(p, i, lazy=i > 7) for i, p in enumerate(vis)))
+""".format(n=len(vis), chips=chips, tarj="".join(tarjeta(p, i, lazy=i > 7) for i, p in enumerate(vis)), foto=foto,
+           k1=kv("tiendaPagina.titulo"), tit=tx(TP.get("titulo")), k2=kv("tiendaPagina.texto"), txt=tx(TP.get("texto")))
     h += pie(cols)
     escribir("tienda/index.html", h)
 
 
+def preguntas_producto(nombre, medida):
+    """Las preguntas de la ficha (las de paginas-producto.py, con los textos de la web nueva)."""
+    out = []
+    for q, a in gen.preguntas(nombre, medida):
+        if "material" in q:
+            a = "Son aros artesanales hechos a mano en Chile, con arcilla polimérica, cristales, mostacillas y otros materiales según el diseño."
+        elif "regiones" in q:
+            a = "Sí, enviamos a todo Chile: %s a la Región Metropolitana y %s a regiones, según la región." % (VARS["envio_rm"], VARS["envio_regiones"])
+        elif "falla" in q:
+            q, a = "¿Qué pasa si llega con algún problema?", "Escríbenos por WhatsApp o Instagram e intentaremos solucionar tu problema lo más pronto posible, según sea el caso."
+        elif "compro" in q:
+            a = "Agrégalo al carrito y paga con tarjeta de débito o crédito (Mercado Pago), o escríbenos por WhatsApp o Instagram."
+        out.append((q, a))
+    return out
+
+
+def descripcion_col(c):
+    """Texto de la colección en la web (Personalizar → Colecciones). Si no hay,
+    se usa el de la colección en el panel (Colecciones → descripción)."""
+    return str(((TEMA.get("coleccionPagina") or {}).get("descripciones") or {}).get(c["id"]) or "").strip()
+
+
 def coleccion(c, cols):
     h1, frase = gen.SEO_COLECCION.get(c["id"], ("Aros %s hechos a mano" % c["nombre"].lower(), "aros artesanales"))
+    h1 = str(((TEMA.get("coleccionPagina") or {}).get("titulos") or {}).get(c["id"]) or "").strip() or h1
     prods = c["_prods"]
     desde = min(p["vigente"] for p in prods)
     ruta = "/c/%s.html" % c["slug"]
     url = SITIO + ruta.lstrip("/")
     desc = "%s: %d modelos desde %s, hechos a mano en Santiago. Envío a todo Chile." % (h1, len(prods), pesos(desde))
-    intro = "En %s hacemos %s a mano, uno por uno, en Santiago de Chile.%s" % (MARCA, frase, (" " + c["sub"].rstrip(".") + ".") if c.get("sub") else "")
+    intro = descripcion_col(c) or "En %s hacemos %s a mano.%s" % (MARCA, frase, (" " + c["sub"].rstrip(".") + ".") if c.get("sub") else "")
     jsonld = {"@context": "https://schema.org", "@graph": [
         gen.organizacion(),
         {"@type": "CollectionPage", "@id": url, "url": url, "name": h1, "description": desc, "isPartOf": {"@id": SITIO + "#sitio"},
@@ -985,7 +1072,7 @@ def coleccion(c, cols):
   <ul class="grilla" style="margin-top:24px">{tarj}</ul>
   <h2 style="margin-top:48px">Otras colecciones</h2><div class="filtros">{otras}</div>
 </div>
-""".format(cab='<div class="col-cab"><h1>%s</h1><p style="max-width:720px;color:var(--suave)">%s</p></div>' % (e(h1), e(intro)),
+""".format(cab='<div class="col-cab"><h1 data-kv-coltit="%s">%s</h1><p style="max-width:720px;color:var(--suave)" data-kv-coldesc="%s">%s</p></div>' % (e(c["id"]), e(h1), e(c["id"]), e(intro)),
            tarj="".join(tarjeta(p, i, lazy=i > 3) for i, p in enumerate(prods)), otras=otras)
     h += pie(cols)
     escribir(ruta, h)
@@ -1005,18 +1092,17 @@ def producto(p, cols):
         partes.pop()
     desc = gen.corta(" ".join(partes), 158)
     alt = "%s, aros artesanales hechos a mano%s – %s" % (p["nombre"], (" color " + p["color"].lower()) if p["color"] else "", MARCA)
-    texto = ("%s: aros artesanales de la colección %s, hechos a mano uno por uno en Santiago de Chile, con base de acero quirúrgico."
-             % (p["nombre"], col["nombre"]))
-    if col.get("sub"):
-        texto += " " + col["sub"].rstrip(".") + "."
-    faq = gen.preguntas(p["nombre"], p["medida"])
+    texto = "%s: aros artesanales de la colección %s, hechos a mano." % (p["nombre"], col["nombre"])
+    if descripcion_col(col):
+        texto += " " + descripcion_col(col)
+    faq = preguntas_producto(p["nombre"], p["medida"])
     otros = [q for q in col.get("_prods", []) if q["codigo"] != p["codigo"]][:4]
     w, hh = p["dim"] or (1000, 1000)
     prod = {
         "@type": "Product", "@id": url + "#producto", "name": p["nombre"], "sku": p["codigo"], "mpn": p["codigo"], "url": url,
         "description": texto, "category": "Joyería > Aros",
         "image": [{"@type": "ImageObject", "url": p["foto_abs"], "contentUrl": p["foto_abs"], "caption": alt, "width": w, "height": hh}],
-        "brand": {"@type": "Brand", "name": MARCA}, "manufacturer": {"@id": SITIO + "#organizacion"}, "material": "Acero quirúrgico",
+        "brand": {"@type": "Brand", "name": MARCA}, "manufacturer": {"@id": SITIO + "#organizacion"},
         "offers": {"@type": "Offer", "url": url, "priceCurrency": "CLP", "price": str(p["vigente"]),
                    "availability": "https://schema.org/%s" % ("InStock" if p["hay"] else "OutOfStock"),
                    "itemCondition": "https://schema.org/NewCondition", "seller": {"@id": SITIO + "#organizacion"},
@@ -1062,9 +1148,9 @@ def producto(p, cols):
     <ul class="lista-confianza" data-kv-lista="producto.beneficios">{benef}</ul>
     <div class="acordeon">
       <details open><summary>Descripción</summary><p>{texto} Al ser piezas hechas a mano, cada par puede tener pequeñas diferencias: eso las hace únicas. Se envían en su empaque, listos para regalar.</p></details>
-      <details><summary>Medidas y material</summary><ul>{medida}<li>Base de acero quirúrgico</li><li>Hecho a mano en Chile</li>{color}</ul></details>
-      <details><summary>Envíos</summary><p>Despachamos desde Santiago a todo Chile: {rm} a la Región Metropolitana y {resto} al resto del país. <a href="/envios.html">Más sobre envíos</a>.</p></details>
-      <details><summary>Cambios y garantía</summary><p>Si tu pedido llega con una falla, tienes 3 meses de garantía legal: lo cambiamos, lo reparamos o te devolvemos el dinero. Por higiene no hay cambios por arrepentimiento. <a href="/devoluciones.html">Política completa</a>.</p></details>
+      <details><summary>Medidas y material</summary><ul>{medida}<li>Hecho a mano en Chile</li>{color}</ul></details>
+      <details><summary>Envíos</summary><p>Despachamos desde Santiago a todo Chile: {rm} a la Región Metropolitana y {resto} a regiones, según la región. <a href="/envios.html">Más sobre envíos</a>.</p></details>
+      <details><summary>¿Llegó con algún problema?</summary><p>Escríbenos por WhatsApp o Instagram e intentaremos solucionar tu problema lo más pronto posible, según sea el caso. <a href="/devoluciones.html">Cambios y devoluciones</a>.</p></details>
     </div>
   </div>
 </article>
@@ -1074,7 +1160,7 @@ def producto(p, cols):
 """.format(cs=e(col["slug"]), cn=e(col["nombre"]), nom=e(p["nombre"]), id=e(p["id"]), foto=e(p["foto"]), img=e(p["img"]),
            alt=e(alt), w=w, hh=hh, cod=e(p["codigo"]), precio=precio, scls=stock_cls, stxt=stock_txt,
            dis="" if p["hay"] else " disabled", btxt="Agregar al carrito" if p["hay"] else "Agotado", wa=WA, wat=wa_txt,
-           rm=pesos(ENV_RM), resto=pesos(ENV_RESTO), texto=e(texto),
+           rm=VARS["envio_rm"], resto=VARS["envio_regiones"], texto=e(texto),
            opiniones=opiniones_html(p["id"]),
            benef="".join("<li>%s</li>" % tx(x) for x in (TEMA.get("producto") or {}).get("beneficios") or []),
            medida=("<li>Medida: %s</li>" % e(p["medida"])) if p["medida"] else "",
@@ -1110,12 +1196,21 @@ def pagina_texto(ruta, titulo, desc, cuerpo_html, cols, actual="", jsonld=None, 
     escribir(ruta, h)
 
 
+def variables_envio():
+    """{envio_rm}, {envio_regiones} ("$3.990" o "$3.990 a $5.990"), {envio_min}, {envio_max}
+    y {envio_rango} ("$2.990 a $5.990"). Igual que en el panel (admin/tienda.js)."""
+    mn, mx, rmn, rmx = envio_rango()
+    rango = lambda a, b: pesos(a) if a == b else "%s a %s" % (pesos(a), pesos(b))
+    return {"envio_rm": pesos(envio_de(REGION_RM)), "envio_regiones": rango(rmn, rmx), "envio_min": pesos(mn), "envio_max": pesos(mx), "envio_rango": rango(mn, mx)}
+
+
 def tabla_envios():
-    td = 'style="padding:10px;border-bottom:1px solid var(--borde)"'
-    return ('<table class="tabla-envios" style="width:100%%;border-collapse:collapse;margin:10px 0 20px"><tr><th style="text-align:left;padding:10px;border-bottom:1px solid var(--borde)">Destino</th>'
-            '<th style="text-align:right;padding:10px;border-bottom:1px solid var(--borde)">Costo</th></tr>'
-            '<tr><td %s>Región Metropolitana</td><td %s>%s</td></tr><tr><td style="padding:10px">Resto de Chile</td><td style="text-align:right;padding:10px">%s</td></tr></table>'
-            % (td, td.replace('style="', 'style="text-align:right;'), pesos(ENV_RM), pesos(ENV_RESTO)))
+    """Costo por región; las regiones con el mismo precio van juntas."""
+    grupos = {}
+    for r in REGIONES:
+        grupos.setdefault(envio_de(r), []).append("Región Metropolitana" if r == REGION_RM else r)
+    filas = "".join('<tr><td>%s</td><td class="num">%s</td></tr>' % (e(", ".join(rs)), pesos(n)) for n, rs in sorted(grupos.items()))
+    return '<table class="tabla-envios"><thead><tr><th>Región</th><th class="num">Envío</th></tr></thead><tbody>%s</tbody></table>' % filas
 
 
 def tarjetas_contacto():
@@ -1238,14 +1333,14 @@ def archivos_buscadores(prods, cols):
     for p in sorted(prods, key=lambda p: (p["cat"], p["orden"])):
         filas.append({
             "id": p["codigo"], "title": gen.corta("%s – Aros artesanales hechos a mano | %s" % (p["nombre"], MARCA), 150),
-            "description": ("%s de %s. Aros artesanales hechos a mano en Chile, con base de acero quirúrgico.%s Colección %s. Código %s."
+            "description": ("%s de %s. Aros artesanales hechos a mano en Chile.%s Colección %s. Código %s."
                             % (p["nombre"], MARCA, (" Medida %s." % p["medida"].rstrip(".")) if p["medida"] else "", p["col"]["nombre"], p["codigo"])),
             "link": SITIO + "p/%s.html" % p["codigo"], "image_link": p["foto_abs"],
             "availability": "in_stock" if p["hay"] else "out_of_stock",
             "price": "%d CLP" % p["precio"], "sale_price": ("%d CLP" % p["vigente"]) if p["rebajado"] else "",
             "condition": "new", "brand": MARCA, "mpn": p["codigo"], "identifier_exists": "no",
             "google_product_category": gen.CAT_GOOGLE, "product_type": "Joyería > Aros > " + p["col"]["nombre"],
-            "color": p["color"], "gender": "female", "age_group": "adult", "material": "Acero quirúrgico", "custom_label_0": p["col"]["nombre"],
+            "color": p["color"], "gender": "female", "age_group": "adult", "custom_label_0": p["col"]["nombre"],
         })
     with open(DIST + "/catalogo-google.csv", "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=list(filas[0].keys()))
@@ -1253,13 +1348,13 @@ def archivos_buscadores(prods, cols):
         w.writerows(filas)
 
     lineas = ["# %s" % MARCA, "", "> Joyería artesanal hecha a mano en Santiago, Chile. Aros de arcilla polimérica, argollas de cristal, corazones, "
-              "conchitas y charms, con base de acero. Tienda online con envíos a todo Chile.", "",
+              "conchitas y charms, con mostacillas y cristales. Tienda online con envíos a todo Chile.", "",
               "- Tienda: %stienda/" % SITIO, "- Instagram: %s" % IG, "- Facebook: %s" % FBK, "- WhatsApp: +%s" % WA,
-              "- Envíos: a todo Chile desde Santiago (%s Región Metropolitana, %s resto de Chile). Sin retiro en tienda." % (pesos(ENV_RM), pesos(ENV_RESTO)),
-              "- Pagos: tarjeta de débito o crédito (Mercado Pago); transferencia coordinándola por WhatsApp.", "- Garantía: 3 meses por fallas (%sdevoluciones.html)." % SITIO,
+              "- Envíos: a todo Chile desde Santiago (%s Región Metropolitana, %s resto de Chile, según la región). Sin retiro en tienda." % (VARS["envio_rm"], VARS["envio_regiones"]),
+              "- Pagos: tarjeta de débito o crédito (Mercado Pago); transferencia coordinándola por WhatsApp.", "- Si un pedido llega con algún problema: escribir por WhatsApp o Instagram (%sdevoluciones.html)." % SITIO,
               "- Preguntas frecuentes: %spreguntas-frecuentes.html" % SITIO, "", "## Colecciones", ""]
     for c in cols:
-        lineas.append("- [%s](%sc/%s.html): %s" % (c["nombre"], SITIO, c["slug"], c.get("sub") or ""))
+        lineas.append("- [%s](%sc/%s.html): %s" % (c["nombre"], SITIO, c["slug"], descripcion_col(c) or c.get("sub") or ""))
     lineas += ["", "## Productos disponibles", ""]
     for c in cols:
         for p in c["_prods"]:
@@ -1303,7 +1398,7 @@ def panel():
     t = {k: v for k, v in TEMA.items()}
     t["paginas"] = {k: v for k, v in TEMA["paginas"].items() if not k.startswith("_x_")}
     json.dump({"tema": t, "defecto": T.TEMA_DEFECTO, "secciones": T.SECCIONES_PORTADA, "generado": date.today().isoformat(),
-               "envio": {"rm": ENV_RM, "regiones": ENV_RESTO}, "iconos": {k: T.icono(k) for k in T.ICONOS_TEMA}, "textosAntiguos": T.TEXTOS_ANTIGUOS, "whatsapp": WA, "instagram": IG, "facebook": FBK, "correo": CORREO},
+               "envio": {"rm": envio_de(REGION_RM), "regiones": ENV_RESTO}, "iconos": {k: T.icono(k) for k in T.ICONOS_TEMA}, "textosAntiguos": T.TEXTOS_ANTIGUOS, "migraciones": T.MIGRACIONES, "whatsapp": WA, "instagram": IG, "facebook": FBK, "correo": CORREO},
               open(DIST + "/admin/tema-actual.json", "w", encoding="utf-8"), ensure_ascii=False)
 
 
@@ -1324,6 +1419,7 @@ def main():
     for f in ("logo-karive-web.png", "logo-karive.png", "logo-avatar.png", "modelo-portada.jpg", "modelo-argollas.jpg"):
         shutil.copy("assets/" + f, DIST + "/assets/" + f)
     shutil.copytree("assets/pagos", DIST + "/assets/pagos")      # logos de tarjetas (página de pago)
+    shutil.copytree("assets/sobre", DIST + "/assets/sobre", dirs_exist_ok=True)   # fotos de «Sobre nosotros»
 
     prods, cols, mas_vistos = cargar()
     publicar_fotos(prods)

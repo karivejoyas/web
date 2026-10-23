@@ -669,3 +669,61 @@ html[data-tr="vuela"] .ficha-foto img{view-transition-name:foto}
 @media (max-width:699px){.pag-portada{aspect-ratio:16/9}}
 .texto-pag.con-foto{padding-top:22px}
 @media (prefers-reduced-motion:reduce){.js .col-portada img{animation:none!important;opacity:1!important;transform:none!important}}
+/* tabla de envíos por región (página Envíos) */
+.tabla-envios{width:100%;border-collapse:collapse;margin:10px 0 20px;font-size:15px}
+.tabla-envios th{text-align:left;padding:10px;border-bottom:1px solid var(--borde);font-weight:600}
+.tabla-envios td{padding:10px;border-bottom:1px solid var(--borde);vertical-align:top}
+.tabla-envios .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tabla-envios tr:last-child td{border-bottom:0}
+/* título de Instagram con su logo */
+h2.con-ig{display:flex;align-items:center;gap:12px}
+.ig-logo{display:inline-flex;align-items:center;justify-content:center;flex:none;width:42px;height:42px;border-radius:13px;color:#fff;
+  background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fdf497 5%,#fd5949 45%,#d6249f 60%,#285AEB 90%);box-shadow:0 4px 12px rgba(214,36,159,.25)}
+.ig-logo svg{width:24px;height:24px}
+@media (max-width:640px){.ig-logo{width:34px;height:34px;border-radius:11px}.ig-logo svg{width:20px;height:20px}}
+
+/* ---- «Sobre nosotros» (portada): fotos en abanico, adaptado de la sección
+   advanced-image-with-text del tema Ecomify. Clases con prefijo kv-aiwt. ---- */
+.kv-aiwt{--kv-radius:2rem;--kv-anim:1s;overflow:hidden;padding:40px 0 10px}
+.kv-aiwt__container{width:100%;max-width:1180px;margin:0 auto;padding:0 20px}
+.kv-aiwt__row{display:flex;flex-wrap:wrap;align-items:center;flex-direction:row-reverse;margin:0 -12px}
+.kv-aiwt__col{flex:0 0 auto;width:100%;padding:0 12px;position:relative}
+.kv-aiwt__mobile-head,.kv-aiwt__text{text-align:center}
+.kv-aiwt__desk{display:none}
+.kv-aiwt__subtitle{margin:0 0 .3rem;font-size:13px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--suave)}
+.kv-aiwt__title{margin:0;font-size:clamp(28px,4vw,40px);line-height:1.15;color:var(--morado-osc)}
+.kv-aiwt__desk .kv-aiwt__title{margin-bottom:.6rem}
+.kv-aiwt__desc{margin:0 0 1.4rem;font-size:16px;line-height:1.7;color:var(--tinta)}
+.kv-aiwt__desc p{margin:0}
+.kv-aiwt__cta{display:inline-flex}
+.kv-aiwt__btn{display:inline-block;margin-bottom:2px;padding:.55rem 1.4rem;border:1px solid rgba(255,255,255,.25);border-radius:var(--kv-radius);
+  background:var(--morado) linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.125));box-shadow:0 0 0 2px var(--morado-osc);
+  color:#fff;font-size:15px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;transition:background-color .15s ease-in-out}
+.kv-aiwt__btn:hover,.kv-aiwt__btn:focus-visible{background-color:#6E3A97;color:#fff}
+.kv-aiwt__img{display:block;position:relative;margin:40px auto 60px;width:50%;height:auto;max-width:100%;padding:.25rem;background:#fff;
+  border:1px solid var(--borde);border-radius:var(--kv-radius);box-shadow:0 .125rem .25rem rgba(42,18,62,.075);object-fit:cover;transition:all 1s ease-out}
+.kv-aiwt__img--1{z-index:1;aspect-ratio:3/4}
+.kv-aiwt__img:not(.kv-aiwt__img--1){position:absolute;top:50%;left:50%;margin:0;aspect-ratio:1/1;transform:translate(-50%,-50%)}
+.kv-aiwt__img--2{width:32%}.kv-aiwt__img--3{width:20%}.kv-aiwt__img--4{width:24%}.kv-aiwt__img--5{width:30%}
+.kv-aiwt.is-entered .kv-aiwt__img--2{transform:translate(-154%,-128%)}
+.kv-aiwt.is-entered .kv-aiwt__img--3{transform:translate(113%,-157%)}
+.kv-aiwt.is-entered .kv-aiwt__img--4{transform:translate(94%,-7%)}
+.kv-aiwt.is-entered .kv-aiwt__img--5{transform:translate(-165%,-16%)}
+.kv-aiwt .kv-anim{animation-duration:var(--kv-anim);animation-fill-mode:both}
+.kv-aiwt .kv-anim--fast{animation-duration:calc(var(--kv-anim)*.8)}
+.kv-aiwt .kv-anim--faster{animation-duration:calc(var(--kv-anim)/2)}
+.kv-aiwt .kv-hidden{opacity:0}
+.kv-aiwt .kv-fadeInLeft{animation-name:kvFadeInLeft}
+.kv-aiwt .kv-fadeInUp{animation-name:kvFadeInUp}
+@keyframes kvFadeInLeft{0%{opacity:0;transform:translate3d(-100%,0,0)}to{opacity:1;transform:translateZ(0)}}
+@keyframes kvFadeInUp{0%{opacity:0;transform:translate3d(0,100%,0)}to{opacity:1;transform:translateZ(0)}}
+@media (min-width:768px){.kv-aiwt__col{width:50%}}
+@media (min-width:992px){
+  .kv-aiwt__mobile-head{display:none}
+  .kv-aiwt__desk{display:block}
+  .kv-aiwt__text{text-align:left}
+}
+@media (prefers-reduced-motion:reduce){
+  .kv-aiwt .kv-anim{animation-duration:1ms!important}
+  .kv-aiwt__img{transition-duration:1ms!important}
+}

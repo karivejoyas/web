@@ -8,12 +8,13 @@ Lo que no esté ahí sale de TEMA_DEFECTO, así la web nunca queda en blanco.
 En los textos se puede escribir:
   **así**            → negrita
   {envio_rm}         → costo de envío a la Región Metropolitana ($2.990)
-  {envio_regiones}   → costo de envío al resto de Chile ($3.990)
+  {envio_regiones}   → costo de envío a regiones ($3.990, o "$3.990 a $5.990" si varía)
+  {envio_rango}      → de lo más barato a lo más caro ("$2.990 a $5.990")
 y en el HTML de las páginas además:
   {tabla_envios}       → tabla con los costos de envío
   {tarjetas_contacto}  → tarjetas de WhatsApp, Instagram y correo
 """
-import copy, html, re
+import copy, html, json, re
 
 MARCA = "Karivé Joyas"
 
@@ -26,6 +27,7 @@ SECCIONES_PORTADA = {
     "taller": "Nuestro taller",
     "nuevos": "Lo nuevo",
     "especial": "Diseños a pedido",
+    "sobre": "Sobre nosotros",
     "instagram": "Instagram",
 }
 
@@ -46,12 +48,167 @@ TRANSICIONES = {
     "ninguna": "Sin transición",
 }
 
+# ---------------------------------------------------------------------------
+#  Textos de octubre 2026 (sin acero ni garantía de 3 meses; envíos por región;
+#  sección «Sobre nosotros»). Se usan en TEMA_DEFECTO y en MIGRACIONES.
+# ---------------------------------------------------------------------------
+T_ANUNCIO = "Envíos a todo Chile · **Joyas hechas a mano** · ¿Dudas? Escríbenos por WhatsApp o Instagram"
+T_CINTA = ["Hecho a mano", "Flores de arcilla", "Argollas de cristal", "Mostacillas", "Envíos a todo Chile {envio_rango}",
+           "Diseños únicos", "Colores con personalidad"]
+T_CONFIANZA = [
+    {"icono": "camion", "titulo": "Envíos a todo Chile", "texto": "{envio_rm} RM · {envio_regiones} regiones"},
+    {"icono": "tarjeta", "titulo": "Pago seguro", "texto": "Tarjeta de débito o crédito"},
+    {"icono": "chat", "titulo": "¿Dudas? Escríbenos", "texto": "Te respondemos por WhatsApp o Instagram"},
+    {"icono": "mano", "titulo": "Hecho a mano", "texto": "Cada par es único"},
+]
+T_BENEFICIOS = [
+    "🚚 Envío a todo Chile: {envio_rm} en la RM · {envio_regiones} a regiones",
+    "💳 Paga con tarjeta de débito o crédito (Mercado Pago)",
+    "💬 ¿Dudas? Escríbenos por WhatsApp o Instagram",
+]
+T_HERO = ("Flores de arcilla polimérica, argollas de cristal y mostacillas, corazones y conchitas. "
+          "Piezas livianas, alegres y únicas, para usar todos los días.")
+T_PIE = "Joyas hechas a mano, diseños únicos, colores y mucha personalidad."
+T_NOSOTROS_SEO = "Karivé Joyas es un taller de joyería artesanal en Chile: aros hechos a mano con arcilla polimérica, cristales y mostacillas."
+T_NOSOTROS = """<p>Karivé Joyas nació del amor por crear joyas con nuestras propias manos: aros de arcilla polimérica, cristales y mostacillas, pensados para quienes disfrutan los colores y los detalles que no se encuentran en cualquier tienda.</p>
+<p>Cada pieza se hace a mano, una por una, en nuestro taller: se modela la arcilla, se hornea, se lija, se pinta o se teje con cristales y mostacillas. Por eso ningún par es exactamente igual a otro.</p>
+<h2>Cómo trabajamos</h2>
+<p>Preferimos pocas piezas bien hechas a muchas iguales. Revisamos cada par antes de enviarlo y lo despachamos con cuidado a cualquier lugar de Chile.</p>
+<p>Si sueñas con un diseño o un color especial, <a href="/contacto.html">escríbenos</a>: nos encanta crear piezas a pedido.</p>
+<p style="margin-top:28px"><a class="btn btn-1" href="/tienda/">Ver la tienda</a></p>"""
+T_PREGUNTAS_SEO = "Respuestas sobre materiales, cuidados, envíos a todo Chile, pagos y diseños a pedido de los aros hechos a mano de Karivé Joyas."
+T_PREGUNTAS = [
+    {"q": "¿De qué material son los aros?", "a": "Los hacemos a mano con arcilla polimérica, cristales, mostacillas y otros materiales que elegimos con cuidado para cada diseño."},
+    {"q": "¿Cómo cuido mis aros?", "a": "**Arcilla polimérica:** es liviana y resistente, pero evita golpes y caídas. Límpiala con un paño suave y seco.\n"
+                                        "**Cristales y mostacillas:** no los mojes ni los dejes en contacto con perfumes o cremas, y no tires del tejido para que no se suelte.\n"
+                                        "**Partes metálicas:** si se mojan, sécalas bien para que mantengan su brillo.\n"
+                                        "**Siempre:** sácatelos para ducharte, nadar o hacer deporte, y guárdalos por separado en un lugar seco, en su bolsita o cajita."},
+    {"q": "¿Hacen envíos a regiones?", "a": "Sí, enviamos a todo Chile: {envio_rm} a la Región Metropolitana y {envio_regiones} a regiones, según la región. El costo exacto aparece al elegir tu región en la página de pago. No tenemos retiro en tienda."},
+    {"q": "¿Cuánto demora mi pedido?", "a": "Preparamos tu pedido apenas verificamos el pago y te avisamos por correo o WhatsApp cuando va en camino, con su número de seguimiento."},
+    {"q": "¿Cómo puedo pagar?", "a": "Con tarjeta de débito o crédito a través de Mercado Pago, directo en la web. Si prefieres pagar por transferencia, escríbenos por WhatsApp y lo coordinamos."},
+    {"q": "¿Puedo pedir un modelo en otros colores?", "a": "Sí. Si te gusta un diseño pero lo imaginas en otro color, escríbenos por WhatsApp o Instagram y lo creamos para ti."},
+    {"q": "¿Qué pasa si mi pedido llega con algún problema?", "a": "Escríbenos por WhatsApp o Instagram e intentaremos solucionar tu problema lo más pronto posible, según sea el caso."},
+    {"q": "¿Son iguales a las fotos?", "a": "Sí, aunque al ser hechos a mano cada par puede tener pequeñas diferencias de tono o forma. Eso es parte de que sean únicos."},
+]
+T_CONTACTO = """<p>Escríbenos por tu canal favorito:</p>
+{tarjetas_contacto}
+<p>Somos una tienda en línea: despachamos desde Santiago a todo Chile y no tenemos retiro en tienda.</p>"""
+T_ENVIOS_SEO = "Enviamos a todo Chile desde Santiago: {envio_rm} a la Región Metropolitana y {envio_regiones} a regiones. Así funcionan los despachos de Karivé Joyas."
+T_ENVIOS = """{tabla_envios}
+<p>Despachamos desde Santiago. Preparamos tu pedido apenas verificamos el pago y te avisamos por correo o WhatsApp cuando va en camino, con su número de seguimiento.</p>
+<p>No tenemos retiro en tienda.</p>
+<p>Si tu pedido llega con algún problema, escríbenos por WhatsApp o Instagram e intentaremos solucionarlo lo más pronto posible, según sea el caso.</p>"""
+T_DEVOLUCIONES_SEO = "Cambios y devoluciones en Karivé Joyas: qué hacer si tu pedido llega con algún problema y cómo contactarnos."
+T_DEVOLUCIONES = """<p>Cada par de aros se hace a mano y lo revisamos antes de enviarlo.</p>
+<h2>Si tu pedido llega con algún problema</h2>
+<p>Escríbenos por WhatsApp o Instagram e intentaremos solucionar tu problema lo más pronto posible, según sea el caso.</p>
+{tarjetas_contacto}
+<p>Para ayudarte más rápido, cuéntanos el <strong>código del producto</strong> (por ejemplo FL-001), qué pasó y, si puedes, mándanos una <strong>foto</strong>.</p>
+<h2>Antes de comprar</h2>
+<p>Para evitar sorpresas, en cada producto publicamos la <strong>medida aproximada</strong> y varias fotos. Si tienes dudas del tamaño, del color real o del material, escríbenos antes de comprar y te respondemos con gusto. Preferimos aclararte una duda a que recibas algo que no esperabas.</p>"""
+T_PRIVACIDAD_SEO = "Política de privacidad de Karivé Joyas: qué datos usamos y para qué."
+T_PRIVACIDAD = """<h2>Quiénes somos</h2>
+<p>Karivé Joyas es un emprendimiento chileno de joyas artesanales hechas a mano. Este sitio web es nuestra tienda en línea.</p>
+<h2>Qué datos usamos</h2>
+<ul>
+<li>No pedimos registro ni creación de cuentas.</li>
+<li>Al comprar te pedimos nombre, correo, teléfono y dirección de envío, solo para preparar y enviar tu pedido.</li>
+<li>Si te suscribes a las novedades, guardamos tu correo para avisarte de modelos nuevos.</li>
+<li>No usamos cookies de seguimiento ni publicidad.</li>
+</ul>
+<h2>Estadísticas de visitas</h2>
+<p>Para saber qué colecciones interesan más, guardamos de forma anónima: ciudad y región aproximadas (calculadas a partir de tu conexión, sin guardar la dirección IP), tipo de dispositivo y navegador, el sitio desde el que llegaste (por ejemplo Instagram) y qué colecciones o productos viste. Estos datos no incluyen tu nombre ni ningún dato que te identifique.</p>
+<h2>Pedidos y contacto</h2>
+<p>Puedes hacer tu pedido directamente en esta página o escribirnos por Instagram, Facebook o WhatsApp. Los datos que nos entregues (nombre, correo, teléfono y dirección de envío) se usan únicamente para preparar y enviar tu pedido y avisarte cómo va. El pago con tarjeta lo procesa Mercado Pago: nosotros no vemos ni guardamos los datos de tu tarjeta. Solo compartimos tu nombre y dirección con la empresa de envío que lleva tu pedido.</p>
+<h2>Aplicaciones conectadas a redes sociales</h2>
+<p>Utilizamos herramientas de Meta (Instagram y Facebook) exclusivamente para publicar el contenido de nuestro propio catálogo en nuestras propias cuentas oficiales. Estas herramientas no acceden, recopilan ni almacenan datos de otros usuarios.</p>"""
+T_SOBRE = {
+    "antetitulo": "Sobre nosotros",
+    "titulo": "Pasión por los aros hechos a mano",
+    "texto": "En Karivé Joyas amamos crear aros únicos. Cada par se diseña y se arma a mano en nuestro taller: flores de arcilla polimérica, argollas tejidas con cristales y mostacillas, corazones, charms y conchitas. Hacemos series pequeñas para que cada pieza sea tan especial como quien la usa.",
+    "boton": {"texto": "Ver todos los productos", "url": "/tienda/"},
+    "imagenes": ["/assets/sobre/argollas-mandala-dorado.jpg", "/assets/sobre/floron-morado.jpg", "/assets/sobre/TP-005.jpg",
+                 "/assets/sobre/MA-002.jpg", "/assets/sobre/argollas-lila.jpg"],
+}
+T_DESCRIPCIONES = {
+    "flores": "Flores de arcilla polimérica modeladas y pintadas a mano, pétalo por pétalo. Colores vivos, piezas livianas y un toque romántico para iluminar tu look, del día a día a una ocasión especial.",
+    "charms": "Pequeños charms de arcilla que se mueven contigo: divertidos, coloridos y fáciles de combinar. Perfectos para darle personalidad a tus looks de todos los días.",
+    "argollas": "Argollas tejidas a mano con cristales y mostacillas que atrapan la luz en cada movimiento. Brillo delicado, colores para todos los gustos y un diseño que no pasa desapercibido.",
+    "topos": "Corazones pequeños tipo botón, livianos y cómodos para usar todo el día. Un detalle tierno y versátil que combina con todo, ideal para tener en varios colores.",
+    "marina": "Conchitas, estrellas de mar y detalles inspirados en la costa, con terminaciones doradas y nacaradas. Para llevar el verano contigo todo el año.",
+    "cmu236iia": "Diseños especiales para celebrar: Fiestas Patrias, Navidad y esas fechas que merecen algo distinto. Aros alegres y llenos de color para lucir en cada celebración.",
+    "otros": "Formas, texturas y colores que no caben en una sola colección: piezas creativas, con mucha personalidad y hechas en series pequeñas.",
+}
+
+# Migración de lo guardado en el panel: si un texto todavía contiene la marca
+# (o sea, es el texto antiguo de fábrica), se cambia por el nuevo. Si ya lo
+# editaste a tu gusto y no tiene la marca, no se toca.  [ruta, marca, nuevo]
+MIGRACIONES = [
+    ["anuncio.texto", "3 meses de garantía", T_ANUNCIO],
+    ["portada.cinta.items", "Base de acero quirúrgico", T_CINTA],
+    ["portada.confianza.items", "3 meses de garantía", T_CONFIANZA],
+    ["producto.beneficios", "3 meses de garantía", T_BENEFICIOS],
+    ["portada.hero.texto", "con base de acero", T_HERO],
+    ["pie.texto", "uno por uno, en Santiago de Chile", T_PIE],
+    ["paginas.nosotros.html", "base de acero", T_NOSOTROS],
+    ["paginas.nosotros.seoDesc", "base de acero", T_NOSOTROS_SEO],
+    ["paginas.preguntas.items", "acero quirúrgico", T_PREGUNTAS],
+    ["paginas.preguntas.seoDesc", "pagos, garantía", T_PREGUNTAS_SEO],
+    ["paginas.contacto.html", "Escríbenos por donde te acomode", T_CONTACTO],
+    ["paginas.envios.html", "si se extravía", T_ENVIOS],
+    ["paginas.envios.seoDesc", "al resto del país", T_ENVIOS_SEO],
+    ["paginas.devoluciones.html", "3 meses de garantía", T_DEVOLUCIONES],
+    ["paginas.devoluciones.seoDesc", "3 meses", T_DEVOLUCIONES_SEO],
+    ["paginas.privacidad.html", "catálogo de solo lectura", T_PRIVACIDAD],
+]
+
+
+def _obtener(o, ruta):
+    for k in ruta.split("."):
+        if not isinstance(o, dict):
+            return None
+        o = o.get(k)
+    return o
+
+
+def _poner(o, ruta, v):
+    ks = ruta.split(".")
+    for k in ks[:-1]:
+        if not isinstance(o.get(k), dict):
+            o[k] = {}
+        o = o[k]
+    o[ks[-1]] = copy.deepcopy(v)
+
+
+def migrar(t):
+    """Aplica MIGRACIONES y pone «Sobre nosotros» donde estaba «Diseños a
+    pedido» (que queda oculta). Igual que migrar() en admin/tienda.js."""
+    t = copy.deepcopy(t)
+    for ruta, marca, nuevo in MIGRACIONES:
+        v = _obtener(t, ruta)
+        if v is not None and marca in json.dumps(v, ensure_ascii=False):
+            _poner(t, ruta, nuevo)
+    p = t.get("portada") or {}
+    orden = list(p.get("orden") or [])
+    if orden and "sobre" not in orden:
+        if "especial" in orden:
+            orden[orden.index("especial")] = "sobre"
+            ocultas = list(p.get("ocultas") or [])
+            if "especial" not in ocultas:
+                ocultas.append("especial")
+            p["ocultas"] = ocultas
+        else:
+            orden.append("sobre")
+        p["orden"] = orden
+    return t
+
+
 TEMA_DEFECTO = {
     "colores": {
         "fondo": "#FBF7F1", "fondo2": "#F4ECE1", "texto": "#2A1838", "suave": "#6B5A7B", "borde": "#E7DDEB",
         "principal": "#5B2A82", "oscuro": "#2A123E", "lila": "#CFC4DF", "dorado": "#B8902F", "doradoClaro": "#E3C572",
     },
-    "anuncio": {"activo": True, "texto": "Envíos a todo Chile · **Hecho a mano en Santiago** · 3 meses de garantía"},
+    "anuncio": {"activo": True, "texto": T_ANUNCIO},
     "menu": [
         {"texto": "Ver todo", "url": "/tienda/"},
         {"texto": "Colecciones", "tipo": "colecciones"},
@@ -70,7 +227,8 @@ TEMA_DEFECTO = {
     "whatsappRespira": True,
     "logo": {"alto": 44, "altoMovil": 38, "altoPie": 52},
     "efectos": {"portada": "destello", "transicion": "profundidad"},
-    "coleccionPagina": {"banners": {}},
+    "coleccionPagina": {"banners": {}, "descripciones": T_DESCRIPCIONES},
+    "tiendaPagina": {"titulo": "Aros hechos a mano", "texto": "envío a todo Chile"},
     "pago": {"tarjetas": True, "courierNombre": "Bluexpress", "courierLogo": ""},
     "olas": {"activo": True, "animacion": True, "alto": 110, "altoMovil": 64, "color": ""},
     "chat": {
@@ -90,12 +248,12 @@ TEMA_DEFECTO = {
         "imagen": "/assets/modelo-portada.jpg",
     },
     "portada": {
-        "orden": ["hero", "cinta", "confianza", "colecciones", "favoritos", "taller", "nuevos", "instagram", "especial"],
-        "ocultas": [],
+        "orden": ["hero", "cinta", "confianza", "colecciones", "favoritos", "taller", "nuevos", "instagram", "sobre", "especial"],
+        "ocultas": ["especial"],
         "hero": {
             "antetitulo": "Joyería artesanal · Santiago, Chile",
             "titulo": "Aros hechos a mano, uno por uno",
-            "texto": "Flores de arcilla polimérica, argollas de cristal, corazones y conchitas con base de acero. Piezas livianas, alegres y únicas, para usar todos los días o para regalar.",
+            "texto": T_HERO,
             "boton1": {"texto": "Ver la tienda", "url": "/tienda/"},
             "boton2": {"texto": "Colecciones", "url": "#colecciones"},
             "imagen": "/assets/modelo-portada.jpg",
@@ -103,17 +261,9 @@ TEMA_DEFECTO = {
             "sello": "✦ Hecho a mano en Chile",
             "tarjetaNuevo": True,
         },
-        "cinta": {"items": [
-            "Hecho a mano en Santiago", "Flores de arcilla", "Argollas de cristal", "Envíos a todo Chile",
-            "Base de acero quirúrgico", "Piezas únicas", "Listos para regalar",
-        ]},
-        "confianza": {"items": [
-            {"icono": "camion", "titulo": "Envíos a todo Chile", "texto": "{envio_rm} RM · {envio_regiones} regiones"},
-            {"icono": "tarjeta", "titulo": "Pago seguro", "texto": "Tarjeta de débito o crédito"},
-            {"icono": "escudo", "titulo": "3 meses de garantía", "texto": "Si llega con falla, lo solucionamos"},
-            {"icono": "mano", "titulo": "Hecho a mano", "texto": "Cada par es único"},
-        ]},
-        "colecciones": {"antetitulo": "Colecciones", "titulo": "Encuentra tu estilo", "enlace": "Ver todo →", "imagenes": {}},
+        "cinta": {"items": T_CINTA},
+        "confianza": {"items": T_CONFIANZA},
+        "colecciones": {"antetitulo": "Colecciones", "titulo": "Encuentra tu estilo", "enlace": "Ver todo →", "botonTarjeta": "Ver colección", "imagenes": {}},
         "favoritos": {"antetitulo": "Favoritos", "titulo": "Los más queridos", "enlace": "Ver la tienda →", "cantidad": 8},
         "taller": {
             "antetitulo": "Nuestro taller",
@@ -127,9 +277,11 @@ TEMA_DEFECTO = {
                 "Los enviamos en su empaque, listos para regalar, a cualquier lugar de Chile.",
             ],
             "boton": {"texto": "Conoce Karivé", "url": "/nosotros.html"},
+            "circulo": "Hecho a mano · Mostacilla · Arcilla",
         },
         "nuevos": {"antetitulo": "Recién llegados", "titulo": "Lo nuevo del taller", "enlace": "Ver lo nuevo →", "cantidad": 8},
         "instagram": {"antetitulo": "Instagram", "titulo": "Lo último en nuestro Instagram", "enlace": "Síguenos →", "cantidad": 6},
+        "sobre": T_SOBRE,
         "especial": {
             "antetitulo": "¿Buscas un diseño especial?",
             "titulo": "Hacemos tus colores favoritos",
@@ -138,15 +290,9 @@ TEMA_DEFECTO = {
             "mensaje": "¡Hola Karivé! Quiero consultar por un diseño en otros colores 💜",
         },
     },
-    "producto": {
-        "beneficios": [
-            "🚚 Envío a todo Chile: {envio_rm} en la RM · {envio_regiones} a regiones",
-            "💳 Paga con tarjeta de débito o crédito (Mercado Pago)",
-            "🛡️ 3 meses de garantía por fallas",
-        ],
-    },
+    "producto": {"beneficios": T_BENEFICIOS, "verDetalle": "Ver detalle"},
     "pie": {
-        "texto": "Aros artesanales hechos a mano, uno por uno, en Santiago de Chile. Flores de arcilla, argollas de cristal, corazones, conchas y charms.",
+        "texto": T_PIE,
         "boletinTitulo": "Novedades",
         "boletinTexto": "Entérate primero de los modelos nuevos.",
         "final": "Hecho a mano en Chile 💜",
@@ -157,56 +303,34 @@ TEMA_DEFECTO = {
             "antetitulo": "Nosotros",
             "titulo": "Accesorios que iluminan, hechos con amor",
             "seoTitulo": "Nosotros: joyería artesanal hecha a mano | " + MARCA,
-            "seoDesc": "Karivé Joyas es un taller de joyería artesanal en Santiago de Chile: aros hechos a mano, uno por uno, con arcilla polimérica, cristales y base de acero.",
-            "html": """<p>Karivé Joyas nació en Santiago de Chile de las ganas de crear aros alegres, livianos y distintos a los que se encuentran en cualquier tienda.</p>
-<p>Cada pieza se hace a mano, una por una, en nuestro taller: se modela la arcilla polimérica, se hornea, se lija, se pinta o se arma con cristales y mostacillas, y se monta sobre una base de acero. Por eso ningún par es exactamente igual a otro.</p>
-<h2>Lo que hacemos</h2>
-<ul><li><a href="/c/flores.html">Aros de flores</a> de arcilla polimérica, en muchos colores.</li><li><a href="/c/argollas-de-cristal.html">Argollas de cristal</a> hechas a mano.</li>
-<li><a href="/c/corazones.html">Corazones</a> pequeños para el día a día.</li><li><a href="/c/marina.html">Conchitas y estrellas de mar</a>, inspiradas en la costa.</li>
-<li><a href="/c/charms.html">Charms</a> y piezas para fechas especiales.</li></ul>
-<h2>Cómo trabajamos</h2>
-<p>Preferimos pocas piezas bien hechas a muchas iguales. Revisamos cada par antes de enviarlo y lo despachamos en su empaque, listo para regalar, a cualquier lugar de Chile.</p>
-<p>Si sueñas con un diseño o un color especial, <a href="/contacto.html">escríbenos</a>: nos encanta crear piezas a pedido.</p>
-<p style="margin-top:28px"><a class="btn btn-1" href="/tienda/">Ver la tienda</a></p>""",
+            "seoDesc": T_NOSOTROS_SEO,
+            "html": T_NOSOTROS,
         },
         "contacto": {
             "antetitulo": "Contacto",
             "titulo": "Conversemos",
             "seoTitulo": "Contacto | " + MARCA,
             "seoDesc": "Escríbenos por WhatsApp, Instagram o correo. Respondemos dudas de modelos, medidas, envíos y diseños a pedido.",
-            "html": """<p>¿Dudas sobre un modelo, una medida o tu pedido? Escríbenos por donde te acomode.</p>
-{tarjetas_contacto}
-<p>Somos una tienda en línea: despachamos desde Santiago a todo Chile y no tenemos retiro en tienda.</p>""",
+            "html": T_CONTACTO,
         },
         "envios": {
             "antetitulo": "Ayuda",
             "titulo": "Envíos",
             "seoTitulo": "Envíos a todo Chile | " + MARCA,
-            "seoDesc": "Enviamos a todo Chile desde Santiago: {envio_rm} a la Región Metropolitana y {envio_regiones} al resto del país. Así funcionan los despachos de Karivé Joyas.",
-            "html": """{tabla_envios}
-<p>Despachamos desde Santiago. Preparamos tu pedido apenas verificamos el pago y te avisamos cuando va en camino, con su número de seguimiento.</p>
-<p>No tenemos retiro en tienda. Si tu pedido no llega en el plazo estimado, escríbenos y lo rastreamos contigo; si se extravía, te lo reenviamos o te devolvemos el dinero.</p>""",
+            "seoDesc": T_ENVIOS_SEO,
+            "html": T_ENVIOS,
         },
         "preguntas": {
             "antetitulo": "Ayuda",
             "titulo": "Preguntas frecuentes",
             "seoTitulo": "Preguntas frecuentes | " + MARCA,
-            "seoDesc": "Respuestas sobre materiales, envíos a todo Chile, pagos, garantía y diseños a pedido de los aros hechos a mano de Karivé Joyas.",
-            "items": [
-                {"q": "¿De qué material son los aros?", "a": "Los hacemos a mano con arcilla polimérica, cristales, mostacillas y otros materiales, siempre sobre una base de acero quirúrgico. Si tienes la piel muy sensible, escríbenos antes de comprar."},
-                {"q": "¿Hacen envíos a regiones?", "a": "Sí, enviamos a todo Chile desde Santiago: {envio_rm} a la Región Metropolitana y {envio_regiones} al resto del país. No tenemos retiro en tienda."},
-                {"q": "¿Cuánto demora mi pedido?", "a": "Preparamos tu pedido apenas verificamos el pago y te avisamos cuando va en camino, con su número de seguimiento."},
-                {"q": "¿Cómo puedo pagar?", "a": "Con tarjeta de débito o crédito a través de Mercado Pago, directo en la web. Si prefieres pagar por transferencia, escríbenos por WhatsApp y lo coordinamos."},
-                {"q": "¿Puedo pedir un modelo en otros colores?", "a": "Sí. Si te gusta un diseño pero lo imaginas en otro color, escríbenos por WhatsApp o Instagram y lo creamos para ti."},
-                {"q": "¿Qué pasa si mi pedido llega con una falla?", "a": "Tienes 3 meses de garantía legal: lo cambiamos, lo reparamos o te devolvemos el dinero, y el envío de vuelta lo pagamos nosotros. Por higiene no aceptamos cambios por arrepentimiento."},
-                {"q": "¿Son iguales a las fotos?", "a": "Sí, aunque al ser hechos a mano cada par puede tener pequeñas diferencias de tono o forma. Eso es parte de que sean únicos."},
-                {"q": "¿Sirven para regalo?", "a": "¡Claro! Todos nuestros aros se envían en su empaque, listos para regalar."},
-            ],
+            "seoDesc": T_PREGUNTAS_SEO,
+            "items": T_PREGUNTAS,
         },
         # devoluciones y privacidad: si no hay texto guardado se usa el de las
         # páginas del catálogo antiguo (devoluciones.html y privacidad.html)
-        "devoluciones": {"titulo": "", "seoTitulo": "", "seoDesc": "", "html": ""},
-        "privacidad": {"titulo": "", "seoTitulo": "", "seoDesc": "", "html": ""},
+        "devoluciones": {"antetitulo": "Ayuda", "titulo": "Cambios y devoluciones", "seoTitulo": "Cambios y devoluciones | " + MARCA, "seoDesc": T_DEVOLUCIONES_SEO, "html": T_DEVOLUCIONES},
+        "privacidad": {"antetitulo": "Ayuda", "titulo": "Política de privacidad", "seoTitulo": "Política de privacidad | " + MARCA, "seoDesc": T_PRIVACIDAD_SEO, "html": T_PRIVACIDAD},
         "extra": [],
     },
 }
@@ -216,6 +340,7 @@ TEMA_DEFECTO = {
 ICONOS_TEMA = {
     "camion": '<path d="M3 6.5h11v9H3zM14 9.5h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
     "tarjeta": '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 14.5h4"/>',
+    "chat": '<path d="M4 5.5h16v10H9l-4 3.5v-3.5H4z"/><path d="M8 10h8M8 12.8h5"/>',
     "escudo": '<path d="M12 3 5 6v5.5c0 4.2 3 7.6 7 9 4-1.4 7-4.8 7-9V6l-7-3Z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
     "mano": '<path d="M8 12V5.8a1.5 1.5 0 0 1 3 0V11m0-6.5a1.5 1.5 0 0 1 3 0V11m0-4.5a1.5 1.5 0 0 1 3 0V14c0 4-2.7 7-6.5 7-2.7 0-4.3-1.3-5.8-3.6L3.7 14.6a1.6 1.6 0 0 1 2.6-1.8L8 15"/>',
     "corazon": '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/>',

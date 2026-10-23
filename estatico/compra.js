@@ -89,7 +89,7 @@
         '<h2 style="margin-top:14px">Envío</h2>' + (courier() ? '<div class="envio-con">' + courier('Despachamos a todo Chile con') + '</div>' : '') +
         campo('direccion', 'Dirección (calle, número, depto) *', 'text', ' autocomplete="street-address" required') +
         '<div class="doble"><label class="campo"><span>Región *</span><select data-c="region"><option value="">Elige tu región</option>' +
-          KV_REGIONES.map(r => '<option' + (form.region === r ? ' selected' : '') + '>' + escapeHtml(r) + '</option>').join('') + '</select></label>' +
+          KV_REGIONES.map(r => '<option value="' + escapeHtml(r) + '"' + (form.region === r ? ' selected' : '') + '>' + escapeHtml(r) + ' · envío ' + formatCLP(kvEnvioCosto(r)) + '</option>').join('') + '</select></label>' +
         '<label class="campo"><span>Comuna *</span><select data-c="comuna"' + (comunas.length ? '' : ' disabled') + '><option value="">' + (comunas.length ? 'Elige tu comuna' : 'Primero la región') + '</option>' +
           comunas.map(c => '<option' + (form.comuna === c ? ' selected' : '') + '>' + escapeHtml(c) + '</option>').join('') + '</select></label></div>' +
         '<label class="campo"><span>Nota para tu pedido (opcional)</span><textarea data-c="notas" rows="2">' + escapeHtml(form.notas || '') + '</textarea></label>' +
@@ -123,7 +123,7 @@
         (dcto ? '<div class="fila"><span>Descuento</span><span>−' + formatCLP(dcto) + '</span></div>' : '') +
         '<div class="fila"><span>Envío' + (form.region ? (form.region === KV_REGION_RM ? ' (RM)' : ' (regiones)') : '') + '</span><span>' + (envio != null ? formatCLP(envio) : 'elige tu región') + '</span></div>' +
         '<div class="fila total"><span>Total</span><span>' + formatCLP(total) + '</span></div>' +
-        '<ul class="lista-confianza"><li>🚚 ' + (nombresCouriers() ? 'Despacho a todo Chile con ' + escapeHtml(nombresCouriers()) : 'Despacho a todo Chile desde Santiago') + '</li><li>🛡️ 3 meses de garantía por fallas</li><li>💬 ¿Dudas? <a href="https://wa.me/' + whatsapp() + '">Escríbenos por WhatsApp</a></li></ul>' +
+        '<ul class="lista-confianza"><li>🚚 ' + (nombresCouriers() ? 'Despacho a todo Chile con ' + escapeHtml(nombresCouriers()) : 'Despacho a todo Chile desde Santiago') + '</li><li>💬 ¿Dudas? <a href="https://wa.me/' + whatsapp() + '">Escríbenos por WhatsApp</a></li></ul>' +
       '</aside>';
     conectar();
   }

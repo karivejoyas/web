@@ -115,3 +115,11 @@ Sin aros (o 1 par pequeño al fondo).
 ```
 Escena minimalista y serena: un rincón de escritorio color crema con un cuaderno cerrado de tapa de lino, un sobre lacrado con un sello de cera lila, una pluma dorada y una ramita de lavanda seca. Mucho espacio limpio, luz suave de ventana. Sensación de confianza, orden y discreción.
 ```
+
+## Foto de portada de «Ver todo» (todos los productos)
+Mismo formato que las portadas de colección: pega **bloque de estilo + formato COMPUTADOR + escena**. Se sube en **Personalizar → Colecciones → Ver todo (todos los productos)** y se arrastra para encuadrar.
+
+Adjuntar: 4 o 5 aros de colecciones distintas (por ejemplo un FL de flor, un AG de argolla, un TP de corazón, un MA de conchita y un CH de charm).
+```
+Escena: bodegón amplio y luminoso que reúne lo mejor de la tienda. Sobre una mesa cubierta con un mantel de lino crema, en una composición ordenada de izquierda a derecha, los pares de aros de la foto adjunta: aros de flor de arcilla, argollas tejidas con cristales y mostacillas, corazones pequeños, una conchita y un charm, cada par separado, nítido y bien visible. Alrededor, ramitas de flores secas lila y crema, una cinta de raso lila suelta y una bandejita de cerámica clara. Luz natural de mañana, sombras suaves. Sensación de vitrina de tienda boutique: alegre, colorida y ordenada.
+```

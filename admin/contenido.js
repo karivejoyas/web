@@ -77,7 +77,7 @@
           '<label class="campo"><span>Título</span><input id="pg-titulo" value="' + h(pg.titulo || '') + '"></label>' +
           (esFaq ? '<span class="etq">Preguntas y respuestas</span><div id="pg-faq"></div><button class="btn btn-chico" id="pg-faq-mas">' + A.ic.mas + ' Agregar pregunta</button>'
             : '<span class="etq">Contenido</span>' + A.editorRico('pg-html', pg.html) +
-              '<p class="ayuda mt">Puedes escribir <code>{envio_rm}</code> y <code>{envio_regiones}</code> para los costos de envío' + (params.clave === 'envios' ? ', y <code>{tabla_envios}</code> para la tabla' : '') + (params.clave === 'contacto' ? ', y <code>{tarjetas_contacto}</code> para los botones de WhatsApp, Instagram y correo' : '') + '. Se reemplazan solos.</p>') +
+              '<p class="ayuda mt">Puedes escribir <code>{envio_rm}</code> (Región Metropolitana), <code>{envio_regiones}</code> (regiones) o <code>{envio_rango}</code> (de lo más barato a lo más caro) para los costos de envío' + (params.clave === 'envios' ? ', y <code>{tabla_envios}</code> para la tabla' : '') + (params.clave === 'contacto' ? ', y <code>{tarjetas_contacto}</code> para los botones de WhatsApp, Instagram y correo' : '') + '. Se reemplazan solos.</p>') +
         '</div>' +
         '<div class="tarjeta"><div class="tarjeta-cab"><h2>Vista en buscadores</h2></div><div class="tarjeta-c">' +
           '<div style="border:1px solid var(--borde);border-radius:10px;padding:12px;margin-bottom:12px"><div style="color:#1a0dab;font-size:17px" id="pg-g-t"></div><div style="color:#006621;font-size:13px">karivejoyas.cl' + h(url) + '</div><div style="color:#545454;font-size:13px" id="pg-g-d"></div></div>' +

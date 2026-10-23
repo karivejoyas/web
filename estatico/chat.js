@@ -25,9 +25,8 @@
   }
   const precio = (p) => KV.precioDe(p);
   function envios() {
-    const f = window.kvEnvioCosto;
-    const rm = f ? f(KV_REGION_RM) : 2990, reg = f ? f('Valparaíso') : 3990;
-    return { rm: rm, reg: reg };
+    const r = kvEnvioRango(window.kvEnvioTarifas);
+    return { rm: r.rm, reg: r.regMin, regMax: r.regMax };
   }
   function contacto() {
     const out = [];
@@ -75,14 +74,14 @@
     if (/(mas barat|mas economic|menor precio|mas accesible)/.test(t))
       return 'Los más accesibles de la tienda 💜' + tarjetas(vis.slice().sort((a, b) => precio(a) - precio(b)).slice(0, 4));
     if (/(envio|despacho|retiro|region|entrega|llega|demora|santiago|courier)/.test(t))
-      return 'Hacemos <b>envíos a todo Chile</b> desde Santiago 🚚<br>• Región Metropolitana: <b>' + formatCLP(env.rm) + '</b><br>• Resto de Chile: <b>' + formatCLP(env.reg) +
-        '</b><br>No tenemos retiro en tienda. Apenas verificamos el pago preparamos tu pedido y te avisamos con el número de seguimiento.';
+      return 'Hacemos <b>envíos a todo Chile</b> desde Santiago 🚚<br>• Región Metropolitana: <b>' + formatCLP(env.rm) + '</b><br>• Resto de Chile: <b>' + formatCLP(env.reg) + (env.regMax > env.reg ? ' a ' + formatCLP(env.regMax) + '</b> según la región' : '</b>') +
+        '<br>No tenemos retiro en tienda. Apenas verificamos el pago preparamos tu pedido y te avisamos con el número de seguimiento.';
     if (/(comprar|compro|pedido|pedir|encargar|pagar|pago|transferencia|tarjeta|mercado ?pago)/.test(t))
       return 'Comprar es facilito 💜<br>1. Toca <b>Agregar al carrito</b> en los aros que te gusten.<br>2. Abre el carrito y toca <b>Finalizar compra</b>.<br>3. Pagas con <b>tarjeta de débito o crédito</b> (Mercado Pago) y te lo enviamos a todo Chile 🚚<br>¿Prefieres transferencia? Escríbenos por ' + contacto() + ' y lo coordinamos.';
     if (/(cuid|limpi|moja|agua|perfume|crema|fragil|alergi|acero|material|hipoalerg)/.test(t))
-      return 'Los hacemos a mano con arcilla polimérica, cristales y mostacillas, siempre con <b>base de acero quirúrgico</b>.<br><br>Para que te duren mucho: guárdalos en un lugar seco, evita el agua, perfumes y cremas, y límpialos con un paño seco ✨';
+      return 'Los hacemos a mano con <b>arcilla polimérica, cristales y mostacillas</b> 💜<br><br>Para que te duren mucho:<br>• <b>Arcilla:</b> evita golpes y caídas; límpiala con un paño suave y seco.<br>• <b>Cristales y mostacillas:</b> no los mojes ni les eches perfume o crema.<br>• <b>Siempre:</b> sácatelos para ducharte o hacer deporte y guárdalos en un lugar seco ✨';
     if (/(garantia|falla|roto|cambio|devoluc)/.test(t))
-      return 'Tienes <b>3 meses de garantía</b>: si llegan con falla, los cambiamos, reparamos o te devolvemos el dinero (el envío de vuelta lo pagamos nosotras). Por higiene no aceptamos cambios por arrepentimiento.';
+      return 'Si tu pedido llega con algún problema, escríbenos por ' + contacto() + ' e intentaremos solucionarlo lo más pronto posible, según sea el caso 💜';
     if (/(color|medida|a pedido|personaliz|especial|otro tono)/.test(t))
       return '¡Sí hacemos diseños a pedido! Si te gusta un modelo en otro color, escríbenos y lo creamos para ti 💜 ' + contacto();
     if (/(instagram|facebook|whatsapp|wsp|telefono|numero|contact|redes|escribir|hablar)/.test(t))
@@ -117,8 +116,8 @@
     });
     return 'PRODUCTOS DISPONIBLES EN LA WEB:\n' + lineas.join('\n') +
       '\n\nCÓMO SE COMPRA: en esta misma web (' + ORIGEN + '), agregando los aros al carrito y pagando con tarjeta de débito o crédito (Mercado Pago). Quien quiera pagar por transferencia debe escribir por WhatsApp para coordinarlo. ' +
-      'NO se coordina por DM. Envíos a todo Chile desde Santiago: Región Metropolitana ' + formatCLP(env.rm) + ', resto de Chile ' + formatCLP(env.reg) + '. NO hay retiro en tienda. ' +
-      '3 meses de garantía por fallas. Hacemos diseños a pedido por WhatsApp.' +
+      'NO se coordina por DM. Envíos a todo Chile desde Santiago: Región Metropolitana ' + formatCLP(env.rm) + ', resto de Chile ' + formatCLP(env.reg) + (env.regMax > env.reg ? ' a ' + formatCLP(env.regMax) + ' según la región (el costo exacto aparece al elegir la región en la página de pago)' : '') + '. NO hay retiro en tienda. ' +
+      'Si un pedido llega con algún problema: que escriba por WhatsApp o Instagram y lo solucionamos lo más pronto posible según el caso (NO prometas plazos de garantía ni devoluciones). Hacemos diseños a pedido por WhatsApp. NO menciones acero. ' +
       '\nCuando recomiendes un producto, escribe su código entre paréntesis, por ejemplo (TP-016): la web muestra su foto y enlace.';
   }
   async function ia() {
