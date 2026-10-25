@@ -16,8 +16,8 @@
     $$('[data-an]', an).forEach(b => b.addEventListener('click', () => { paso(+b.dataset.an); auto(); }));
     auto();
   }
-  // opciones del logo (para elegir): ?logo=1, 2 o 3, o con el selector de abajo
-  const opciones = { 1: 'Cabecera blanca', 2: 'Transparente con brillo suave', 3: 'Logo al centro' };
+  // opciones de la cabecera (para elegir): ?logo=1 o 2, o con el selector de abajo
+  const opciones = { 1: 'Vidrio claro medio transparente', 2: 'Degradado oscuro (como Delinux)' };
   let op = (new URLSearchParams(location.search).get('logo') || '1');
   if (!opciones[op]) op = '1';
   document.body.dataset.logo = op;
