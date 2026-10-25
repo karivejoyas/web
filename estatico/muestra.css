@@ -216,6 +216,22 @@
 /* 2 · degradado oscuro como Delinux: oscuro arriba y se desvanece sobre la foto */
 .ecm-muestra[data-logo="2"] .cabecera{background:linear-gradient(to bottom,rgba(22,10,34,.82) 0%,rgba(22,10,34,.55) 55%,rgba(22,10,34,0) 100%);box-shadow:none}
 .ecm-muestra[data-logo="2"] .cabecera.bajando{background:rgba(42,18,62,.92)}
+/* logo con más luz (opciones 3 y 4): más brillo y un resplandor claro suave */
+.ecm-muestra[data-logo="3"] .cabecera .logo img,.ecm-muestra[data-logo="4"] .cabecera .logo img{
+  filter:brightness(1.22) saturate(1.12) drop-shadow(0 0 1px rgba(255,255,255,.9)) drop-shadow(0 0 9px rgba(255,255,255,.55))}
+/* 3 · de claro (izquierda, donde va el logo) a oscuro (derecha, donde va el menú) */
+.ecm-muestra[data-logo="3"] .cabecera{background:linear-gradient(90deg,rgba(251,247,241,.82) 0%,rgba(244,236,248,.62) 14%,rgba(91,42,130,.5) 34%,rgba(42,18,62,.72) 60%,rgba(22,10,34,.86) 100%);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:none}
+.ecm-muestra[data-logo="3"] .cabecera.bajando{background:linear-gradient(90deg,rgba(251,247,241,.95) 0%,rgba(244,236,248,.85) 14%,rgba(91,42,130,.85) 34%,rgba(42,18,62,.95) 60%,rgba(22,10,34,.97) 100%)}
+@media (max-width:767px){
+  .ecm-muestra[data-logo="3"] .cabecera{background:linear-gradient(90deg,rgba(251,247,241,.85) 0%,rgba(244,236,248,.7) 42%,rgba(91,42,130,.55) 62%,rgba(22,10,34,.85) 100%)}
+  .ecm-muestra[data-logo="3"] .cabecera .hamburguesa{color:var(--ecm-dark)}
+}
+/* 4 · de claro (arriba) a oscuro (abajo), que se funde con la foto */
+.ecm-muestra[data-logo="4"] .cabecera{background:linear-gradient(to bottom,rgba(251,247,241,.7) 0%,rgba(207,196,223,.45) 40%,rgba(42,18,62,.55) 75%,rgba(22,10,34,.75) 100%);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:none}
+.ecm-muestra[data-logo="4"] .cabecera.bajando{background:linear-gradient(to bottom,rgba(251,247,241,.92) 0%,rgba(207,196,223,.8) 40%,rgba(42,18,62,.88) 75%,rgba(22,10,34,.95) 100%)}
+.ecm-muestra[data-logo="4"] .cabecera .menu a,.ecm-muestra[data-logo="4"] .cabecera .menu button,.ecm-muestra[data-logo="4"] .cabecera .icono{text-shadow:0 1px 6px rgba(22,10,34,.6)}
 /* selector de opciones (solo en la muestra) */
 .logo-opciones{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:95;display:flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;border-radius:999px;
   background:rgba(22,10,34,.92);color:#fff;font:600 13px/1 var(--ecm-texto);box-shadow:0 10px 30px -10px rgba(0,0,0,.6)}
