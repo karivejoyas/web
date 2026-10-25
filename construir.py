@@ -1007,10 +1007,12 @@ ICONOS_FAQ = [
 
 
 def olas_ecm(id_, clase):
-    return ('<div class="ecm-olas"><svg class="waves %s" viewBox="0 24 150 34" preserveAspectRatio="none" aria-hidden="true">'
-            '<defs><path id="%s" d="%s"/></defs>%s</svg></div>'
-            % (clase, id_, OLA, "".join('<g class="wave-l%d"><use href="#%s" x="50" y="%s"/></g>' % (n, id_, y)
-                                        for n, y in ((4, "0"), (3, "3.5"), (2, "7"), (1, "10.5")))))
+    """Las mismas olas de la web (4 capas que van y vuelven en sentidos distintos)."""
+    return ('<div class="olas ecm-olas %s" aria-hidden="true"><svg viewBox="0 24 150 28" preserveAspectRatio="none">'
+            '<defs><path id="%s" d="%s"/></defs>'
+            '<g class="ola ola1"><use href="#%s" x="48" y="0"/></g><g class="ola ola2"><use href="#%s" x="48" y="3"/></g>'
+            '<g class="ola ola3"><use href="#%s" x="48" y="5"/></g><g class="ola ola4"><use href="#%s" x="48" y="7"/></g></svg></div>'
+            % (clase, id_, OLA, id_, id_, id_, id_))
 
 
 def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
@@ -1040,16 +1042,19 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
                  % ("" if an.get("activo", True) else " hidden", tx(partes[0]), json.dumps([tx(x) for x in partes], ensure_ascii=False).replace("</", "<\\/")),
                  cab, count=1, flags=re.S)
     # en la cabecera transparente va el logo claro
-    cab = cab.replace('<a class="logo" href="/"><img src="%s"' % e(logo_url()), '<a class="logo" href="/"><img src="/assets/logo-claro.png" data-oscuro="%s"' % e(logo_url()), 1)
+    # logo claro para la cabecera oscura: el tuyo (assets/logo-claro.png) si está; si no, el de siempre
+    logo_claro = "/assets/logo-claro.png" if os.path.exists("assets/logo-claro.png") else logo_url()
+    cab = cab.replace('<a class="logo" href="/"><img src="%s"' % e(logo_url()), '<a class="logo" href="/"><img src="%s"' % e(logo_claro), 1)
     h += cab
     # portada con carrusel: la portada actual y 2 colecciones con foto
     bans = (TEMA.get("coleccionPagina") or {}).get("banners") or {}
-    slides = [{"img": imagen(H.get("imagen")) or "/assets/modelo-portada.jpg", "foco": foco(H.get("imagenFoco")) or "50% 30%", "chico": tx(H.get("antetitulo")),
+    original = lambda u: (u[:-5] + ".jpg") if u.startswith("/assets/medios/") and u.endswith(".webp") and os.path.exists(DIST + u[:-5] + ".jpg") else u
+    slides = [{"img": original(imagen(H.get("imagen")) or "/assets/modelo-portada.jpg"), "foco": foco(H.get("imagenFoco")) or "50% 30%", "chico": tx(H.get("antetitulo")),
                "titulo": tx(H.get("titulo")), "boton": H.get("boton1") or {"texto": "Ver la tienda", "url": "/tienda/"}}]
     for c in cols:
         b = bans.get(c["id"]) or {}
         if imagen(b.get("pc")) and len(slides) < 3:
-            slides.append({"img": imagen(b.get("pc")), "foco": foco(b.get("foco")) or "50% 50%", "chico": "Colección " + e(c["nombre"]),
+            slides.append({"img": original(imagen(b.get("pc"))), "foco": foco(b.get("foco")) or "50% 50%", "chico": "Colección " + e(c["nombre"]),
                            "titulo": e(str(((TEMA.get("coleccionPagina") or {}).get("titulos") or {}).get(c["id"]) or gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0])),
                            "boton": {"texto": P["colecciones"].get("botonTarjeta") or "Ver colección", "url": "/c/%s.html" % c["slug"]}})
     h += '<section class="ecm-hero" aria-roledescription="carrusel">%s%s</section>' % ("".join(
@@ -1061,13 +1066,7 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
         for i, s in enumerate(slides)),
         ('<button class="flecha prev" type="button" data-hero="-1" aria-label="Anterior">‹</button><button class="flecha next" type="button" data-hero="1" aria-label="Siguiente">›</button>'
          if len(slides) > 1 else ""))
-    h += olas_ecm("ola-baja", "waves--down")
-    # cifras
-    h += ('<section class="ecm-cifras envoltura"><small>Karivé · Joyas</small><h2>Hechos a mano, par por par</h2><div class="stats">'
-          '<div class="stat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3c2 3 5 4 5 8a5 5 0 0 1-10 0c0-4 3-5 5-8z"/></svg></div><div><b>%d</b><p>Diseños distintos en la tienda</p></div></div>'
-          '<div class="stat"><div class="ic">%s</div><div><b>100%%</b><p>Hechos a mano en nuestro taller</p></div></div>'
-          '<div class="stat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div><div><b>%d</b><p>Colecciones para elegir</p></div></div>'
-          '</div></section>') % (len(vis), T.icono("mano"), len(cols))
+    h += olas_ecm("ola-baja", "ola-baja")
     # grilla de 5 columnas (lo nuevo)
     h += ('<section class="ecm-seccion envoltura"><div class="ecm-hr"></div><h2 class="ecm-titulo">%s</h2><ul class="grilla ecm-grilla">%s</ul>'
           '<div class="centro"><a class="btn ecm-btn" href="/tienda/?orden=nuevos">%s</a></div></section>'
@@ -1093,7 +1092,7 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
           '<span class="nota">Reseñas de ejemplo: se reemplazan por opiniones reales antes de usar este diseño en la portada.</span></div></section>'
           % "".join('<div class="res"><span class="estrellas">★★★★★</span><small>%s</small>Texto de ejemplo: %s<b>Nombre de clienta</b><span>Comuna</span></div>' % x for x in ej))
     # Instagram: las tarjetas actuales, 2 filas; los videos se ven aquí mismo
-    ig = ig_html(dict(P.get("instagram") or {}, cantidad=12), list(ig_pubs))
+    ig = ig_html(dict(P.get("instagram") or {}, cantidad=6), list(ig_pubs))
     if ig:
         h += '<div class="ecm-ig">%s</div>' % ig
     h += sobre_html(P.get("sobre") or {})
@@ -1119,7 +1118,7 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
 <div class="boletin-msg" id="boletin-msg" role="status"></div></div></div></section>
 <footer class="ecm-pie"><div class="envoltura">
   <div class="f-grid">
-    <div><a class="f-logo" href="/"><img src="/assets/logo-claro.png" alt="%s" width="160" height="81" loading="lazy"></a><p>%s</p></div>
+    <div><a class="f-logo" href="/"><img src="%s" alt="%s" width="160" height="81" loading="lazy"></a><p>%s</p></div>
     <div><h4>Tienda</h4><ul>%s<li><a href="/tienda/">Ver todo</a></li></ul></div>
     <div><h4>Servicio al cliente</h4><ul>%s</ul></div>
     <div><h4>Contacto</h4>%s<p class="loc">Santiago, Chile<small>Envíos a todo el país</small></p></div>
@@ -1136,7 +1135,7 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
 <script src="/estatico/muestra.js?v=%s" defer></script>%s
 </body>
 </html>
-""" % (olas_ecm("ola-sube", "waves--up"), tx(pi.get("boletinTitulo")), tx(pi.get("boletinTexto")), e(MARCA), tx(pi.get("texto")),
+""" % (olas_ecm("ola-sube", "ola-sube"), tx(pi.get("boletinTitulo")), tx(pi.get("boletinTexto")), e(logo_claro), e(MARCA), tx(pi.get("texto")),
        "".join('<li><a href="/c/%s.html">%s</a></li>' % (e(c["slug"]), e(c["nombre"])) for c in cols),
        "".join('<li><a href="%s">%s</a></li>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in TEMA.get("menuPie") or []),
        ('<a class="f-fila" href="https://wa.me/%s" rel="noopener">%s %s</a>' % (WA, ICONOS["wa"], e(fono_bonito(WA))) if WA else "") +
@@ -1575,7 +1574,7 @@ def main():
         shutil.copy(os.path.join(EST, f), DIST + "/estatico/" + f)
     shutil.copy("comun.js", DIST + "/estatico/comun.js")          # mismas reglas que el catálogo
     os.makedirs(DIST + "/assets", exist_ok=True)
-    for f in ("logo-karive-web.png", "logo-karive.png", "logo-avatar.png", "modelo-portada.jpg", "modelo-argollas.jpg", "logo-claro.png", "fondo-info.jpg"):
+    for f in ("logo-karive-web.png", "logo-karive.png", "logo-avatar.png", "modelo-portada.jpg", "modelo-argollas.jpg", "fondo-info.jpg") + (("logo-claro.png",) if os.path.exists("assets/logo-claro.png") else ()):
         shutil.copy("assets/" + f, DIST + "/assets/" + f)
     shutil.copytree("assets/pagos", DIST + "/assets/pagos")      # logos de tarjetas (página de pago)
     shutil.copytree("assets/sobre", DIST + "/assets/sobre", dirs_exist_ok=True)   # fotos de «Sobre nosotros»
