@@ -16,6 +16,24 @@
     $$('[data-an]', an).forEach(b => b.addEventListener('click', () => { paso(+b.dataset.an); auto(); }));
     auto();
   }
+  // pruebas de la barra: logo morado original sobre distintos colores (?barra=a…d, o «claro» para el logo claro)
+  const BARRAS = { claro: 'Logo claro (como ahora)', a: 'Lila muy claro', b: 'Champaña dorado', c: 'Rosa empolvado', d: 'Crema que se funde con la foto' };
+  const logoImg = $('.cabecera .logo img');
+  const ponerBarra = (k) => {
+    if (k === 'claro') delete document.body.dataset.barra; else document.body.dataset.barra = k;
+    if (logoImg) logoImg.src = k === 'claro' ? logoImg.dataset.claro : logoImg.dataset.morado;
+    $$('.barra-opciones [data-barra]').forEach(x => x.setAttribute('aria-pressed', x.dataset.barra === k ? 'true' : 'false'));
+  };
+  if (logoImg && logoImg.dataset.morado) {
+    let k = new URLSearchParams(location.search).get('barra') || 'a';
+    if (!BARRAS[k]) k = 'a';
+    const sel = document.createElement('div');
+    sel.className = 'barra-opciones'; sel.setAttribute('role', 'group'); sel.setAttribute('aria-label', 'Color de la barra');
+    sel.innerHTML = '<span>Barra:</span>' + Object.keys(BARRAS).map(x => '<button type="button" data-barra="' + x + '" title="' + BARRAS[x] + '">' + (x === 'claro' ? '☾' : x.toUpperCase()) + '</button>').join('');
+    document.body.appendChild(sel);
+    sel.addEventListener('click', (e) => { const b = e.target.closest('[data-barra]'); if (!b) return; ponerBarra(b.dataset.barra); history.replaceState(null, '', '?barra=' + b.dataset.barra); });
+    ponerBarra(k);
+  }
   // portada con carrusel
   const hero = $('.ecm-hero');
   if (hero) {

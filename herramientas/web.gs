@@ -6,8 +6,9 @@
 //  · Lo que guardas en el panel se ve en la web en 2 a 3 minutos (revisión
 //    rápida cada minuto, que solo lee 2 documentos de la base).
 //  · Lo que cambia el bot de Telegram, en unos 15 a 20 minutos.
-//  También trae tus últimos videos de Instagram para la portada (usa el mismo
-//  acceso a Instagram que ya tiene el publicador; no hay que configurar nada).
+//  También trae tus últimos videos de Instagram para la portada (la foto y el
+//  video, que en la web se reproduce solo, sin sonido). Usa el mismo acceso
+//  a Instagram que ya tiene el publicador: no hay que configurar nada.
 //
 //  Este archivo va APARTE del publicador: en Apps Script, junto al archivo
 //  que ya tienes, aprieta "+" → "Secuencia de comandos", llámalo "web" y
@@ -177,6 +178,7 @@ function webInstagram() {
     var img = x.media_type === 'VIDEO' ? (x.thumbnail_url || '') : (x.media_url || x.thumbnail_url || '');
     if (!img || !x.permalink) return;
     var it = { id: x.id, tipo: x.media_type, img: img, url: x.permalink, texto: String(x.caption || '').slice(0, 200), fecha: x.timestamp || '' };
+    if (x.media_type === 'VIDEO' && x.media_url) it.video = x.media_url;   // el video, para que en la web se mueva solo
     if (it.tipo === 'VIDEO') { if (videos.length < 12) videos.push(it); }
     else if (otras.length < 6) otras.push(it);
   });

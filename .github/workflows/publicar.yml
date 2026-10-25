@@ -65,8 +65,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Instalar Pillow (fotos WebP)
-        run: pip install --quiet pillow
+      - name: Instalar Pillow (fotos WebP) y ffmpeg (videos de Instagram)
+        run: pip install --quiet pillow imageio-ffmpeg
       - name: Armar la web desde el catálogo
         env:
           IG_DATOS: ${{ inputs.instagram }}

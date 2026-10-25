@@ -136,6 +136,7 @@
 
 /* Instagram: tarjetas actuales en 2 filas + video aquí mismo */
 .ecm-ig #instagram .colecciones{--cols:6}
+@media(max-width:700px){.ecm-ig #instagram .colecciones{display:grid;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:44%;justify-content:start;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}.ecm-ig #instagram .colecciones::-webkit-scrollbar{display:none}.ecm-ig #instagram .colecciones>*{scroll-snap-align:start}}
 .ecm-ig .ig-tarjeta{cursor:pointer}
 .ig-modal{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(22,10,34,.82)}
 .ig-modal.abierto{display:flex}
@@ -207,3 +208,24 @@
 .ecm-muestra .ecm-pie .f-logo img{height:92px;width:auto}
 .ecm-muestra .ecm-pie a.f-logo{opacity:1;display:inline-block}
 @media (max-width:767px){.ecm-muestra .cabecera .logo img{height:44px}}
+
+/* ---- pruebas: logo morado original sobre distintos colores de barra (selector abajo) ---- */
+.ecm-muestra[data-barra] .cabecera{-webkit-backdrop-filter:blur(10px) saturate(1.2);backdrop-filter:blur(10px) saturate(1.2);box-shadow:0 8px 24px -16px rgba(22,10,34,.6)}
+.ecm-muestra[data-barra] .cabecera .menu a,.ecm-muestra[data-barra] .cabecera .menu button,.ecm-muestra[data-barra] .cabecera .icono{color:var(--ecm-dark)}
+.ecm-muestra[data-barra] .cabecera .menu a:hover,.ecm-muestra[data-barra] .cabecera .menu button:hover{background:rgba(91,42,130,.12);color:var(--morado)}
+/* A · lila muy claro */
+.ecm-muestra[data-barra="a"] .cabecera{background:rgba(236,226,246,.86)}
+.ecm-muestra[data-barra="a"] .cabecera.bajando{background:rgba(236,226,246,.96)}
+/* B · champaña dorado claro (combina con «JOYAS») */
+.ecm-muestra[data-barra="b"] .cabecera{background:linear-gradient(90deg,rgba(248,239,220,.92),rgba(240,226,192,.86))}
+.ecm-muestra[data-barra="b"] .cabecera.bajando{background:linear-gradient(90deg,rgba(248,239,220,.98),rgba(240,226,192,.96))}
+/* C · rosa empolvado */
+.ecm-muestra[data-barra="c"] .cabecera{background:rgba(247,231,236,.88)}
+.ecm-muestra[data-barra="c"] .cabecera.bajando{background:rgba(247,231,236,.97)}
+/* D · crema que se funde con la foto hacia abajo */
+.ecm-muestra[data-barra="d"] .cabecera{background:linear-gradient(to bottom,rgba(251,247,241,1) 0%,rgba(251,247,241,.97) 55%,rgba(251,247,241,0) 100%);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;padding-bottom:18px}
+.ecm-muestra[data-barra="d"] .cabecera.bajando{background:rgba(251,247,241,.97);padding-bottom:0}
+.barra-opciones{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:95;display:flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;border-radius:999px;
+  background:rgba(22,10,34,.92);color:#fff;font:600 13px/1 var(--ecm-texto);box-shadow:0 10px 30px -10px rgba(0,0,0,.6)}
+.barra-opciones button{min-width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font:inherit;cursor:pointer;padding:0 10px}
+.barra-opciones button[aria-pressed="true"]{background:var(--ecm-oro);color:var(--ecm-dark);border-color:var(--ecm-oro)}

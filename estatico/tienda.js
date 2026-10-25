@@ -461,6 +461,17 @@
     const pausa = new IntersectionObserver(es => es.forEach(e => e.target.classList.toggle('quieta', !e.isIntersecting)));
     $$('.cinta, .franja, .olas, .hero-marco').forEach(el => pausa.observe(el));
   } else $$('[data-revelar]').forEach(el => el.classList.add('visto'));
+  // videos de Instagram: se reproducen solos en bucle solo mientras se ven
+  // (sin sonido; quien pidió «reducir movimiento» ve la foto quieta)
+  const vids = $$('video[data-ig-video]');
+  if (vids.length && 'IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const ioVid = new IntersectionObserver(es => es.forEach(e => {
+      const v = e.target;
+      if (e.isIntersecting) { if (v.preload !== 'auto') v.preload = 'auto'; const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); }
+      else v.pause();
+    }), { rootMargin: '120px 0px' });
+    vids.forEach(v => { v.muted = true; ioVid.observe(v); });
+  }
   // «Sobre nosotros»: al aparecer, las fotos se abren en abanico y el texto sube en cascada
   const entrarSobre = (el) => {
     el.classList.add('is-entered');

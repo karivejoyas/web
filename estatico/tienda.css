@@ -727,3 +727,6 @@ h2.con-ig{display:flex;align-items:center;gap:12px}
   .kv-aiwt .kv-anim{animation-duration:1ms!important}
   .kv-aiwt__img{transition-duration:1ms!important}
 }
+/* videos de Instagram que se mueven solos (en bucle, sin sonido) */
+.coleccion-foto video{display:block;width:100%;height:100%;object-fit:cover;object-position:center 35%;background:var(--crema2);transition:transform 1.1s var(--salida)}
+@media (hover:hover){.coleccion:hover .coleccion-foto video{transform:scale(1.04)}}

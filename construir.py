@@ -501,6 +501,39 @@ def bajar(url, destino):
         open(destino, "wb").write(r.read())
 
 
+def ffmpeg_exe():
+    """ffmpeg para aligerar los videos de Instagram (imageio-ffmpeg o el del sistema)."""
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return shutil.which("ffmpeg") or ""
+
+
+def video_ig(url, ident):
+    """Baja el video de un reel y lo deja liviano para la portada: sin sonido,
+    480 px de ancho y hasta 15 segundos, en bucle. Devuelve la ruta o ""."""
+    destino = DIST + "/assets/ig/%s.mp4" % ident
+    crudo = destino[:-4] + "-original.mp4"
+    try:
+        bajar(url, crudo)
+    except Exception as ex:
+        print("No se pudo bajar el video de Instagram %s: %s" % (ident, ex))
+        return ""
+    ff = ffmpeg_exe()
+    if ff:
+        try:
+            import subprocess
+            subprocess.run([ff, "-y", "-loglevel", "error", "-i", crudo, "-t", "15", "-an", "-vf", "scale=480:-2", "-c:v", "libx264",
+                            "-preset", "veryfast", "-crf", "30", "-pix_fmt", "yuv420p", "-movflags", "+faststart", destino], check=True, timeout=180)
+            os.remove(crudo)
+            return "/assets/ig/%s.mp4" % ident
+        except Exception as ex:
+            print("No se pudo aligerar el video %s (%s); se usa el original." % (ident, ex))
+    os.replace(crudo, destino)
+    return "/assets/ig/%s.mp4" % ident
+
+
 def instagram():
     """Últimas publicaciones de Instagram para la portada.
     Llegan desde el publicador (web.gs las manda al pedir la publicación, en
@@ -532,8 +565,12 @@ def instagram():
         except Exception as ex:
             print("No se pudo bajar la miniatura de Instagram %s: %s" % (ident, ex))
             continue
-        lista.append({"id": ident, "tipo": str(it.get("tipo") or ""), "url": url, "img": "/" + destino[len(DIST) + 1:],
-                      "texto": str(it.get("texto") or "")[:220], "fecha": str(it.get("fecha") or "")[:25]})
+        nuevo = {"id": ident, "tipo": str(it.get("tipo") or ""), "url": url, "img": "/" + destino[len(DIST) + 1:],
+                 "texto": str(it.get("texto") or "")[:220], "fecha": str(it.get("fecha") or "")[:25]}
+        vid = str(it.get("video") or "")
+        if vid.startswith("https://") and (urllib.parse.urlparse(vid).hostname or "").endswith(IG_HOSTS) and len([x for x in lista if x.get("video")]) < 12:
+            nuevo["video"] = video_ig(vid, ident)
+        lista.append(nuevo)
     if not lista:
         for base in [os.environ.get("SITIO_ACTUAL") or "", "https://nueva.karivejoyas.cl/", SITIO]:
             if not base:
@@ -547,6 +584,15 @@ def instagram():
                     if not re.match(r"^/assets/ig/[0-9A-Za-z_]+\.(webp|jpg)$", ruta):
                         continue
                     bajar(base + ruta.lstrip("/"), DIST + ruta)
+                    v = str(it.get("video") or "")
+                    if v:
+                        if re.match(r"^/assets/ig/[0-9A-Za-z_]+\.mp4$", v):
+                            try:
+                                bajar(base + v.lstrip("/"), DIST + v)
+                            except Exception:
+                                it = dict(it, video="")
+                        else:
+                            it = dict(it, video="")
                     lista.append(it)
                 if lista:
                     break
@@ -575,11 +621,14 @@ def ig_html(IGD, pubs):
         return (t[:52].rsplit(" ", 1)[0] + "…") if len(t) > 55 else (t or "Ver en Instagram")
     tarj = "".join(
         '<a class="coleccion ig-tarjeta" href="{u}" target="_blank" rel="noopener" style="--i:{i}" data-revelar>'
-        '<span class="coleccion-foto"><img src="{img}" alt="{alt}" loading="lazy" width="480" height="600">{play}'
+        '<span class="coleccion-foto">{media}{play}'
         '<span class="coleccion-ver" aria-hidden="true">Ver en Instagram {fl}</span></span>'
         '<span class="coleccion-txt"><b>{t}</b><small>{f}</small></span></a>'.format(
-            u=e(x["url"]), img=e(x["img"]), alt=e(titulo(x.get("texto"))), t=e(titulo(x.get("texto"))), f=e(fecha_corta(x.get("fecha"))), i=i,
-            fl=FLECHA_DER, play=IG_PLAY if x.get("tipo") in ("VIDEO", "REELS") else "")
+            u=e(x["url"]), t=e(titulo(x.get("texto"))), f=e(fecha_corta(x.get("fecha"))), i=i, fl=FLECHA_DER,
+            media=('<video src="%s" poster="%s" muted loop playsinline preload="none" aria-label="%s" data-ig-video width="480" height="600"></video>'
+                   % (e(x["video"]), e(x["img"]), e(titulo(x.get("texto")))) if x.get("video") else
+                   '<img src="%s" alt="%s" loading="lazy" width="480" height="600">' % (e(x["img"]), e(titulo(x.get("texto"))))),
+            play=IG_PLAY if x.get("tipo") in ("VIDEO", "REELS") and not x.get("video") else "")
         for i, x in enumerate(elegidas))
     return ('<section class="seccion envoltura" id="instagram"><div class="seccion-cab"><h2 class="con-ig"><span class="ig-logo" aria-hidden="true">' + REDES_ICONOS["instagram"] + '</span><span%s>%s</span></h2><a class="ver-todo" href="%s" target="_blank" rel="noopener"%s>%s</a></div>'
             '<div class="colecciones ig-grilla">%s</div></section>'
@@ -1044,7 +1093,8 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     # en la cabecera transparente va el logo claro
     # sobre la cabecera oscura va el logo en colores claros
     logo_claro = "/assets/logo-claro.png" if os.path.exists("assets/logo-claro.png") else logo_url()   # el logo en colores claros (crema y dorado)
-    cab = cab.replace('<a class="logo" href="/"><img src="%s"' % e(logo_url()), '<a class="logo" href="/"><img src="%s"' % e(logo_claro), 1)
+    cab = cab.replace('<a class="logo" href="/"><img src="%s"' % e(logo_url()),
+                      '<a class="logo" href="/"><img src="%s" data-claro="%s" data-morado="/assets/logo-original.png"' % (e(logo_claro), e(logo_claro)), 1)
     h += cab
     # portada con carrusel: la portada actual y 2 colecciones con foto
     bans = (TEMA.get("coleccionPagina") or {}).get("banners") or {}
@@ -1574,7 +1624,7 @@ def main():
         shutil.copy(os.path.join(EST, f), DIST + "/estatico/" + f)
     shutil.copy("comun.js", DIST + "/estatico/comun.js")          # mismas reglas que el catálogo
     os.makedirs(DIST + "/assets", exist_ok=True)
-    for f in ("logo-karive-web.png", "logo-karive.png", "logo-avatar.png", "modelo-portada.jpg", "modelo-argollas.jpg", "fondo-info.jpg") + tuple(f for f in ("logo-claro.png",) if os.path.exists("assets/" + f)):
+    for f in ("logo-karive-web.png", "logo-karive.png", "logo-avatar.png", "modelo-portada.jpg", "modelo-argollas.jpg", "fondo-info.jpg") + tuple(f for f in ("logo-claro.png", "logo-original.png") if os.path.exists("assets/" + f)):
         shutil.copy("assets/" + f, DIST + "/assets/" + f)
     shutil.copytree("assets/pagos", DIST + "/assets/pagos")      # logos de tarjetas (página de pago)
     shutil.copytree("assets/sobre", DIST + "/assets/sobre", dirs_exist_ok=True)   # fotos de «Sobre nosotros»
