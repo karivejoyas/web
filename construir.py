@@ -1042,8 +1042,8 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
                  % ("" if an.get("activo", True) else " hidden", tx(partes[0]), json.dumps([tx(x) for x in partes], ensure_ascii=False).replace("</", "<\\/")),
                  cab, count=1, flags=re.S)
     # en la cabecera transparente va el logo claro
-    # logo claro para la cabecera oscura: el tuyo (assets/logo-claro.png) si está; si no, el de siempre
-    logo_claro = "/assets/logo-claro.png" if os.path.exists("assets/logo-claro.png") else logo_url()
+    # en la cabecera oscura va tu logo original sobre su fondo blanco (en una tarjeta redondeada)
+    logo_claro = "/assets/logo-original.jpg" if os.path.exists("assets/logo-original.jpg") else logo_url()   # tu logo original, con su fondo blanco
     cab = cab.replace('<a class="logo" href="/"><img src="%s"' % e(logo_url()), '<a class="logo" href="/"><img src="%s"' % e(logo_claro), 1)
     h += cab
     # portada con carrusel: la portada actual y 2 colecciones con foto
@@ -1574,7 +1574,7 @@ def main():
         shutil.copy(os.path.join(EST, f), DIST + "/estatico/" + f)
     shutil.copy("comun.js", DIST + "/estatico/comun.js")          # mismas reglas que el catálogo
     os.makedirs(DIST + "/assets", exist_ok=True)
-    for f in ("logo-karive-web.png", "logo-karive.png", "logo-avatar.png", "modelo-portada.jpg", "modelo-argollas.jpg", "fondo-info.jpg") + (("logo-claro.png",) if os.path.exists("assets/logo-claro.png") else ()):
+    for f in ("logo-karive-web.png", "logo-karive.png", "logo-avatar.png", "modelo-portada.jpg", "modelo-argollas.jpg", "fondo-info.jpg") + (("logo-original.jpg",) if os.path.exists("assets/logo-original.jpg") else ()):
         shutil.copy("assets/" + f, DIST + "/assets/" + f)
     shutil.copytree("assets/pagos", DIST + "/assets/pagos")      # logos de tarjetas (página de pago)
     shutil.copytree("assets/sobre", DIST + "/assets/sobre", dirs_exist_ok=True)   # fotos de «Sobre nosotros»

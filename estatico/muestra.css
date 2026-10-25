@@ -201,3 +201,9 @@
 .ecm-pie .pagos+i{display:block;font-size:11px;opacity:.75;margin-top:6px}
 @media (max-width:991px){.ecm-pie .f-grid{grid-template-columns:1fr 1fr}}
 @media (max-width:767px){.ecm-pie .f-bajo{grid-template-columns:1fr;gap:16px}}
+
+/* tu logo original con su fondo blanco, en una tarjeta redondeada (cabecera y pie) */
+.ecm-muestra .cabecera .logo img{height:58px;width:auto;background:#fff;border-radius:12px;padding:4px 8px;box-shadow:0 4px 14px -6px rgba(0,0,0,.45)}
+.ecm-muestra .ecm-pie .f-logo img{height:96px;width:auto;background:#fff;border-radius:16px;padding:8px 12px}
+@media (max-width:767px){.ecm-muestra .cabecera .logo img{height:46px;padding:3px 6px;border-radius:10px}}
+.ecm-muestra .ecm-pie a.f-logo{opacity:1;display:inline-block}
