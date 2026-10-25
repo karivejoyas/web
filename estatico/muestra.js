@@ -17,9 +17,9 @@
     auto();
   }
   // opciones de la cabecera (para elegir): ?logo=1 o 2, o con el selector de abajo
-  const opciones = { 1: 'Vidrio claro medio transparente', 2: 'Degradado oscuro (como Delinux)', 3: 'De claro (izquierda) a oscuro (derecha), logo con más luz', 4: 'De claro (arriba) a oscuro (abajo), logo con más luz' };
-  let op = (new URLSearchParams(location.search).get('logo') || '3');
-  if (!opciones[op]) op = '3';
+  const opciones = { 5: 'Recuadro blanco con bordes difuminados (suave)', 6: 'Recuadro blanco muy difuminado' };
+  let op = (new URLSearchParams(location.search).get('logo') || '5');
+  if (!opciones[op]) op = '5';
   document.body.dataset.logo = op;
   const sel = document.createElement('div');
   sel.className = 'logo-opciones'; sel.setAttribute('role', 'group'); sel.setAttribute('aria-label', 'Opciones del logo');
