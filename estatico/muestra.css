@@ -202,8 +202,32 @@
 @media (max-width:991px){.ecm-pie .f-grid{grid-template-columns:1fr 1fr}}
 @media (max-width:767px){.ecm-pie .f-bajo{grid-template-columns:1fr;gap:16px}}
 
-/* tu logo original con su fondo blanco, en una tarjeta redondeada (cabecera y pie) */
-.ecm-muestra .cabecera .logo img{height:58px;width:auto;background:#fff;border-radius:12px;padding:4px 8px;box-shadow:0 4px 14px -6px rgba(0,0,0,.45)}
-.ecm-muestra .ecm-pie .f-logo img{height:96px;width:auto;background:#fff;border-radius:16px;padding:8px 12px}
-@media (max-width:767px){.ecm-muestra .cabecera .logo img{height:46px;padding:3px 6px;border-radius:10px}}
+/* ---- tu logo: 3 opciones para elegir (selector abajo a la izquierda) ---- */
+.ecm-muestra .cabecera .logo img{height:58px;width:auto}
+.ecm-muestra .ecm-pie .f-logo img{height:96px;width:auto;filter:drop-shadow(0 0 1px rgba(255,255,255,.9)) drop-shadow(0 0 10px rgba(255,255,255,.55))}
 .ecm-muestra .ecm-pie a.f-logo{opacity:1;display:inline-block}
+@media (max-width:767px){.ecm-muestra .cabecera .logo img{height:46px}}
+/* 1 · cabecera blanca: el logo con sus colores sobre blanco; la portada empieza debajo */
+.ecm-muestra[data-logo="1"] .cabecera,.ecm-muestra[data-logo="3"] .cabecera,.ecm-muestra[data-logo="2"] .cabecera.bajando{background:#fff;margin-bottom:0;box-shadow:0 1px 0 var(--ecm-borde),0 8px 20px -14px rgba(42,18,62,.35)}
+.ecm-muestra[data-logo="1"] .cabecera .menu a,.ecm-muestra[data-logo="1"] .cabecera .menu button,.ecm-muestra[data-logo="1"] .cabecera .icono,
+.ecm-muestra[data-logo="3"] .cabecera .menu a,.ecm-muestra[data-logo="3"] .cabecera .menu button,.ecm-muestra[data-logo="3"] .cabecera .icono,
+.ecm-muestra[data-logo="2"] .cabecera.bajando .menu a,.ecm-muestra[data-logo="2"] .cabecera.bajando .menu button,.ecm-muestra[data-logo="2"] .cabecera.bajando .icono{color:var(--ecm-dark)}
+.ecm-muestra[data-logo="1"] .cabecera .menu a:hover,.ecm-muestra[data-logo="1"] .cabecera .menu button:hover,
+.ecm-muestra[data-logo="3"] .cabecera .menu a:hover,.ecm-muestra[data-logo="3"] .cabecera .menu button:hover,
+.ecm-muestra[data-logo="2"] .cabecera.bajando .menu a:hover,.ecm-muestra[data-logo="2"] .cabecera.bajando .menu button:hover{background:var(--ecm-lila);color:var(--morado)}
+/* 2 · transparente con un brillo suave detrás de las letras; al bajar, la cabecera se vuelve blanca */
+.ecm-muestra[data-logo="2"] .cabecera:not(.bajando) .logo img{filter:drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 0 8px rgba(255,255,255,.75)) drop-shadow(0 0 18px rgba(255,255,255,.45))}
+/* 3 · logo grande al centro y el menú debajo, como una boutique */
+.ecm-muestra[data-logo="3"] .cabecera .envoltura{display:grid;grid-template-columns:1fr auto 1fr;grid-template-areas:"izq logo der" "menu menu menu";align-items:center;row-gap:2px;min-height:0;padding-top:10px;padding-bottom:8px}
+.ecm-muestra[data-logo="3"] .cabecera .hamburguesa{grid-area:izq;justify-self:start}
+.ecm-muestra[data-logo="3"] .cabecera .logo{grid-area:logo;margin:0}
+.ecm-muestra[data-logo="3"] .cabecera .logo img{height:74px}
+.ecm-muestra[data-logo="3"] .cabecera .menu{grid-area:menu;justify-content:center;margin:0}
+.ecm-muestra[data-logo="3"] .cabecera .iconos{grid-area:der;justify-self:end;margin:0}
+.ecm-muestra[data-logo="3"] .cabecera.bajando .logo img{height:54px}
+@media (max-width:767px){.ecm-muestra[data-logo="3"] .cabecera .logo img{height:52px}.ecm-muestra[data-logo="3"] .cabecera .envoltura{row-gap:0}}
+/* selector de opciones (solo en la muestra) */
+.logo-opciones{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:95;display:flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;border-radius:999px;
+  background:rgba(22,10,34,.92);color:#fff;font:600 13px/1 var(--ecm-texto);box-shadow:0 10px 30px -10px rgba(0,0,0,.6)}
+.logo-opciones button{min-width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font:inherit;cursor:pointer}
+.logo-opciones button[aria-pressed="true"]{background:var(--ecm-oro);color:var(--ecm-dark);border-color:var(--ecm-oro)}

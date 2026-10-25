@@ -16,7 +16,21 @@
     $$('[data-an]', an).forEach(b => b.addEventListener('click', () => { paso(+b.dataset.an); auto(); }));
     auto();
   }
-  // cabecera: logo claro sobre la portada, el de siempre no se usa aquí
+  // opciones del logo (para elegir): ?logo=1, 2 o 3, o con el selector de abajo
+  const opciones = { 1: 'Cabecera blanca', 2: 'Transparente con brillo suave', 3: 'Logo al centro' };
+  let op = (new URLSearchParams(location.search).get('logo') || '1');
+  if (!opciones[op]) op = '1';
+  document.body.dataset.logo = op;
+  const sel = document.createElement('div');
+  sel.className = 'logo-opciones'; sel.setAttribute('role', 'group'); sel.setAttribute('aria-label', 'Opciones del logo');
+  sel.innerHTML = '<span>Logo:</span>' + Object.keys(opciones).map(k => '<button type="button" data-op="' + k + '" title="' + opciones[k] + '" aria-pressed="' + (k === op) + '">' + k + '</button>').join('');
+  document.body.appendChild(sel);
+  sel.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-op]'); if (!b) return;
+    document.body.dataset.logo = b.dataset.op;
+    $$('[data-op]', sel).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    history.replaceState(null, '', '?logo=' + b.dataset.op);
+  });
   // portada con carrusel
   const hero = $('.ecm-hero');
   if (hero) {
