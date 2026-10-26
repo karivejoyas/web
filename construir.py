@@ -1080,7 +1080,7 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     H, C, F, N = P["hero"], P["confianza"], P["favoritos"], P["nuevos"]
     h = cabeza("Muestra del diseño nuevo | " + MARCA, "Página de prueba del diseño nuevo.", "/muestra/", SITIO + "assets/modelo-portada.jpg",
                robots="noindex, nofollow", extra=FUENTES_MUESTRA % VERSION)
-    cab = encabezado(cols).replace("<body>", '<body class="ecm-muestra">', 1)
+    cab = encabezado(cols).replace("<body>", '<body class="ecm-muestra" data-portada="clara">', 1)
     # anuncio con flechas: las partes del texto actual, de a una
     an = TEMA.get("anuncio") or {}
     partes = [x.strip() for x in str(an.get("texto") or "").split("·") if x.strip()] or [""]
@@ -1094,7 +1094,7 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     # sobre la cabecera oscura va el logo en colores claros
     logo_claro = "/assets/logo-claro.png" if os.path.exists("assets/logo-claro.png") else logo_url()   # el logo en colores claros (crema y dorado)
     cab = cab.replace('<a class="logo" href="/"><img src="%s"' % e(logo_url()),
-                      '<a class="logo" href="/"><img src="%s" data-claro="%s" data-morado="/assets/logo-original.png"' % (e(logo_claro), e(logo_claro)), 1)
+                      '<a class="logo" href="/"><img src="/assets/logo-original.png" data-claro="%s" data-morado="/assets/logo-original.png"' % e(logo_claro), 1)
     h += cab
     # portada con carrusel: la portada actual y 2 colecciones con foto
     bans = (TEMA.get("coleccionPagina") or {}).get("banners") or {}

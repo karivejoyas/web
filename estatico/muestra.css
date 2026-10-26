@@ -209,23 +209,28 @@
 .ecm-muestra .ecm-pie a.f-logo{opacity:1;display:inline-block}
 @media (max-width:767px){.ecm-muestra .cabecera .logo img{height:44px}}
 
-/* ---- pruebas: logo morado original sobre distintos colores de barra (selector abajo) ---- */
-.ecm-muestra[data-barra] .cabecera{-webkit-backdrop-filter:blur(10px) saturate(1.2);backdrop-filter:blur(10px) saturate(1.2);box-shadow:0 8px 24px -16px rgba(22,10,34,.6)}
-.ecm-muestra[data-barra] .cabecera .menu a,.ecm-muestra[data-barra] .cabecera .menu button,.ecm-muestra[data-barra] .cabecera .icono{color:var(--ecm-dark)}
-.ecm-muestra[data-barra] .cabecera .menu a:hover,.ecm-muestra[data-barra] .cabecera .menu button:hover{background:rgba(91,42,130,.12);color:var(--morado)}
-/* A · lila muy claro */
-.ecm-muestra[data-barra="a"] .cabecera{background:rgba(236,226,246,.86)}
-.ecm-muestra[data-barra="a"] .cabecera.bajando{background:rgba(236,226,246,.96)}
-/* B · champaña dorado claro (combina con «JOYAS») */
-.ecm-muestra[data-barra="b"] .cabecera{background:linear-gradient(90deg,rgba(248,239,220,.92),rgba(240,226,192,.86))}
-.ecm-muestra[data-barra="b"] .cabecera.bajando{background:linear-gradient(90deg,rgba(248,239,220,.98),rgba(240,226,192,.96))}
-/* C · rosa empolvado */
-.ecm-muestra[data-barra="c"] .cabecera{background:rgba(247,231,236,.88)}
-.ecm-muestra[data-barra="c"] .cabecera.bajando{background:rgba(247,231,236,.97)}
-/* D · crema que se funde con la foto hacia abajo */
-.ecm-muestra[data-barra="d"] .cabecera{background:linear-gradient(to bottom,rgba(251,247,241,1) 0%,rgba(251,247,241,.97) 55%,rgba(251,247,241,0) 100%);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;padding-bottom:18px}
-.ecm-muestra[data-barra="d"] .cabecera.bajando{background:rgba(251,247,241,.97);padding-bottom:0}
-.barra-opciones{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:95;display:flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;border-radius:999px;
+/* ---- portada clara: sin morado detrás, letras moradas y el logo morado original sobre la barra transparente ---- */
+.ecm-muestra[data-portada="clara"]{--ecm-hero:#FBF6EF}
+.ecm-muestra[data-portada="clara"] .cabecera{background:transparent;box-shadow:none}
+.ecm-muestra[data-portada="clara"] .cabecera.bajando{background:rgba(255,253,249,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 8px 24px -18px rgba(42,18,62,.55)}
+.ecm-muestra[data-portada="clara"] .cabecera .menu a,.ecm-muestra[data-portada="clara"] .cabecera .menu button,.ecm-muestra[data-portada="clara"] .cabecera .icono{color:var(--morado)}
+.ecm-muestra[data-portada="clara"] .cabecera .menu a:hover,.ecm-muestra[data-portada="clara"] .cabecera .menu button:hover,.ecm-muestra[data-portada="clara"] .cabecera .menu a[aria-current]{background:rgba(91,42,130,.1);color:var(--morado)}
+.ecm-muestra[data-portada="clara"] .ecm-hero{background:linear-gradient(160deg,#FFFDF9,var(--ecm-hero) 70%)}
+.ecm-muestra[data-portada="clara"] .ecm-hero::after{background:linear-gradient(to bottom,rgba(251,246,239,0),var(--ecm-hero))}
+.ecm-muestra[data-portada="clara"] .ecm-hero .caption{color:var(--ecm-dark);text-shadow:none}
+.ecm-muestra[data-portada="clara"] .ecm-hero .caption small{color:#A9802A}
+.ecm-muestra[data-portada="clara"] .ecm-hero .caption h1,.ecm-muestra[data-portada="clara"] .ecm-hero .caption h2{color:var(--morado)}
+.ecm-muestra[data-portada="clara"] .ecm-hero .flecha{background:rgba(255,255,255,.75);color:var(--morado);box-shadow:0 4px 14px -6px rgba(42,18,62,.4)}
+/* la foto se esfuma también arriba, para que el logo y el menú se lean sobre la barra transparente */
+.ecm-muestra[data-portada="clara"] .ecm-hero .slide img.r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 28%),linear-gradient(180deg,transparent 40px,#000 190px);mask-image:linear-gradient(90deg,transparent,#000 28%),linear-gradient(180deg,transparent 40px,#000 190px);-webkit-mask-composite:source-in;mask-composite:intersect}
+.ecm-muestra[data-portada="clara"] .ecm-hero .slide img.l{-webkit-mask-image:linear-gradient(270deg,transparent,#000 28%),linear-gradient(180deg,transparent 40px,#000 190px);mask-image:linear-gradient(270deg,transparent,#000 28%),linear-gradient(180deg,transparent 40px,#000 190px);-webkit-mask-composite:source-in;mask-composite:intersect}
+@media (max-width:767px){
+  .ecm-muestra[data-portada="clara"] .ecm-hero .caption{text-shadow:0 0 18px rgba(251,246,239,.9)}
+  .ecm-muestra[data-portada="clara"] .ecm-hero .slide img.r,.ecm-muestra[data-portada="clara"] .ecm-hero .slide img.l{-webkit-mask-image:linear-gradient(180deg,transparent 55px,#000 175px,#000 62%,transparent);mask-image:linear-gradient(180deg,transparent 55px,#000 175px,#000 62%,transparent)}
+}
+.portada-opciones button{white-space:nowrap}
+@media (max-width:767px){.portada-opciones{padding:5px 6px 5px 12px;font-size:12px}.portada-opciones button{padding:0 8px;min-width:0}}
+.portada-opciones{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:95;display:flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;border-radius:999px;
   background:rgba(22,10,34,.92);color:#fff;font:600 13px/1 var(--ecm-texto);box-shadow:0 10px 30px -10px rgba(0,0,0,.6)}
-.barra-opciones button{min-width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font:inherit;cursor:pointer;padding:0 10px}
-.barra-opciones button[aria-pressed="true"]{background:var(--ecm-oro);color:var(--ecm-dark);border-color:var(--ecm-oro)}
+.portada-opciones button{min-width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font:inherit;cursor:pointer;padding:0 10px}
+.portada-opciones button[aria-pressed="true"]{background:var(--ecm-oro);color:var(--ecm-dark);border-color:var(--ecm-oro)}
