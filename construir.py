@@ -1041,7 +1041,7 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
 # Diseño nuevo (estilo Ecomify) para revisar ANTES de cambiar la portada real.
 # Vive en /muestra/ (sin indexar ni enlazar). Usa los mismos productos, textos,
 # carrito, buscador y suscripción que la web; solo cambia el diseño.
-FUENTES_MUESTRA = ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap">'
+FUENTES_MUESTRA = ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap">'
                    '<link rel="stylesheet" href="/estatico/muestra.css?v=%s">')
 ICONOS_FAQ = [
     '<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
@@ -1080,7 +1080,7 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     H, C, F, N = P["hero"], P["confianza"], P["favoritos"], P["nuevos"]
     h = cabeza("Muestra del diseño nuevo | " + MARCA, "Página de prueba del diseño nuevo.", "/muestra/", SITIO + "assets/modelo-portada.jpg",
                robots="noindex, nofollow", extra=FUENTES_MUESTRA % VERSION)
-    cab = encabezado(cols).replace("<body>", '<body class="ecm-muestra" data-portada="clara">', 1)
+    cab = encabezado(cols).replace("<body>", '<body class="ecm-muestra" data-portada="nueva">', 1)
     # anuncio con flechas: las partes del texto actual, de a una
     an = TEMA.get("anuncio") or {}
     partes = [x.strip() for x in str(an.get("texto") or "").split("·") if x.strip()] or [""]
@@ -1094,7 +1094,7 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     # sobre la cabecera oscura va el logo en colores claros
     logo_claro = "/assets/logo-claro.png" if os.path.exists("assets/logo-claro.png") else logo_url()   # el logo en colores claros (crema y dorado)
     cab = cab.replace('<a class="logo" href="/"><img src="%s"' % e(logo_url()),
-                      '<a class="logo" href="/"><img src="/assets/logo-original.png" data-claro="%s" data-morado="/assets/logo-original.png"' % e(logo_claro), 1)
+                      '<a class="logo" href="/"><img src="/assets/logo-brillo.png" data-claro="%s" data-morado="/assets/logo-brillo.png"' % e(logo_claro), 1)
     h += cab
     # portada con carrusel: la portada actual y 2 colecciones con foto
     bans = (TEMA.get("coleccionPagina") or {}).get("banners") or {}
@@ -1624,7 +1624,7 @@ def main():
         shutil.copy(os.path.join(EST, f), DIST + "/estatico/" + f)
     shutil.copy("comun.js", DIST + "/estatico/comun.js")          # mismas reglas que el catálogo
     os.makedirs(DIST + "/assets", exist_ok=True)
-    for f in ("logo-karive-web.png", "logo-karive.png", "logo-avatar.png", "modelo-portada.jpg", "modelo-argollas.jpg", "fondo-info.jpg") + tuple(f for f in ("logo-claro.png", "logo-original.png") if os.path.exists("assets/" + f)):
+    for f in ("logo-karive-web.png", "logo-karive.png", "logo-avatar.png", "modelo-portada.jpg", "modelo-argollas.jpg", "fondo-info.jpg") + tuple(f for f in ("logo-claro.png", "logo-original.png", "logo-brillo.png") if os.path.exists("assets/" + f)):
         shutil.copy("assets/" + f, DIST + "/assets/" + f)
     shutil.copytree("assets/pagos", DIST + "/assets/pagos")      # logos de tarjetas (página de pago)
     shutil.copytree("assets/sobre", DIST + "/assets/sobre", dirs_exist_ok=True)   # fotos de «Sobre nosotros»

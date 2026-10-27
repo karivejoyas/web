@@ -17,22 +17,22 @@
     auto();
   }
   // pruebas de la barra: logo morado original sobre distintos colores (?barra=a…d, o «claro» para el logo claro)
-  // portada clara (con el logo morado original) u oscura (como antes), para comparar
-  const PORTADAS = { clara: 'Clara', oscura: 'Oscura (antes)' };
+  // portada nueva (con el logo morado con brillo) u oscura (como antes), para comparar
+  const PORTADAS = { nueva: 'Nueva', oscura: 'Antes' };
   const logoImg = $('.cabecera .logo img');
   const ponerPortada = (k) => {
     document.body.dataset.portada = k;
-    if (logoImg) logoImg.src = k === 'clara' ? logoImg.dataset.morado : logoImg.dataset.claro;
+    if (logoImg) logoImg.src = k === 'nueva' ? logoImg.dataset.morado : logoImg.dataset.claro;
     $$('.portada-opciones [data-portada]').forEach(x => x.setAttribute('aria-pressed', x.dataset.portada === k ? 'true' : 'false'));
   };
   if (logoImg && logoImg.dataset.morado) {
-    let k = new URLSearchParams(location.search).get('portada') || 'clara';
-    if (!PORTADAS[k]) k = 'clara';
+    let k = new URLSearchParams(location.search).get('portada') || 'nueva';
+    if (!PORTADAS[k]) k = 'nueva';
     const sel = document.createElement('div');
     sel.className = 'portada-opciones'; sel.setAttribute('role', 'group'); sel.setAttribute('aria-label', 'Colores de la portada');
     sel.innerHTML = '<span>Portada:</span>' + Object.keys(PORTADAS).map(x => '<button type="button" data-portada="' + x + '">' + PORTADAS[x] + '</button>').join('');
     document.body.appendChild(sel);
-    sel.addEventListener('click', (e) => { const b = e.target.closest('[data-portada]'); if (!b) return; ponerPortada(b.dataset.portada); history.replaceState(null, '', b.dataset.portada === 'clara' ? location.pathname : '?portada=' + b.dataset.portada); });
+    sel.addEventListener('click', (e) => { const b = e.target.closest('[data-portada]'); if (!b) return; ponerPortada(b.dataset.portada); history.replaceState(null, '', b.dataset.portada === 'nueva' ? location.pathname : '?portada=' + b.dataset.portada); });
     ponerPortada(k);
   }
   // portada con carrusel
