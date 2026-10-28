@@ -1,5 +1,5 @@
 // ============================================================
-//  WEB · KARIVÉ JOYAS (karivejoyas.cl / nueva.karivejoyas.cl)
+//  WEB · KARIVÉ JOYAS (karivejoyas.cl)
 //  Vuelve a publicar la web apenas cambia algo: los productos (bot de
 //  Telegram o panel), la configuración (cupones, colecciones, envíos…) o
 //  los textos y diseño de la web (panel nuevo → Tienda online).
