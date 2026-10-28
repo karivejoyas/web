@@ -236,15 +236,20 @@
 .ecm-muestra[data-portada="nueva"] .ecm-hero .caption .ecm-btn:hover{background:rgba(227,197,114,.14);color:#fff}
 .ecm-muestra[data-portada="nueva"] .ecm-hero .caption .ecm-btn:hover::after{transform:translateX(4px)}
 .ecm-muestra[data-portada="nueva"] .ecm-hero .flecha{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22)}
-/* olas moradas encima del final de la foto, que terminan en blanco */
-.ecm-muestra[data-portada="nueva"] .ecm-olas.ola-baja{transform:none;background:transparent;position:relative;z-index:3;margin-top:-108px}
-.ecm-muestra[data-portada="nueva"] .ecm-olas.ola-baja svg{height:110px}
-.ecm-muestra[data-portada="nueva"] .ola-baja .ola1 use{fill:#D7B6F2;opacity:.45}
-.ecm-muestra[data-portada="nueva"] .ola-baja .ola2 use{fill:#8B57BC;opacity:.7}
-.ecm-muestra[data-portada="nueva"] .ola-baja .ola3 use{fill:#4A2068;opacity:.92}
-.ecm-muestra[data-portada="nueva"] .ola-baja .ola4 use{fill:#fff;opacity:1}
-.ecm-muestra[data-portada="nueva"] .ola-baja .ola4{transform:translateY(5px)}
-.ecm-muestra[data-portada="nueva"] .ola-baja .ola1{transform:translateY(-2px)}
+/* todas las fotos a la derecha: el logo y el texto quedan siempre sobre el lado oscuro */
+.ecm-muestra[data-portada="nueva"] .ecm-hero .slide img.l{left:auto;right:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 34%);mask-image:linear-gradient(90deg,transparent,#000 34%)}
+.ecm-muestra[data-portada="nueva"] .ecm-hero .caption.right{right:auto;left:7%}
+.ecm-muestra[data-portada="nueva"] .ecm-hero .slide:has(.caption.right)::after{
+  background:linear-gradient(180deg,rgba(22,10,34,.8),rgba(22,10,34,0) 210px),
+             linear-gradient(90deg,rgba(22,10,34,.55) 0%,rgba(42,18,62,.3) 40%,rgba(42,18,62,0) 70%),
+             linear-gradient(rgba(91,42,130,.16),rgba(91,42,130,.16))}
+/* el final de la foto se funde en el morado oscuro y de ahí cuelgan las olas moradas hacia el blanco */
+.ecm-muestra[data-portada="nueva"] .ecm-hero::after{display:block;height:120px;background:linear-gradient(to bottom,rgba(22,10,34,0),#160A22)}
+.ecm-muestra[data-portada="nueva"] .ecm-olas.ola-baja{transform:rotate(180deg);background:#fff;margin-top:0}
+.ecm-muestra[data-portada="nueva"] .ola-baja .ola1 use{fill:#D7B6F2;opacity:.55}
+.ecm-muestra[data-portada="nueva"] .ola-baja .ola2 use{fill:#9A68C8;opacity:.75}
+.ecm-muestra[data-portada="nueva"] .ola-baja .ola3 use{fill:#5B2A82;opacity:.95}
+.ecm-muestra[data-portada="nueva"] .ola-baja .ola4 use{fill:#160A22;opacity:1}
 @media (max-width:767px){
   .ecm-muestra[data-portada="nueva"] .cabecera .logo img{height:50px}
   .ecm-muestra[data-portada="nueva"] .ecm-hero{height:640px}
@@ -254,8 +259,10 @@
   .ecm-muestra[data-portada="nueva"] .ecm-hero .caption{align-items:center;text-align:center;bottom:70px;transform:none}
   .ecm-muestra[data-portada="nueva"] .ecm-hero .caption h1,.ecm-muestra[data-portada="nueva"] .ecm-hero .caption h2{font-size:36px;margin-bottom:10px}
   .ecm-muestra[data-portada="nueva"] .ecm-hero .caption small{font-size:12px;letter-spacing:.24em;margin-bottom:20px}
-  .ecm-muestra[data-portada="nueva"] .ecm-olas.ola-baja{margin-top:-62px}
-  .ecm-muestra[data-portada="nueva"] .ecm-olas.ola-baja svg{height:64px}
+  .ecm-muestra[data-portada="nueva"] .cabecera:not(.bajando){background:linear-gradient(180deg,rgba(22,10,34,.82),rgba(22,10,34,.45) 70%,rgba(22,10,34,0))}
+  .ecm-muestra[data-portada="nueva"] .cabecera .logo{position:relative;isolation:isolate}
+  .ecm-muestra[data-portada="nueva"] .cabecera .logo::before{content:"";position:absolute;inset:-14px -26px;z-index:-1;border-radius:50%;pointer-events:none;
+    background:radial-gradient(closest-side,rgba(22,10,34,.78),rgba(22,10,34,.45) 60%,rgba(22,10,34,0))}
 }
 .portada-opciones button{white-space:nowrap}
 @media (max-width:767px){.portada-opciones{padding:5px 6px 5px 12px;font-size:12px}.portada-opciones button{padding:0 8px;min-width:0}}
