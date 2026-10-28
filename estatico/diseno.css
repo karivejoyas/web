@@ -1,7 +1,8 @@
 /* ============================================================
-   Karivé Joyas · página de muestra (/muestra/) con el diseño nuevo
-   (adaptado de las secciones Ecomify). Todo va bajo body.ecm-muestra,
-   así no cambia nada del resto de la web.
+   Karivé Joyas · diseño de la web (adaptado de las secciones Ecomify).
+   Va encima de tienda.css: todo cuelga de body.ecm-muestra; las páginas
+   que no son la portada llevan además .ecm-interior (cabecera sobre una
+   franja morada en vez de transparente sobre la foto).
    ============================================================ */
 .ecm-muestra{--ecm-dark:#2A123E;--ecm-deep:#160A22;--ecm-hero:#1B0D28;--ecm-oro:#E3C572;--ecm-lila:#F4EFF8;--ecm-borde:#ece6f1;--ecm-suave:#6f6478;
   --ecm-radio:22px;--ecm-titulos:Montserrat,system-ui,sans-serif;--ecm-texto:Cabin,system-ui,sans-serif;
@@ -213,7 +214,7 @@
 .ecm-muestra[data-portada="nueva"]{--ecm-hero:#160A22}
 .ecm-muestra[data-portada="nueva"] .cabecera{background:transparent;box-shadow:none}
 .ecm-muestra[data-portada="nueva"] .cabecera.bajando{background:rgba(22,10,34,.9);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 8px 24px -14px rgba(0,0,0,.6)}
-.ecm-muestra[data-portada="nueva"] .cabecera .logo img{height:66px;filter:drop-shadow(0 1px 6px rgba(22,10,34,.55)) drop-shadow(0 0 14px rgba(196,150,240,.35))}
+.ecm-muestra[data-portada="nueva"] .cabecera .logo img{height:var(--logo-h,66px);filter:drop-shadow(0 1px 6px rgba(22,10,34,.55)) drop-shadow(0 0 14px rgba(196,150,240,.35))}
 .ecm-muestra[data-portada="nueva"] .cabecera .menu a,.ecm-muestra[data-portada="nueva"] .cabecera .menu button{font-weight:500;font-size:13.5px;letter-spacing:.1em}
 .ecm-muestra[data-portada="nueva"] .ecm-hero{height:680px;background:linear-gradient(180deg,#2A123E,#160A22)}
 .ecm-muestra[data-portada="nueva"] .ecm-hero::after{display:none}
@@ -251,7 +252,7 @@
 .ecm-muestra[data-portada="nueva"] .ola-baja .ola3 use{fill:#5B2A82;opacity:.95}
 .ecm-muestra[data-portada="nueva"] .ola-baja .ola4 use{fill:#160A22;opacity:1}
 @media (max-width:767px){
-  .ecm-muestra[data-portada="nueva"] .cabecera .logo img{height:50px}
+  .ecm-muestra[data-portada="nueva"] .cabecera .logo img{height:var(--logo-hm,50px)}
   .ecm-muestra[data-portada="nueva"] .ecm-hero{height:640px}
   .ecm-muestra[data-portada="nueva"] .ecm-hero .slide img,.ecm-muestra[data-portada="nueva"] .ecm-hero .slide img.r,.ecm-muestra[data-portada="nueva"] .ecm-hero .slide img.l{width:100%;height:66%;-webkit-mask-image:linear-gradient(180deg,#000 62%,transparent);mask-image:linear-gradient(180deg,#000 62%,transparent)}
   .ecm-muestra[data-portada="nueva"] .ecm-hero .slide::after,.ecm-muestra[data-portada="nueva"] .ecm-hero .slide:has(.caption.right)::after{
@@ -264,9 +265,20 @@
   .ecm-muestra[data-portada="nueva"] .cabecera .logo::before{content:"";position:absolute;inset:-14px -26px;z-index:-1;border-radius:50%;pointer-events:none;
     background:radial-gradient(closest-side,rgba(22,10,34,.78),rgba(22,10,34,.45) 60%,rgba(22,10,34,0))}
 }
-.portada-opciones button{white-space:nowrap}
-@media (max-width:767px){.portada-opciones{padding:5px 6px 5px 12px;font-size:12px}.portada-opciones button{padding:0 8px;min-width:0}}
-.portada-opciones{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:95;display:flex;align-items:center;gap:6px;padding:6px 8px 6px 14px;border-radius:999px;
-  background:rgba(22,10,34,.92);color:#fff;font:600 13px/1 var(--ecm-texto);box-shadow:0 10px 30px -10px rgba(0,0,0,.6)}
-.portada-opciones button{min-width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font:inherit;cursor:pointer;padding:0 10px}
-.portada-opciones button[aria-pressed="true"]{background:var(--ecm-oro);color:var(--ecm-dark);border-color:var(--ecm-oro)}
+
+/* ---- todas las páginas: letras de la marca, fondo blanco ---- */
+.ecm-muestra{--serif:Montserrat,system-ui,sans-serif;--sans:Cabin,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+/* páginas interiores: la cabecera va sobre una franja morada oscura (no encima de una foto) */
+.ecm-muestra.ecm-interior[data-portada="nueva"] .cabecera{margin-bottom:0;background:linear-gradient(90deg,#160A22,#2A123E 60%,#3A1D4E);box-shadow:0 8px 24px -18px rgba(22,10,34,.7)}
+.ecm-muestra.ecm-interior[data-portada="nueva"] .cabecera.bajando{background:rgba(22,10,34,.94)}
+.ecm-muestra.ecm-interior .cabecera .envoltura{min-height:84px}
+@media (max-width:767px){
+  .ecm-muestra.ecm-interior[data-portada="nueva"] .cabecera:not(.bajando){background:linear-gradient(90deg,#160A22,#2A123E)}
+  .ecm-muestra.ecm-interior[data-portada="nueva"] .cabecera .logo::before{display:none}
+  .ecm-muestra.ecm-interior .cabecera .envoltura{min-height:72px}
+}
+/* olas antes del pie: los mismos tonos morados de la portada, y la capa de adelante del color de la banda */
+.ecm-muestra .ecm-olas.ola-sube .ola1 use{fill:#D7B6F2;opacity:.5}
+.ecm-muestra .ecm-olas.ola-sube .ola2 use{fill:#9A68C8;opacity:.7}
+.ecm-muestra .ecm-olas.ola-sube .ola3 use{fill:#5B2A82;opacity:.9}
+.ecm-muestra .ecm-olas.ola-sube .ola4 use{fill:var(--ecm-dark);opacity:1}

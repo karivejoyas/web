@@ -2081,7 +2081,7 @@
       return 'Productos de esta publicación (menciónalos por su nombre real):\n' + l.join('\n');
     }
 
-    const KV_CATALOGO_URL = 'https://karivejoyas.github.io/catalogo/';
+    const KV_CATALOGO_URL = 'https://karivejoyas.cl/';
     // contexto GENERAL: solo las colecciones, sin nombres ni precios de productos
     function igIAContextoGeneral(prods) {
       const cols = [...new Set(prods.map(p => kvCat(p.category, settings).nombre).filter(Boolean))];
@@ -2191,7 +2191,7 @@
       const huer = products.filter(p => !cats.some(c => c.id === p.category));
       if (huer.length) { s += '\nSin colección:\n'; huer.forEach(p => { s += '- ' + (p.code || '') + ' ' + (p.name || '') + ' · ' + formatCLP(p.price) + '\n'; }); }
       s += '\nContacto: Instagram ' + (settings.instagram || '') + ' · Facebook ' + (settings.facebook || '') + ' · WhatsApp ' + (settings.whatsapp || '');
-      s += '\nCatálogo web: https://karivejoyas.github.io/catalogo/';
+      s += '\nTienda web: https://karivejoyas.cl/';
       return s.slice(0, 9000);
     }
     function iaChatAdd(rol, texto) {

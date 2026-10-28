@@ -144,11 +144,13 @@
     const fila = (d, est, nota) => '<div class="linea-item"><div class="t"><b>' + d + '</b><small>' + nota + '</small></div>' + est + '</div>';
     vista.innerHTML = marco('dominios', A.cab('Dominios') +
       '<div class="tarjeta"><div class="tarjeta-cab"><h2>Tus dominios</h2></div><div class="tarjeta-c">' +
-        fila(h(location.host), '<span class="ins verde">Conectado</span>', 'Dirección donde estás viendo la web nueva ahora.') +
-        fila('karivejoyas.cl', '<span class="ins ambar">Pendiente</span>', 'Se conecta cuando apruebes la web nueva. El catálogo antiguo sigue funcionando hasta entonces.') +
-        fila('karivejoyas.github.io/catalogo', '<span class="ins">Catálogo antiguo</span>', 'Al cambiar de dominio, sus páginas mandarán a las de karivejoyas.cl para no perder Google.') +
+        (/(^|\.)karivejoyas\.cl$/.test(location.host) && location.host !== 'nueva.karivejoyas.cl'
+          ? fila('karivejoyas.cl', '<span class="ins verde">Conectado</span>', 'Dominio principal de la tienda. www.karivejoyas.cl lleva aquí mismo.')
+          : fila(h(location.host), '<span class="ins verde">Conectado</span>', 'Dirección donde estás viendo la web ahora.') +
+            fila('karivejoyas.cl', '<span class="ins ambar">Pendiente</span>', 'Falta apuntar el dominio en Cloudflare y GitHub (guía en Drive: «Lanzamiento en karivejoyas.cl»).')) +
+        fila('karivejoyas.github.io/catalogo', '<span class="ins">Catálogo antiguo</span>', 'Sus páginas mandan a las de karivejoyas.cl, para no perder lo que Google ya conoce.') +
       '</div></div>' +
-      '<div class="tarjeta tarjeta-c"><h2 style="margin-bottom:6px">¿Cómo funciona?</h2><p class="ayuda" style="margin:0">El dominio está en Cloudflare y la web se publica gratis con GitHub Pages. El paso a karivejoyas.cl lo hacemos juntos cuando des el visto bueno: se cambia en GitHub y Cloudflare, y luego Merchant Center y Search Console.</p></div>');
+      '<div class="tarjeta tarjeta-c"><h2 style="margin-bottom:6px">¿Cómo funciona?</h2><p class="ayuda" style="margin:0">El dominio está en Cloudflare y la web se publica gratis con GitHub Pages. El dominio karivejoyas.cl se apunta a GitHub desde Cloudflare; Google (Search Console y Merchant Center) lee el mapa del sitio y el catálogo de productos desde esa dirección.</p></div>');
   }
 
   // ============================================================

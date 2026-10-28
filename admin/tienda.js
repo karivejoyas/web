@@ -181,7 +181,7 @@
     // logo, olas, WhatsApp y asistente
     const logo = A.urlImagen(lo.imagen);
     doc.querySelectorAll('[data-kv-logo], .pie-logo img').forEach(el => { if (!el.dataset.original) el.dataset.original = el.getAttribute('src'); el.src = logo || el.dataset.original; });
-    const olas = doc.querySelector('.olas');
+    const olas = doc.querySelector('.olas.ola-sube') || doc.querySelector('.olas');
     if (olas) { olas.classList.toggle('quietas', ol.animacion === false); olas.classList.toggle('al-reves', !!ol.rotar); }
     const pie = doc.querySelector('.pie'); if (pie) pie.classList.toggle('con-olas', ol.activo !== false);
     const wa = doc.querySelector('.wa-flota'); if (wa) wa.classList.toggle('respira', t.whatsappRespira !== false);
@@ -248,9 +248,10 @@
     const cont = doc.querySelector('[data-kv-secciones]');
     if (cont && t.portada) {
       const ocultas = t.portada.ocultas || [];
-      ordenPortada(t.portada).forEach(k => { const s = cont.querySelector(':scope > [data-kv-sec="' + k + '"]'); if (s) cont.appendChild(s); });
+      // la portada nueva tiene un orden fijo (data-kv-fijo): solo se muestran u ocultan sus secciones
+      if (!cont.hasAttribute('data-kv-fijo')) ordenPortada(t.portada).forEach(k => { const s = cont.querySelector(':scope > [data-kv-sec="' + k + '"]'); if (s) cont.appendChild(s); });
       cont.querySelectorAll(':scope > [data-kv-sec]').forEach(s => { s.hidden = ocultas.indexOf(s.dataset.kvSec) !== -1; });
-      ['favoritos', 'nuevos'].forEach(k => {
+      if (!cont.hasAttribute('data-kv-fijo')) ['favoritos', 'nuevos'].forEach(k => {
         const n = Number(obtener(t, 'portada.' + k + '.cantidad')) || 8;
         cont.querySelectorAll('[data-kv-sec="' + k + '"] .grilla > li').forEach((li, i) => { li.hidden = i >= n; });
       });

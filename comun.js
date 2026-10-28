@@ -843,7 +843,7 @@ function kvCardHtml(p) {
 /* Dirección pública de la ficha de un producto. Es la que conviene compartir por
    WhatsApp o Instagram: muestra la foto y el precio en la vista previa, cosa que
    el enlace del catálogo completo no hace. */
-var KV_SITIO = 'https://karivejoyas.github.io/catalogo/';
+var KV_SITIO = 'https://karivejoyas.cl/';
 function kvEnlaceProducto(code) {
   const c = String(code || '').trim();
   return c ? KV_SITIO + 'p/' + c + '.html' : '';

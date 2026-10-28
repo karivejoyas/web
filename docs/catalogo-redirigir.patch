@@ -1,0 +1,139 @@
+From 736b98f8b649a3899ffd74889b35c9785169bc3f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 28 Oct 2026 18:07:48 +0000
+Subject: [PATCH] =?UTF-8?q?Cat=C3=A1logo=20antiguo:=20mandar=20las=20p?=
+ =?UTF-8?q?=C3=A1ginas=20a=20karivejoyas.cl=20cuando=20la=20tienda=20nueva?=
+ =?UTF-8?q?=20est=C3=A9=20en=20l=C3=ADnea?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Las páginas públicas (portada, fichas, colecciones, devoluciones y privacidad)
+pasan a tener la dirección nueva como canónica y un salto inmediato a la página
+equivalente; los enlaces de los feeds de Google y Meta apuntan a la tienda nueva.
+Solo se aplica si karivejoyas.cl responde; el panel y las herramientas no cambian.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01N3BBNB5TiRt2ds6wCrYhmP
+---
+ .github/workflows/actualizar-fichas.yml |  8 +++
+ herramientas/redirigir.py               | 74 +++++++++++++++++++++++++
+ 2 files changed, 82 insertions(+)
+ create mode 100644 herramientas/redirigir.py
+
+diff --git a/.github/workflows/actualizar-fichas.yml b/.github/workflows/actualizar-fichas.yml
+index 2d143c9..7fd024d 100644
+--- a/.github/workflows/actualizar-fichas.yml
++++ b/.github/workflows/actualizar-fichas.yml
+@@ -13,6 +13,10 @@ on:
+     # 09:00 UTC = 05:00 o 06:00 en Chile según horario de verano
+     - cron: '0 9 * * *'
+   workflow_dispatch:
++  # al cambiar las herramientas o este workflow (por ejemplo, el paso a karivejoyas.cl)
++  push:
++    branches: [main]
++    paths: ['herramientas/**', '.github/workflows/**']
+ 
+ # Evita que dos ejecuciones se pisen si una tarda más de la cuenta
+ concurrency:
+@@ -43,6 +47,9 @@ jobs:
+       - name: Generar el feed de Meta
+         run: python3 herramientas/feed-meta.py
+ 
++      - name: Mandar las páginas a la tienda nueva (si karivejoyas.cl ya está en línea)
++        run: python3 herramientas/redirigir.py
++
+       - name: Revisar que el resultado tenga sentido
+         run: |
+           fichas=$(ls p/*.html 2>/dev/null | wc -l)
+@@ -57,6 +64,7 @@ jobs:
+       - name: Resumen diario por Telegram
+         # Si Telegram falla, las fichas se publican igual
+         continue-on-error: true
++        if: github.event_name != 'push'
+         env:
+           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN || vars.TELEGRAM_TOKEN }}
+           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+diff --git a/herramientas/redirigir.py b/herramientas/redirigir.py
+new file mode 100644
+index 0000000..f6c3483
+--- /dev/null
++++ b/herramientas/redirigir.py
+@@ -0,0 +1,74 @@
++"""
++Manda las páginas públicas del catálogo antiguo a la tienda nueva (karivejoyas.cl).
++
++Solo actúa si karivejoyas.cl ya está en línea (así nadie llega a una página vacía
++mientras se conecta el dominio). Entonces:
++  - a cada página pública le pone la dirección nueva como canónica y un salto
++    inmediato a la página equivalente (Google lo toma como cambio de dirección);
++  - en los feeds de Google y Meta cambia los enlaces de los productos a la tienda nueva.
++
++No toca el panel (admin.html), las herramientas de publicación ni las tarjetas,
++y no cambia ningún producto. Lo corre el workflow después de generar las fichas.
++"""
++import glob
++import os
++import re
++import urllib.request
++
++ANTES = "https://karivejoyas.github.io/catalogo/"
++NUEVA = "https://karivejoyas.cl/"
++MARCA = "<!-- kv-redirigir -->"
++
++
++def nueva_en_linea():
++    try:
++        with urllib.request.urlopen(urllib.request.Request(NUEVA + "version.txt", headers={"User-Agent": "KariveJoyas-catalogo"}), timeout=20) as r:
++            return r.status == 200 and len(r.read().strip()) > 0
++    except Exception:
++        return False
++
++
++def destino(ruta):
++    """Página equivalente en la tienda nueva."""
++    if ruta.startswith("p/") or ruta.startswith("c/") or ruta in ("devoluciones.html", "privacidad.html"):
++        return NUEVA + ruta
++    if ruta == "catalogo.html":
++        return NUEVA + "tienda/"
++    return NUEVA
++
++
++def redirigir(ruta):
++    s = open(ruta, encoding="utf-8").read()
++    if MARCA in s:
++        return False
++    url = destino(ruta)
++    s = re.sub(r'<link rel="canonical" href="[^"]*">', '<link rel="canonical" href="%s">' % url, s, count=1)
++    # en la portada antigua, ?p=CÓDIGO abría un producto: se manda a su ficha
++    js = ("var q=new URLSearchParams(location.search).get('p');"
++          "location.replace(q&&/^[A-Za-z0-9-]+$/.test(q)?'%sp/'+q+'.html':'%s');" % (NUEVA, url)) if ruta == "index.html" else \
++         "location.replace('%s');" % url
++    salto = '%s\n<meta http-equiv="refresh" content="0;url=%s">\n<script>%s</script>\n' % (MARCA, url, js)
++    s = s.replace("<head>", "<head>\n" + salto, 1)
++    open(ruta, "w", encoding="utf-8").write(s)
++    return True
++
++
++def feeds():
++    for f in ("catalogo-google.csv", "catalogo-meta.csv"):
++        if not os.path.exists(f):
++            continue
++        s = open(f, encoding="utf-8").read()
++        n = re.sub(re.escape(ANTES) + r"\?p=([A-Za-z0-9-]+)", NUEVA + r"p/\1.html", s)
++        n = n.replace(ANTES + "p/", NUEVA + "p/")
++        if n != s:
++            open(f, "w", encoding="utf-8").write(n)
++
++
++if __name__ == "__main__":
++    if not nueva_en_linea():
++        print("karivejoyas.cl todavía no está en línea: el catálogo sigue igual.")
++    else:
++        paginas = ["index.html", "catalogo.html", "devoluciones.html", "privacidad.html"] + sorted(glob.glob("p/*.html")) + sorted(glob.glob("c/*.html"))
++        n = sum(redirigir(p) for p in paginas if os.path.exists(p))
++        feeds()
++        print("Catálogo antiguo → karivejoyas.cl: %d página(s) redirigidas; enlaces de los feeds actualizados." % n)
+-- 
+2.43.0
+

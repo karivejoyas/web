@@ -125,7 +125,7 @@ def ajustes_respaldo():
     if not d.get("igPubUrl"):
         print("⚠ No se pudo leer la configuración para el respaldo; se deja el anterior si existe.")
         try:
-            with urllib.request.urlopen((os.environ.get("SITIO_ACTUAL") or "https://nueva.karivejoyas.cl/").rstrip("/") + "/ajustes.json", timeout=30) as r:
+            with urllib.request.urlopen((os.environ.get("SITIO_ACTUAL") or SITIO).rstrip("/") + "/ajustes.json", timeout=30) as r:
                 d = json.load(r)
         except Exception:
             return
@@ -356,7 +356,7 @@ ICONOS = {
 }
 
 FUENTES = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
-           '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@400;500;600&display=swap" media="print" onload="this.media=\'all\'">')
+           '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" media="print" onload="this.media=\'all\'">')
 
 
 COLOR_VARS = {"fondo": "--crema", "fondo2": "--crema2", "texto": "--tinta", "suave": "--suave", "borde": "--borde",
@@ -409,6 +409,7 @@ def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="
 <title>{t}</title>
 <meta name="description" content="{d}">
 <meta name="robots" content="{rob}">
+<meta name="google-site-verification" content="gntO12xw5MtwsQ7yMhAah_xzH_QfZygK2XTzN83ulyM">
 <link rel="canonical" href="{u}">
 <meta name="theme-color" content="{tc}">
 <meta property="og:type" content="{tipo}"><meta property="og:site_name" content="{m}"><meta property="og:locale" content="es_CL">
@@ -418,6 +419,7 @@ def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="
 <link rel="icon" href="/assets/logo-avatar.png" type="image/png"><link rel="apple-touch-icon" href="/assets/logo-avatar.png"><link rel="manifest" href="/manifest.webmanifest">
 {fuentes}
 <link rel="stylesheet" href="/estatico/tienda.css?v={v}">
+<link rel="stylesheet" href="/estatico/diseno.css?v={v}">
 {vt}<meta name="kv-version" content="{v}">
 <script>document.documentElement.classList.add('js');setTimeout(function(){{if(!window.kvRevela)document.documentElement.classList.add('revelar-todo')}},2500);
 addEventListener('pagereveal',function(e){{var n=window.navigation&&navigation.activation,h=document.documentElement;if(!e.viewTransition||!n||n.navigationType!=='traverse')return;h.dataset.dir='atras';e.viewTransition.finished.finally(function(){{delete h.dataset.dir}})}})</script>
@@ -448,16 +450,37 @@ def menu_html(cols, movil=False, actual=""):
     return "".join(out)
 
 
-def encabezado(cols, actual=""):
+def logo_cabecera():
+    """El logo morado con más brillo (o el que se suba en Personalizar)."""
+    return imagen((TEMA.get("logo") or {}).get("imagen")) or "/assets/logo-brillo.png"
+
+
+def logo_claro():
+    """El logo en colores claros (crema y dorado), para el pie oscuro."""
+    return "/assets/logo-claro.png" if os.path.exists("assets/logo-claro.png") else logo_url()
+
+
+def anuncio_html():
+    """Barra de anuncio: una parte del texto a la vez (se separan con «·»), con flechas."""
     an = TEMA.get("anuncio") or {}
+    partes = [x.strip() for x in str(an.get("texto") or "").split("·") if x.strip()] or [""]
+    return ('<div class="anuncio anuncio-flechas"%s><button type="button" data-an="-1" aria-label="Anterior">‹</button>'
+            '<span class="an-txt" aria-live="polite">%s</span><button type="button" data-an="1" aria-label="Siguiente">›</button>'
+            '<script type="application/json" id="an-partes">%s</script></div>'
+            % ("" if an.get("activo", True) else " hidden", tx(partes[0]), json.dumps([tx(x) for x in partes], ensure_ascii=False).replace("</", "<\\/")))
+
+
+def encabezado(cols, actual="", inicio=False):
+    """Cabecera de todas las páginas. En la portada va transparente sobre la
+    foto; en el resto, sobre una franja morada oscura."""
     pie_links = "".join('<a href="%s">%s</a>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in TEMA.get("menuPie") or [])
-    return """<body>
+    return """<body class="ecm-muestra{interior}" data-portada="nueva">
 <a class="sr" href="#contenido">Saltar al contenido</a>
-<div class="anuncio"{an_kv}{an_oculto}>{an_txt}</div>
+{anuncio}
 <header class="cabecera">
   <div class="envoltura">
     <button class="icono hamburguesa" id="btn-menu" aria-label="Abrir menú">{i_menu}</button>
-    <a class="logo" href="/"><img src="{logo}" alt="{m}" width="89" height="44" data-kv-logo></a>
+    <a class="logo" href="/"><img src="{logo_cab}" alt="{m}" width="130" height="66" data-kv-logo></a>
     <nav class="menu" aria-label="Principal" data-kv-lista="menu">{menu}</nav>
     <div class="iconos">
       <button class="icono" id="btn-buscar" aria-label="Buscar">{i_buscar}</button>
@@ -487,7 +510,7 @@ def encabezado(cols, actual=""):
 <main id="contenido">
 """.format(i_menu=ICONOS["menu"], i_buscar=ICONOS["buscar"], i_carro=ICONOS["carro"], i_cerrar=ICONOS["cerrar"], m=e(MARCA), logo=e(logo_url()), i_abajo=ICONOS["abajo"],
            menu=menu_html(cols, False, actual), menu_movil=menu_html(cols, True), pie_links=pie_links,
-           an_kv=kv("anuncio.texto"), an_oculto="" if an.get("activo", True) else " hidden", an_txt=tx(an.get("texto")))
+           interior="" if inicio else " ecm-interior", anuncio=anuncio_html(), logo_cab=e(logo_cabecera()))
 
 
 # ------------------------------------------------------------------ Instagram
@@ -572,7 +595,7 @@ def instagram():
             nuevo["video"] = video_ig(vid, ident)
         lista.append(nuevo)
     if not lista:
-        for base in [os.environ.get("SITIO_ACTUAL") or "", "https://nueva.karivejoyas.cl/", SITIO]:
+        for base in [os.environ.get("SITIO_ACTUAL") or "", SITIO, "https://nueva.karivejoyas.cl/"]:
             if not base:
                 continue
             base = base.rstrip("/") + "/"
@@ -735,17 +758,6 @@ def logo_url():
 OLA = "M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z"
 
 
-def olas_html():
-    """Olas animadas justo antes del pie (Personalizar → Olas antes del pie)."""
-    o = TEMA.get("olas") or {}
-    return ('<div class="olas%s%s" aria-hidden="true" data-kv-si="olas.activo"%s><svg viewBox="0 24 150 28" preserveAspectRatio="none">'
-            '<defs><path id="kv-ola" d="%s"/></defs>'
-            '<g class="ola ola1"><use href="#kv-ola" x="48" y="0"/></g><g class="ola ola2"><use href="#kv-ola" x="48" y="3"/></g>'
-            '<g class="ola ola3"><use href="#kv-ola" x="48" y="5"/></g><g class="ola ola4"><use href="#kv-ola" x="48" y="7"/></g></svg></div>\n'
-            % ("" if o.get("animacion", True) else " quietas", " al-reves" if o.get("rotar") else "",
-               "" if o.get("activo", True) else " hidden", OLA))
-
-
 def chat_html():
     """Datos del asistente (el botón y el panel los arma chat.js)."""
     c = TEMA.get("chat") or {}
@@ -758,37 +770,47 @@ def chat_html():
 
 
 def pie(cols, scripts=""):
+    """Banda de suscripción, olas y pie oscuro (todas las páginas)."""
     pi = TEMA.get("pie") or {}
-    ayuda = "".join('<li><a href="%s">%s</a></li>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in TEMA.get("menuPie") or [])
+    o = TEMA.get("olas") or {}
     flota = '<a class="wa-flota%s" href="https://wa.me/%s" aria-label="Escríbenos por WhatsApp" rel="noopener" data-kv-si="whatsappFlotante"%s>%s</a>' % (
         " respira" if TEMA.get("whatsappRespira", True) else "", WA, "" if TEMA.get("whatsappFlotante", True) else " hidden", ICONOS["wa"])
-    flota += chat_html()
+    redes = [("instagram", "Instagram", IG), ("facebook", "Facebook", FBK), ("tiktok", "TikTok", str(pi.get("tiktok") or "").strip())]
+    pagos = "".join('<img src="/assets/pagos/%s" alt="%s" width="38" height="24" loading="lazy">' % x
+                    for x in (("visa.svg", "Visa"), ("mastercard.svg", "Mastercard"), ("amex.svg", "American Express"), ("mercadopago.webp", "Mercado Pago")))
+    olas = olas_ecm("ola-sube", "ola-sube" + ("" if o.get("animacion", True) else " quietas")) if o.get("activo", True) else ""
     return """</main>
-{olas}<footer class="pie{con_olas}">
-  <div class="envoltura">
-    <div class="pie-marca"><a class="pie-logo" href="/"><img src="{logo}" alt="{m}" width="105" height="52" loading="lazy"></a>
-      <p style="margin-top:12px"{k_txt}>{txt}</p>
-      <h3{k_bt}>{bt}</h3><p{k_bx}>{bx}</p>
-      <form class="boletin" id="boletin"><input name="correo" type="email" placeholder="Tu correo" aria-label="Tu correo" required><button class="btn btn-oro" type="submit">Suscribirme</button></form>
-      <div class="boletin-msg" id="boletin-msg" role="status"></div></div>
-    <div><h3>Colecciones</h3><ul>{cols}<li><a href="/tienda/">Ver todo</a></li></ul></div>
-    <div><h3>Ayuda</h3><ul data-kv-lista="menuPie">{ayuda}</ul></div>
-    <div class="pie-contacto"><h3>Contacto</h3>{contacto}</div>
+{olas}<section class="ecm-boletin"><div class="envoltura"><div><h2{k_bt}>{bt}</h2><p{k_bx}>{bx}</p></div>
+<div><form class="boletin" id="boletin"><input name="correo" type="email" placeholder="Correo electrónico..." aria-label="Tu correo" required><button class="btn ecm-btn" type="submit">Enviar</button></form>
+<div class="boletin-msg" id="boletin-msg" role="status"></div></div></div></section>
+<footer class="ecm-pie"><div class="envoltura">
+  <div class="f-grid">
+    <div><a class="f-logo" href="/"><img src="{logo}" alt="{m}" width="160" height="81" loading="lazy"></a><p{k_txt}>{txt}</p></div>
+    <div><h4>Tienda</h4><ul>{cols}<li><a href="/tienda/">Ver todo</a></li></ul></div>
+    <div><h4>Servicio al cliente</h4><ul data-kv-lista="menuPie">{ayuda}</ul></div>
+    <div><h4>Contacto</h4>{contacto}<p class="loc">Santiago, Chile<small>Envíos a todo el país</small></p></div>
   </div>
-  <div class="pie-final">© {anio} {m} · <span{k_fin}>{fin}</span></div>
-</footer>
-{flota}
+  <div class="f-bajo">
+    <div>Encuéntranos también en:<div class="redes">{redes}</div></div>
+    <div><b>© {anio} {m}</b><br><span{k_fin}>{fin}</span></div>
+    <div><div class="pagos">{pagos}</div><i>Pagos seguros con Mercado Pago</i></div>
+  </div>
+</div></footer>
+{flota}{chat}
 <script src="/estatico/comun.js?v={v}" defer></script>
-<script src="/estatico/tienda.js?v={v}" defer></script>{scripts}{chat_js}
+<script src="/estatico/tienda.js?v={v}" defer></script>
+<script src="/estatico/diseno.js?v={v}" defer></script>{scripts}{chat_js}
 </body>
 </html>
-""".format(m=e(MARCA), ig=e(IG), fb=e(FBK), wa=WA, anio=date.today().year, v=VERSION, scripts=scripts, flota=flota, ayuda=ayuda,
-           olas=olas_html(), con_olas=" con-olas" if (TEMA.get("olas") or {}).get("activo", True) else "", logo=e(logo_url()),
-           chat_js=('\n<script src="/estatico/chat.js?v=%s" defer></script>' % VERSION) if (TEMA.get("chat") or {}).get("activo", True) else "",
-           txt=tx(pi.get("texto")), k_txt=kv("pie.texto"), bt=tx(pi.get("boletinTitulo")), k_bt=kv("pie.boletinTitulo"),
-           bx=tx(pi.get("boletinTexto")), k_bx=kv("pie.boletinTexto"), fin=tx(pi.get("final")), k_fin=kv("pie.final"),
+""".format(olas=olas, m=e(MARCA), logo=e(logo_claro()), v=VERSION, scripts=scripts, flota=flota, chat=chat_html(), anio=date.today().year,
+           k_bt=kv("pie.boletinTitulo"), bt=tx(pi.get("boletinTitulo")), k_bx=kv("pie.boletinTexto"), bx=tx(pi.get("boletinTexto")),
+           k_txt=kv("pie.texto"), txt=tx(pi.get("texto")), k_fin=kv("pie.final"), fin=tx(pi.get("final")), pagos=pagos,
            cols="".join('<li><a href="/c/%s.html">%s</a></li>' % (e(c["slug"]), e(c["nombre"])) for c in cols),
-           contacto=contacto_pie(pi))
+           ayuda="".join('<li><a href="%s">%s</a></li>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in TEMA.get("menuPie") or []),
+           contacto=('<a class="f-fila" href="https://wa.me/%s" rel="noopener">%s %s</a>' % (WA, ICONOS["wa"], e(fono_bonito(WA))) if WA else "") +
+                    ('<a class="f-fila" href="mailto:%s">%s %s</a>' % (e(CORREO), REDES_ICONOS["correo"], e(CORREO)) if CORREO else ""),
+           redes="".join('<a href="%s" target="_blank" rel="noopener" aria-label="%s">%s</a>' % (e(u), n, REDES_ICONOS[k]) for k, n, u in redes if u.startswith("http")),
+           chat_js=('\n<script src="/estatico/chat.js?v=%s" defer></script>' % VERSION) if (TEMA.get("chat") or {}).get("activo", True) else "")
 
 
 def fono_bonito(n):
@@ -928,121 +950,6 @@ def sobre_html(SO):
             % (cab("kv-aiwt__m"), imgs, cab("kv-aiwt__desk"), kv("portada.sobre.texto"), tx(SO.get("texto")), boton(SO.get("boton"), "kv-aiwt__btn", "portada.sobre.boton")))
 
 
-def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
-    P = TEMA["portada"]
-    vis = [p for p in prods if p["hay"]]
-    porid = {p["id"]: p for p in vis}
-    n_nuevos = max(1, min(24, int(P["nuevos"].get("cantidad") or 8)))
-    n_fav = max(1, min(24, int(P["favoritos"].get("cantidad") or 8)))
-    nuevos = sorted(vis, key=lambda p: p["creado"], reverse=True)[:n_nuevos]
-    # favoritos: los que el panel marca como "lo más visto" y, para completar,
-    # el primero de cada colección (sin repetir lo que ya sale en "lo nuevo")
-    destacados = [porid[i] for i in mas_vistos if i in porid]
-    ronda = 0
-    while len(destacados) < n_fav and ronda < 10:
-        for c in cols:
-            cand = [p for p in c["_prods"] if p not in destacados and p not in nuevos]
-            if len(cand) > ronda and len(destacados) < n_fav:
-                destacados.append(cand[ronda])
-        ronda += 1
-    seo = TEMA.get("seo") or {}
-    jsonld = {"@context": "https://schema.org", "@graph": [
-        gen.organizacion(),
-        {"@type": "WebSite", "@id": SITIO + "#sitio", "url": SITIO, "name": MARCA, "inLanguage": "es-CL", "publisher": {"@id": SITIO + "#organizacion"},
-         "potentialAction": {"@type": "SearchAction", "target": {"@type": "EntryPoint", "urlTemplate": SITIO + "tienda/?q={search_term_string}"},
-                             "query-input": "required name=search_term_string"}},
-        {"@type": "WebPage", "@id": SITIO + "#portada", "url": SITIO, "name": tp(seo.get("titulo")),
-         "isPartOf": {"@id": SITIO + "#sitio"}, "about": {"@id": SITIO + "#organizacion"}, "inLanguage": "es-CL"},
-    ]}
-    img_tema = P["colecciones"].get("imagenes") or {}
-    def tarjeta_col(i, c):
-        img = imagen(img_tema.get(c["id"])) or img_cols.get(c["id"]) or c["_prods"][0]["img"]
-        w, hh = medidas_dist(img)
-        return ('<a class="coleccion" href="/c/{s}.html" style="--i:{i}" data-revelar>'
-                '<span class="coleccion-foto"><img src="{img}" alt="{alt}" loading="lazy" width="{w}" height="{hh}" data-kv-colimg="{cid}"{foco}><span class="coleccion-ver" aria-hidden="true"><span data-kv="portada.colecciones.botonTarjeta">' + e(((TEMA.get("portada") or {}).get("colecciones") or {}).get("botonTarjeta") or "Ver colección") + '</span> ' + FLECHA_DER + '</span></span>'
-                '<span class="coleccion-txt"><b>{n}</b><small>{k} modelos</small></span></a>').format(
-            s=e(c["slug"]), img=e(img), alt=e(gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0]), w=w, hh=hh,
-            n=e(c["nombre"]), k=len(c["_prods"]), cid=e(c["id"]), i=i, foco=estilo_foco((P["colecciones"].get("focos") or {}).get(c["id"])))
-    tarj_cols = "".join(tarjeta_col(i, c) for i, c in enumerate(cols))
-    img_seo = imagen(seo.get("imagen")) or "/assets/modelo-portada.jpg"
-    h = cabeza(tp(seo.get("titulo")), tp(seo.get("descripcion")), "/", SITIO + img_seo.lstrip("/"), jsonld)
-    h += encabezado(cols)
-
-    H, C, CO, F, TA, N, ES = (P[k] for k in ("hero", "confianza", "colecciones", "favoritos", "taller", "nuevos", "especial"))
-    CI = P.get("cinta") or {}
-    nuevo = nuevos[0] if nuevos else None
-    sec = {}
-    sec["hero"] = """<section class="hero-marco"><div class="hero-fondo" aria-hidden="true"><i></i><i></i><i></i></div><div class="envoltura hero">
-  <div class="hero-txt">
-    <h1{k2}>{tit}</h1>
-    <p{k3}>{txt}</p>
-    <div class="hero-acc">{b1}{b2}</div>
-  </div>
-  <div class="hero-img-marco"><div class="hero-img destello"><img src="{img}" alt="{alt}" width="860" height="645" fetchpriority="high" data-kv-img="portada.hero.imagen"{foco_hero}><span class="hero-velo" aria-hidden="true"></span><span class="hero-sello"{k4}>{sello}</span></div>{nuevo}</div>
-</div></section>""".format(nuevo=tarjeta_nuevo(nuevo, H.get("tarjetaNuevo", True)),k1=kv("portada.hero.antetitulo"), ante=tx(H.get("antetitulo")), k2=kv("portada.hero.titulo"), tit=tx(H.get("titulo")),
-                     k3=kv("portada.hero.texto"), txt=tx(H.get("texto")), b1=boton(H.get("boton1"), "btn-1", "portada.hero.boton1"),
-                     b2=boton(H.get("boton2"), "btn-2", "portada.hero.boton2"), img=e(imagen(H.get("imagen")) or "/assets/modelo-portada.jpg"),
-                     alt=e(H.get("imagenAlt") or MARCA), k4=kv("portada.hero.sello"), sello=tx(H.get("sello")), foco_hero=estilo_foco(H.get("imagenFoco")))
-    sec["cinta"] = cinta_html(CI.get("items") or [])
-    sec["confianza"] = '<div class="envoltura"><div class="confianza" data-kv-lista="portada.confianza.items">%s</div></div>' % "".join(
-        '<div><span class="ic">%s</span><span><b>%s</b>%s</span></div>' % (T.icono(it.get("icono")), tx(it.get("titulo")), tx(it.get("texto")))
-        for i, it in enumerate(C.get("items") or []))
-    def cab(d, ruta, url, extra=""):
-        return ('<div class="seccion-cab"><h2%s>%s</h2><a class="ver-todo" href="%s"%s>%s</a></div>'
-                % (kv(ruta + ".titulo"), tx(d.get("titulo")), url, kv(ruta + ".enlace"), tx(d.get("enlace"))))
-    sec["colecciones"] = '<section class="seccion envoltura" id="colecciones">%s<div class="colecciones">%s</div></section>' % (
-        cab(CO, "portada.colecciones", "/tienda/"), tarj_cols)
-    sec["favoritos"] = '<section class="seccion envoltura">%s<ul class="grilla">%s</ul></section>' % (
-        cab(F, "portada.favoritos", "/tienda/"), "".join(tarjeta(p, i) for i, p in enumerate(destacados[:n_fav])))
-    sec["taller"] = """<section class="franja">
-  <div class="envoltura">
-    <div class="franja-img"><img src="{img}" alt="{alt}" loading="lazy" width="900" height="675" data-kv-img="portada.taller.imagen"{foco_taller}>{sello}</div>
-    <div>
-      <h2{k2}>{tit}</h2>
-      <p{k3}>{txt}</p>
-      <ol class="pasos" data-kv-lista="portada.taller.pasos">{pasos}</ol>
-      <p style="margin-top:18px">{bt}</p>
-    </div>
-  </div>
-</section>""".format(sello=sello_gira(TA.get("circulo")), img=e(imagen(TA.get("imagen")) or "/assets/modelo-argollas.jpg"), alt=e(TA.get("imagenAlt") or MARCA), foco_taller=estilo_foco(TA.get("imagenFoco")),
-                     k1=kv("portada.taller.antetitulo"), ante=tx(TA.get("antetitulo")), k2=kv("portada.taller.titulo"), tit=tx(TA.get("titulo")),
-                     k3=kv("portada.taller.texto"), txt=tx(TA.get("texto")), bt=boton(TA.get("boton"), "btn-oro", "portada.taller.boton"),
-                     pasos="".join('<li><span class="n">%d</span><span>%s</span></li>' % (i + 1, tx(x)) for i, x in enumerate(TA.get("pasos") or [])))
-    sec["nuevos"] = '<section class="seccion envoltura">%s<ul class="grilla">%s</ul></section>' % (
-        cab(N, "portada.nuevos", "/tienda/?orden=nuevos"), "".join(tarjeta(p, i) for i, p in enumerate(nuevos)))
-    sec["especial"] = """<section class="seccion envoltura especial">
-  <h2{k2}>{tit}</h2>
-  <p style="max-width:560px;margin:0 auto 18px;color:var(--suave)"{k3}>{txt}</p>
-  <a class="btn btn-wa" href="https://wa.me/{wa}?text={wat}">{i_wa} <span{k4}>{bt}</span></a>
-</section>""".format(k1=kv("portada.especial.antetitulo"), ante=tx(ES.get("antetitulo")), k2=kv("portada.especial.titulo"), tit=tx(ES.get("titulo")),
-                     k3=kv("portada.especial.texto"), txt=tx(ES.get("texto")), wa=WA, wat=gen.urllib.parse.quote(ES.get("mensaje") or ""),
-                     i_wa=ICONOS["wa"], k4=kv("portada.especial.boton"), bt=tx(ES.get("boton")))
-    sec["sobre"] = sobre_html(P.get("sobre") or {})
-    ig = ig_html(P.get("instagram") or {}, list(ig_pubs))
-    if ig:
-        sec["instagram"] = ig
-    orden = [k for k in (P.get("orden") or []) if k in sec]
-    fabrica = T.TEMA_DEFECTO["portada"]["orden"]
-    for k in fabrica:
-        if k in sec and k not in orden:   # sección nueva: va después de la que la precede de fábrica
-            antes = [x for x in fabrica[:fabrica.index(k)] if x in orden]
-            orden.insert(orden.index(antes[-1]) + 1 if antes else 0, k)
-    orden += [k for k in sec if k not in orden]
-    ocultas = set(P.get("ocultas") or [])
-    h += '<div data-kv-secciones>\n'
-    for k in orden:
-        h += '<div data-kv-sec="%s"%s>%s</div>\n' % (k, " hidden" if k in ocultas else "", sec[k])
-    h += '</div>\n'
-    h += pie(cols)
-    escribir("index.html", h)
-
-
-# ------------------------------------------------------------ página de muestra
-# Diseño nuevo (estilo Ecomify) para revisar ANTES de cambiar la portada real.
-# Vive en /muestra/ (sin indexar ni enlazar). Usa los mismos productos, textos,
-# carrito, buscador y suscripción que la web; solo cambia el diseño.
-FUENTES_MUESTRA = ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap">'
-                   '<link rel="stylesheet" href="/estatico/muestra.css?v=%s">')
 ICONOS_FAQ = [
     '<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
     '<path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6"/><circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/>',
@@ -1056,7 +963,7 @@ ICONOS_FAQ = [
 
 
 def olas_ecm(id_, clase):
-    """Las mismas olas de la web (4 capas que van y vuelven en sentidos distintos)."""
+    """Las olas de la web (4 capas que van y vuelven en sentidos distintos)."""
     return ('<div class="olas ecm-olas %s" aria-hidden="true"><svg viewBox="0 24 150 28" preserveAspectRatio="none">'
             '<defs><path id="%s" d="%s"/></defs>'
             '<g class="ola ola1"><use href="#%s" x="48" y="0"/></g><g class="ola ola2"><use href="#%s" x="48" y="3"/></g>'
@@ -1064,7 +971,9 @@ def olas_ecm(id_, clase):
             % (clase, id_, OLA, id_, id_, id_, id_))
 
 
-def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
+def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
+    """La portada: carrusel con velo morado, lo nuevo, ¿por qué elegirnos?,
+    favoritos, Instagram, sobre nosotros y preguntas frecuentes."""
     P = TEMA["portada"]
     vis = [p for p in prods if p["hay"]]
     porid = {p["id"]: p for p in vis}
@@ -1077,123 +986,84 @@ def muestra(prods, cols, mas_vistos, img_cols, ig_pubs=()):
             if len(cand) > ronda and len(destacados) < 10:
                 destacados.append(cand[ronda])
         ronda += 1
+    seo = TEMA.get("seo") or {}
+    jsonld = {"@context": "https://schema.org", "@graph": [
+        gen.organizacion(),
+        {"@type": "WebSite", "@id": SITIO + "#sitio", "url": SITIO, "name": MARCA, "inLanguage": "es-CL", "publisher": {"@id": SITIO + "#organizacion"},
+         "potentialAction": {"@type": "SearchAction", "target": {"@type": "EntryPoint", "urlTemplate": SITIO + "tienda/?q={search_term_string}"},
+                             "query-input": "required name=search_term_string"}},
+        {"@type": "WebPage", "@id": SITIO + "#portada", "url": SITIO, "name": tp(seo.get("titulo")),
+         "isPartOf": {"@id": SITIO + "#sitio"}, "about": {"@id": SITIO + "#organizacion"}, "inLanguage": "es-CL"},
+    ]}
+    img_seo = imagen(seo.get("imagen")) or "/assets/modelo-portada.jpg"
+    h = cabeza(tp(seo.get("titulo")), tp(seo.get("descripcion")), "/", SITIO + img_seo.lstrip("/"), jsonld)
+    h += encabezado(cols, inicio=True)
     H, C, F, N = P["hero"], P["confianza"], P["favoritos"], P["nuevos"]
-    h = cabeza("Muestra del diseño nuevo | " + MARCA, "Página de prueba del diseño nuevo.", "/muestra/", SITIO + "assets/modelo-portada.jpg",
-               robots="noindex, nofollow", extra=FUENTES_MUESTRA % VERSION)
-    cab = encabezado(cols).replace("<body>", '<body class="ecm-muestra" data-portada="nueva">', 1)
-    # anuncio con flechas: las partes del texto actual, de a una
-    an = TEMA.get("anuncio") or {}
-    partes = [x.strip() for x in str(an.get("texto") or "").split("·") if x.strip()] or [""]
-    cab = re.sub(r'<div class="anuncio"[^>]*>.*?</div>',
-                 ('<div class="anuncio anuncio-flechas"%s><button type="button" data-an="-1" aria-label="Anterior">‹</button>'
-                  '<span class="an-txt" aria-live="polite">%s</span><button type="button" data-an="1" aria-label="Siguiente">›</button>'
-                  '<script type="application/json" id="an-partes">%s</script></div>')
-                 % ("" if an.get("activo", True) else " hidden", tx(partes[0]), json.dumps([tx(x) for x in partes], ensure_ascii=False).replace("</", "<\\/")),
-                 cab, count=1, flags=re.S)
-    # en la cabecera transparente va el logo claro
-    # sobre la cabecera oscura va el logo en colores claros
-    logo_claro = "/assets/logo-claro.png" if os.path.exists("assets/logo-claro.png") else logo_url()   # el logo en colores claros (crema y dorado)
-    cab = cab.replace('<a class="logo" href="/"><img src="%s"' % e(logo_url()),
-                      '<a class="logo" href="/"><img src="/assets/logo-brillo.png" data-claro="%s" data-morado="/assets/logo-brillo.png"' % e(logo_claro), 1)
-    h += cab
-    # portada con carrusel: la portada actual y 2 colecciones con foto
+    sec = {}
+    # portada con carrusel: la foto principal y las portadas de 2 colecciones
     bans = (TEMA.get("coleccionPagina") or {}).get("banners") or {}
     original = lambda u: (u[:-5] + ".jpg") if u.startswith("/assets/medios/") and u.endswith(".webp") and os.path.exists(DIST + u[:-5] + ".jpg") else u
-    slides = [{"img": original(imagen(H.get("imagen")) or "/assets/modelo-portada.jpg"), "foco": foco(H.get("imagenFoco")) or "50% 30%", "chico": tx(H.get("antetitulo")),
-               "titulo": tx(H.get("titulo")), "boton": H.get("boton1") or {"texto": "Ver la tienda", "url": "/tienda/"}}]
+    b1 = H.get("boton1") or {"texto": "Ver la tienda", "url": "/tienda/"}
+    slides = ['<div class="slide activa"><img class="r" src="%s" alt="%s" style="object-position:%s" fetchpriority="high" data-kv-img="portada.hero.imagen">'
+              '<div class="caption left"><small%s>%s</small><h1%s>%s</h1><a href="%s" class="btn ecm-btn"%s>%s</a></div></div>'
+              % (e(original(imagen(H.get("imagen")) or "/assets/modelo-portada.jpg")), e(H.get("imagenAlt") or MARCA), e(foco(H.get("imagenFoco")) or "50% 30%"),
+                 kv("portada.hero.antetitulo"), tx(H.get("antetitulo")), kv("portada.hero.titulo"), tx(H.get("titulo")),
+                 e(b1.get("url") or "/tienda/"), kv("portada.hero.boton1"), e(b1.get("texto") or ""))]
     for c in cols:
         b = bans.get(c["id"]) or {}
         if imagen(b.get("pc")) and len(slides) < 3:
-            slides.append({"img": original(imagen(b.get("pc"))), "foco": foco(b.get("foco")) or "50% 50%", "chico": "Colección " + e(c["nombre"]),
-                           "titulo": e(str(((TEMA.get("coleccionPagina") or {}).get("titulos") or {}).get(c["id"]) or gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0])),
-                           "boton": {"texto": P["colecciones"].get("botonTarjeta") or "Ver colección", "url": "/c/%s.html" % c["slug"]}})
-    h += '<section class="ecm-hero" aria-roledescription="carrusel">%s%s</section>' % ("".join(
-        '<div class="slide%s"><img class="%s" src="%s" alt="" style="object-position:%s"%s><div class="caption %s"><small>%s</small><h%d>%s</h%d>'
-        '<a href="%s" class="btn ecm-btn">%s</a></div></div>'
-        % (" activa" if i == 0 else "", "r" if i % 2 == 0 else "l", e(s["img"]), e(s["foco"]), "" if i == 0 else ' loading="lazy"',
-           "left" if i % 2 == 0 else "right", s["chico"], 1 if i == 0 else 2, s["titulo"], 1 if i == 0 else 2,
-           e(s["boton"].get("url") or "/"), e(s["boton"].get("texto") or ""))
-        for i, s in enumerate(slides)),
-        ('<button class="flecha prev" type="button" data-hero="-1" aria-label="Anterior">‹</button><button class="flecha next" type="button" data-hero="1" aria-label="Siguiente">›</button>'
-         if len(slides) > 1 else ""))
-    h += olas_ecm("ola-baja", "ola-baja")
-    # grilla de 5 columnas (lo nuevo)
-    h += ('<section class="ecm-seccion envoltura"><div class="ecm-hr"></div><h2 class="ecm-titulo">%s</h2><ul class="grilla ecm-grilla">%s</ul>'
-          '<div class="centro"><a class="btn ecm-btn" href="/tienda/?orden=nuevos">%s</a></div></section>'
-          % (tx(N.get("titulo")), "".join(tarjeta(p, i) for i, p in enumerate(nuevos)), tx(str(N.get("enlace") or "Ver lo nuevo").rstrip(" →"))))
-    # ¿por qué elegirnos? (con los beneficios actuales)
-    h += ('<section class="envoltura ecm-espacio"><div class="ecm-hr"></div><div class="ecm-oscuro"><div class="cab"><span class="pildora"><em>Karivé</em> · Joyas</span>'
-          '<h2>¿Por qué elegirnos?</h2></div><div class="ecm-por-que">%s</div></div></section>'
-          % "".join('<div><span class="ic">%s</span><h3>%s</h3><p>%s</p></div>' % (T.icono(it.get("icono")), tx(it.get("titulo")), tx(it.get("texto")))
-                    for it in C.get("items") or []))
-    # carrusel de destacados
-    h += ('<section class="ecm-seccion envoltura"><div class="ecm-hr"></div><h2 class="ecm-titulo">%s</h2><div class="ecm-slider">'
-          '<button class="s-flecha prev" type="button" data-pista="-1" aria-label="Anterior">‹</button><ul class="grilla ecm-pista">%s</ul>'
-          '<button class="s-flecha next" type="button" data-pista="1" aria-label="Siguiente">›</button></div><div class="ecm-puntos"></div>'
-          '<div class="centro"><a href="/tienda/" class="btn ecm-btn">%s</a></div></section>'
-          % (tx(F.get("titulo")), "".join(tarjeta(p, i) for i, p in enumerate(destacados)), tx(str(F.get("enlace") or "Ver la tienda").rstrip(" →"))))
-    # reseñas (de ejemplo hasta que haya reales)
-    ej = [("Terminaciones", "aquí va una reseña real sobre lo bien hechos que llegaron los aros."), ("Envío", "aquí va una reseña real sobre el envío y el empaque."),
-          ("Regalo", "aquí va una reseña real de alguien que los compró para regalar."), ("Atención", "aquí va una reseña real sobre la atención por WhatsApp.")]
-    h += ('<section class="envoltura ecm-espacio"><div class="ecm-hr"></div><div class="ecm-oscuro"><div class="cab"><span class="dorado">Clientas Karivé</span>'
-          '<h2>Lo que dicen quienes ya usan sus Karivé</h2><p>Opiniones sobre terminaciones, envío y regalos.</p></div>'
-          '<div class="ecm-resenas"><button class="s-flecha prev" type="button" data-res="-1" aria-label="Anterior">‹</button><div class="res-pista">%s</div>'
-          '<button class="s-flecha next" type="button" data-res="1" aria-label="Siguiente">›</button></div>'
-          '<span class="nota">Reseñas de ejemplo: se reemplazan por opiniones reales antes de usar este diseño en la portada.</span></div></section>'
-          % "".join('<div class="res"><span class="estrellas">★★★★★</span><small>%s</small>Texto de ejemplo: %s<b>Nombre de clienta</b><span>Comuna</span></div>' % x for x in ej))
-    # Instagram: las tarjetas actuales, 2 filas; los videos se ven aquí mismo
+            titulo = str(((TEMA.get("coleccionPagina") or {}).get("titulos") or {}).get(c["id"]) or gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0])
+            slides.append('<div class="slide"><img class="r" src="%s" alt="" style="object-position:%s" loading="lazy">'
+                          '<div class="caption left"><small>Colección %s</small><h2>%s</h2><a href="/c/%s.html" class="btn ecm-btn">%s</a></div></div>'
+                          % (e(original(imagen(b.get("pc")))), e(foco(b.get("foco")) or "50% 50%"), e(c["nombre"]), e(titulo), e(c["slug"]),
+                             e(P["colecciones"].get("botonTarjeta") or "Ver colección")))
+    flechas = ('<button class="flecha prev" type="button" data-hero="-1" aria-label="Anterior">‹</button>'
+               '<button class="flecha next" type="button" data-hero="1" aria-label="Siguiente">›</button>') if len(slides) > 1 else ""
+    sec["hero"] = '<section class="ecm-hero" aria-roledescription="carrusel">%s%s</section>%s' % ("".join(slides), flechas, olas_ecm("ola-baja", "ola-baja"))
+    # lo nuevo, en grilla de 5 columnas
+    sec["nuevos"] = ('<section class="ecm-seccion envoltura"><div class="ecm-hr"></div><h2 class="ecm-titulo"%s>%s</h2><ul class="grilla ecm-grilla">%s</ul>'
+                     '<div class="centro"><a class="btn ecm-btn" href="/tienda/?orden=nuevos">%s</a></div></section>'
+                     % (kv("portada.nuevos.titulo"), tx(N.get("titulo")), "".join(tarjeta(p, i) for i, p in enumerate(nuevos)),
+                        tx(str(N.get("enlace") or "Ver lo nuevo").rstrip(" →"))))
+    # ¿por qué elegirnos? (con los beneficios)
+    sec["confianza"] = ('<section class="envoltura ecm-espacio"><div class="ecm-hr"></div><div class="ecm-oscuro"><div class="cab"><span class="pildora"><em>Karivé</em> · Joyas</span>'
+                        '<h2>¿Por qué elegirnos?</h2></div><div class="ecm-por-que">%s</div></div></section>'
+                        % "".join('<div><span class="ic">%s</span><h3>%s</h3><p>%s</p></div>' % (T.icono(it.get("icono")), tx(it.get("titulo")), tx(it.get("texto")))
+                                  for it in C.get("items") or []))
+    # favoritos, en carrusel
+    sec["favoritos"] = ('<section class="ecm-seccion envoltura"><div class="ecm-hr"></div><h2 class="ecm-titulo"%s>%s</h2><div class="ecm-slider">'
+                        '<button class="s-flecha prev" type="button" data-pista="-1" aria-label="Anterior">‹</button><ul class="grilla ecm-pista">%s</ul>'
+                        '<button class="s-flecha next" type="button" data-pista="1" aria-label="Siguiente">›</button></div><div class="ecm-puntos"></div>'
+                        '<div class="centro"><a href="/tienda/" class="btn ecm-btn">%s</a></div></section>'
+                        % (kv("portada.favoritos.titulo"), tx(F.get("titulo")), "".join(tarjeta(p, i) for i, p in enumerate(destacados)),
+                           tx(str(F.get("enlace") or "Ver la tienda").rstrip(" →"))))
+    # Instagram: una fila; los videos se mueven solos y se abren aquí mismo
     ig = ig_html(dict(P.get("instagram") or {}, cantidad=6), list(ig_pubs))
     if ig:
-        h += '<div class="ecm-ig">%s</div>' % ig
-    h += sobre_html(P.get("sobre") or {})
+        sec["instagram"] = '<div class="ecm-ig">%s</div>' % ig
+    sec["sobre"] = sobre_html(P.get("sobre") or {})
     # preguntas frecuentes con íconos
     pq = TEMA["paginas"].get("preguntas") or {}
-    h += ('<section class="ecm-seccion envoltura ecm-faq"><span class="ojo">Karivé · Ayuda rápida</span><h2>%s</h2>%s'
-          '<div class="pie-faq"><p>¿Te quedó una duda? Te respondemos rápido por WhatsApp.</p><div class="btns"><a href="/tienda/" class="btn ecm-btn">Ver productos</a>'
-          '<a href="https://wa.me/%s" class="btn ecm-btn-borde">Hablar por WhatsApp</a></div></div></section>'
-          % (tx(pq.get("titulo") or "Preguntas frecuentes"), "".join(
-              '<div class="acc"><button type="button" aria-expanded="false"><span class="ic"><svg viewBox="0 0 24 24">%s</svg></span><span>%s</span><span class="chev" aria-hidden="true">▾</span></button>'
-              '<div class="ans"><p>%s</p></div></div>' % (ICONOS_FAQ[i % len(ICONOS_FAQ)], tx(it.get("q")), tx(it.get("a")))
-              for i, it in enumerate([x for x in pq.get("items") or [] if x.get("q")][:6])), WA))
-    # banda de suscripción + pie nuevo
-    pi = TEMA.get("pie") or {}
-    flota = '<a class="wa-flota%s" href="https://wa.me/%s" aria-label="Escríbenos por WhatsApp" rel="noopener"%s>%s</a>' % (
-        " respira" if TEMA.get("whatsappRespira", True) else "", WA, "" if TEMA.get("whatsappFlotante", True) else " hidden", ICONOS["wa"])
-    redes = [("instagram", "Instagram", IG), ("facebook", "Facebook", FBK), ("tiktok", "TikTok", str(pi.get("tiktok") or "").strip())]
-    pagos = "".join('<img src="/assets/pagos/%s" alt="%s" width="38" height="24" loading="lazy">' % x
-                    for x in (("visa.svg", "Visa"), ("mastercard.svg", "Mastercard"), ("amex.svg", "American Express"), ("mercadopago.webp", "Mercado Pago")))
-    h += """</main>
-%s<section class="ecm-boletin"><div class="envoltura"><div><h2>%s</h2><p>%s</p></div>
-<div><form class="boletin" id="boletin"><input name="correo" type="email" placeholder="Correo electrónico..." aria-label="Tu correo" required><button class="btn ecm-btn" type="submit">Enviar</button></form>
-<div class="boletin-msg" id="boletin-msg" role="status"></div></div></div></section>
-<footer class="ecm-pie"><div class="envoltura">
-  <div class="f-grid">
-    <div><a class="f-logo" href="/"><img src="%s" alt="%s" width="160" height="81" loading="lazy"></a><p>%s</p></div>
-    <div><h4>Tienda</h4><ul>%s<li><a href="/tienda/">Ver todo</a></li></ul></div>
-    <div><h4>Servicio al cliente</h4><ul>%s</ul></div>
-    <div><h4>Contacto</h4>%s<p class="loc">Santiago, Chile<small>Envíos a todo el país</small></p></div>
-  </div>
-  <div class="f-bajo">
-    <div>Encuéntranos también en:<div class="redes">%s</div></div>
-    <div><b>© %d %s</b><br><span>%s</span></div>
-    <div><div class="pagos">%s</div><i>Pagos seguros con Mercado Pago</i></div>
-  </div>
-</div></footer>
-%s%s
-<script src="/estatico/comun.js?v=%s" defer></script>
-<script src="/estatico/tienda.js?v=%s" defer></script>
-<script src="/estatico/muestra.js?v=%s" defer></script>%s
-</body>
-</html>
-""" % (olas_ecm("ola-sube", "ola-sube"), tx(pi.get("boletinTitulo")), tx(pi.get("boletinTexto")), e(logo_claro), e(MARCA), tx(pi.get("texto")),
-       "".join('<li><a href="/c/%s.html">%s</a></li>' % (e(c["slug"]), e(c["nombre"])) for c in cols),
-       "".join('<li><a href="%s">%s</a></li>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in TEMA.get("menuPie") or []),
-       ('<a class="f-fila" href="https://wa.me/%s" rel="noopener">%s %s</a>' % (WA, ICONOS["wa"], e(fono_bonito(WA))) if WA else "") +
-       ('<a class="f-fila" href="mailto:%s">%s %s</a>' % (e(CORREO), REDES_ICONOS["correo"], e(CORREO)) if CORREO else ""),
-       "".join('<a href="%s" target="_blank" rel="noopener" aria-label="%s">%s</a>' % (e(u), n, REDES_ICONOS[k]) for k, n, u in redes if u.startswith("http")),
-       date.today().year, e(MARCA), tx(pi.get("final")), pagos, flota, chat_html(), VERSION, VERSION, VERSION,
-       ('\n<script src="/estatico/chat.js?v=%s" defer></script>' % VERSION) if (TEMA.get("chat") or {}).get("activo", True) else "")
-    escribir("muestra/index.html", h)
+    sec["preguntas"] = ('<section class="ecm-seccion envoltura ecm-faq"><span class="ojo">Karivé · Ayuda rápida</span><h2>%s</h2>%s'
+                        '<div class="pie-faq"><p>¿Te quedó una duda? Te respondemos rápido por WhatsApp.</p><div class="btns"><a href="/tienda/" class="btn ecm-btn">Ver productos</a>'
+                        '<a href="https://wa.me/%s" class="btn ecm-btn-borde">Hablar por WhatsApp</a></div></div></section>'
+                        % (tx(pq.get("titulo") or "Preguntas frecuentes"), "".join(
+                            '<div class="acc"><button type="button" aria-expanded="false"><span class="ic"><svg viewBox="0 0 24 24">%s</svg></span><span>%s</span><span class="chev" aria-hidden="true">▾</span></button>'
+                            '<div class="ans"><p>%s</p></div></div>' % (ICONOS_FAQ[i % len(ICONOS_FAQ)], tx(it.get("q")), tx(it.get("a")))
+                            for i, it in enumerate([x for x in pq.get("items") or [] if x.get("q")][:6])), WA))
+    # orden fijo del diseño; las secciones que se ocultan en el panel (Tienda online → Secciones) no se muestran
+    ocultas = set(P.get("ocultas") or []) - {"hero"}
+    h += '<div data-kv-secciones data-kv-fijo>\n'
+    for k in ("hero", "nuevos", "confianza", "favoritos", "instagram", "sobre", "preguntas"):
+        if k in sec:
+            h += '<div data-kv-sec="%s"%s>%s</div>\n' % (k, " hidden" if k in ocultas else "", sec[k])
+    h += '</div>\n'
+    h += pie(cols)
+    escribir("index.html", h)
+    # la dirección de la muestra ahora lleva a la portada
+    escribir("muestra/index.html", '<!doctype html><html lang="es-CL"><head><meta charset="utf-8"><meta name="robots" content="noindex">'
+                                   '<link rel="canonical" href="%s"><meta http-equiv="refresh" content="0;url=/"><title>%s</title></head>'
+                                   '<body><a href="/">Ir a la portada</a></body></html>' % (SITIO, e(MARCA)))
 
 
 def tienda(prods, cols):
@@ -1535,7 +1405,7 @@ def archivos_buscadores(prods, cols):
             fh.write("  <url><loc>%sp/%s.html</loc><lastmod>%s</lastmod><image:image><image:loc>%s</image:loc></image:image></url>\n"
                      % (SITIO, p["codigo"], p["actualizado"] or hoy, html.escape(p["foto_abs"])))
         fh.write("</urlset>\n")
-    open(DIST + "/robots.txt", "w").write("User-agent: *\nAllow: /\nDisallow: /finalizar-compra.html\nDisallow: /admin/\nDisallow: /demo/\nDisallow: /muestra/\n\nSitemap: %ssitemap.xml\n" % SITIO)
+    open(DIST + "/robots.txt", "w").write("User-agent: *\nAllow: /\nDisallow: /finalizar-compra.html\nDisallow: /admin/\nDisallow: /demo/\n\nSitemap: %ssitemap.xml\n" % SITIO)
 
     filas = []
     for p in sorted(prods, key=lambda p: (p["cat"], p["orden"])):
@@ -1589,6 +1459,12 @@ def archivos_buscadores(prods, cols):
         "/estatico/*\n  Cache-Control: public, max-age=604800\n\n"
         "/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n")
     open(DIST + "/_redirects", "w").write("/catalogo/* /:splat 301\n/index.html / 301\n")
+    # clave de IndexNow (Bing y otros buscadores): herramientas/indexnow.py
+    try:
+        clave = re.search(r'CLAVE = "([0-9a-f]+)"', open("herramientas/indexnow.py", encoding="utf-8").read()).group(1)
+        open(DIST + "/%s.txt" % clave, "w").write(clave)
+    except (OSError, AttributeError):
+        pass
 
 
 # ------------------------------------------------------------------ panel
@@ -1634,7 +1510,6 @@ def main():
     img_cols = imagenes_colecciones()
     ig_pubs = instagram()
     portada(prods, cols, mas_vistos, img_cols, ig_pubs)
-    muestra(prods, cols, mas_vistos, img_cols, ig_pubs)          # diseño nuevo para revisar (/muestra/)
     tienda(prods, cols)
     for c in cols:
         coleccion(c, cols)

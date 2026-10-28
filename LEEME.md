@@ -13,10 +13,17 @@ misma base que usan el panel, el catálogo y el bot de Telegram.
 El pago usa el mismo publicador (Apps Script), Mercado Pago, pedidos y correos
 que el catálogo. Solo lee la base de datos: no cambia ningún producto.
 
-El catálogo antiguo (repositorio `catalogo`, karivejoyas.github.io/catalogo)
-es independiente y sigue funcionando igual.
+El catálogo antiguo (repositorio `catalogo`, karivejoyas.github.io/catalogo) sigue
+funcionando para el panel antiguo; sus páginas públicas mandan a karivejoyas.cl.
 
-## Panel de administración (nueva.karivejoyas.cl/admin)
+## Buscadores
+
+- `sitemap.xml`, `robots.txt`, `catalogo-google.csv` (Merchant Center) y `llms.txt` los arma `construir.py`.
+- `herramientas/indexnow.py` avisa a Bing y otros buscadores (IndexNow) de las páginas nuevas o
+  cambiadas después de cada publicación. Google no tiene aviso automático: lee el mapa del sitio
+  desde Search Console.
+
+## Panel de administración (karivejoyas.cl/admin)
 
 Panel estilo Shopify, en `admin/` (se copia tal cual a `dist/admin`). Usa la misma
 base de datos y la misma contraseña que el panel antiguo, que sigue funcionando.
