@@ -110,7 +110,7 @@
         '<div class="error-caja" id="pago-error" hidden></div>' +
         '<button type="button" class="btn btn-1 btn-bloque" id="confirmar" style="margin-top:14px"' + (enviando ? ' disabled' : '') + '>' +
           (enviando ? 'Enviando…' : conTarjeta ? 'Pagar ' + formatCLP(total) + ' con tarjeta' : 'Confirmar pedido por ' + formatCLP(total)) + '</button>' +
-        '<p class="nota" style="margin-top:10px">Al comprar aceptas nuestra <a href="/devoluciones.html">política de cambios</a> y la <a href="/privacidad.html">de privacidad</a>.</p>' +
+        '<p class="nota" style="margin-top:10px">Al comprar aceptas nuestra <a href="/devoluciones.html">política de cambios</a> (no hay cambios ni devoluciones por arrepentimiento; si hay un problema, lo vemos contigo) y la <a href="/privacidad.html">de privacidad</a>.</p>' +
       '</div>' +
       '<aside class="pago-caja"><h2>Tu pedido</h2>' +
         items.map(it => '<div class="resumen-item"><img src="' + escapeHtml(it.p.img) + '" alt="" width="56" height="56"><div>' + escapeHtml(it.p.name) +

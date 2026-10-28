@@ -100,6 +100,7 @@ T_ENVIOS = """{tabla_envios}
 <p>Si tu pedido llega con algún problema, escríbenos por WhatsApp o Instagram e intentaremos solucionarlo lo más pronto posible, según sea el caso.</p>"""
 T_DEVOLUCIONES_SEO = "Cambios y devoluciones en Karivé Joyas: qué hacer si tu pedido llega con algún problema y cómo contactarnos."
 T_DEVOLUCIONES = """<p>Cada par de aros se hace a mano y lo revisamos antes de enviarlo.</p>
+<p>No tenemos cambios ni devoluciones por arrepentimiento (no aplica el derecho a retracto de las compras a distancia). Si algo no salió como esperabas, escríbenos: cada caso lo conversamos contigo y buscamos la mejor solución.</p>
 <h2>Si tu pedido llega con algún problema</h2>
 <p>Escríbenos por WhatsApp o Instagram e intentaremos solucionar tu problema lo más pronto posible, según sea el caso.</p>
 {tarjetas_contacto}
@@ -158,6 +159,7 @@ MIGRACIONES = [
     ["paginas.envios.html", "si se extravía", T_ENVIOS],
     ["paginas.envios.seoDesc", "al resto del país", T_ENVIOS_SEO],
     ["paginas.devoluciones.html", "3 meses de garantía", T_DEVOLUCIONES],
+    ["paginas.devoluciones.html", "antes de enviarlo.</p>\\n<h2>Si tu pedido llega", T_DEVOLUCIONES],   # sin cambios por arrepentimiento (la marca va como queda en JSON)
     ["paginas.devoluciones.seoDesc", "3 meses", T_DEVOLUCIONES_SEO],
     ["paginas.privacidad.html", "catálogo de solo lectura", T_PRIVACIDAD],
 ]

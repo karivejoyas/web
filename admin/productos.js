@@ -4,6 +4,8 @@
    dejar un producto visible tiene que tener nombre, precio y foto. */
 (function () {
   'use strict';
+  // colores que entiende Google (mismos nombres que detecta el generador a partir del nombre)
+  const COLORES_PROD = ["Amarillo", "Azul", "Beige", "Blanco", "Burdeo", "Café", "Celeste", "Cobre", "Coral", "Dorado", "Fucsia", "Gris", "Lila", "Morado", "Mostaza", "Multicolor", "Naranjo", "Negro", "Plateado", "Rojo", "Rosa", "Transparente", "Turquesa", "Verde", "Violeta"];
   const h = A.h;
 
   const visible = (p) => p.stock === true;
@@ -146,6 +148,9 @@
         '<div class="tarjeta tarjeta-c">' +
           '<label class="campo"><span>Nombre</span><input id="pf-nombre" value="' + h(orig.name || '') + '" placeholder="Ej: Aros flor lila" maxlength="80"></label>' +
           '<label class="campo"><span>Medida o detalle</span><textarea id="pf-detalle" rows="2" placeholder="Ej: 3,5 cm de largo">' + h(orig.detail || '') + '</textarea><small>Es lo que aparece como «Medida» en la ficha de la web.</small></label>' +
+          '<label class="campo"><span>Color</span><select id="pf-color" style="max-width:260px"><option value="">Automático (según el nombre)</option>' +
+            COLORES_PROD.map(c => '<option' + (c === orig.color ? ' selected' : '') + '>' + c + '</option>').join('') +
+          '</select><small>Google lo muestra en sus resultados de compras. Déjalo en automático si el nombre ya dice el color.</small></label>' +
         '</div>' +
         '<div class="tarjeta"><div class="tarjeta-cab"><h2>Foto</h2></div><div class="tarjeta-c">' +
           '<div class="foto-prod" id="pf-foto" role="button" tabindex="0" aria-label="Cambiar la foto">' + (nuevo ? '<div class="sin">' + A.ic.subir + '<br>Toca para subir la foto</div>' : '<img id="pf-img" data-foto="' + orig.id + '" src="' + h(A.foto(orig) || A.SIN_FOTO) + '" alt="">') + '</div>' +
@@ -184,7 +189,7 @@
     const leer = () => {
       const ctrlOn = $('pf-ctrl').checked;
       return {
-        name: $('pf-nombre').value.trim(), detail: $('pf-detalle').value.trim(),
+        name: $('pf-nombre').value.trim(), detail: $('pf-detalle').value.trim(), color: $('pf-color').value,
         price: A.num($('pf-precio').value), priceOffer: A.num($('pf-oferta').value),
         code: $('pf-codigo').value.trim().toUpperCase(), category: $('pf-col').value,
         stock: $('pf-estado').value === '1',
@@ -192,7 +197,7 @@
         _foto: fotoNueva ? 'nueva' : fotoQuitada ? 'quitada' : ''
       };
     };
-    const base = { name: orig.name || '', detail: orig.detail || '', price: orig.price || 0, priceOffer: orig.priceOffer || 0, code: String(nuevo ? codigoSiguiente(orig.category) : orig.code || '').toUpperCase(), category: orig.category, stock: !!orig.stock, cantidad: kvStockCantidad(orig), _foto: '' };
+    const base = { name: orig.name || '', detail: orig.detail || '', color: orig.color || '', price: orig.price || 0, priceOffer: orig.priceOffer || 0, code: String(nuevo ? codigoSiguiente(orig.category) : orig.code || '').toUpperCase(), category: orig.category, stock: !!orig.stock, cantidad: kvStockCantidad(orig), _foto: '' };
     const revisar = () => {
       if (nuevo || !A.igual(leer(), base)) A.marcarCambios(guardar, () => { A.limpiarCambios(); A.repintar(); });
       else A.limpiarCambios();
@@ -251,7 +256,7 @@
       if (avisos.length && !(await A.confirmar('Revisa esto:\n\n• ' + avisos.join('\n• '), { titulo: '¿Guardar de todas formas?', si: 'Guardar igual' }))) return false;
 
       const datos = {};
-      ['name', 'detail', 'price', 'priceOffer', 'code', 'category', 'stock', 'cantidad'].forEach(k => { if (nuevo || !A.igual(v[k], base[k])) datos[k] = v[k]; });
+      ['name', 'detail', 'color', 'price', 'priceOffer', 'code', 'category', 'stock', 'cantidad'].forEach(k => { if (nuevo || !A.igual(v[k], base[k])) datos[k] = v[k]; });
       if (v._foto === 'nueva') datos.photo = fotoNueva;
       if (v._foto === 'quitada') datos.photo = null;
       if (!nuevo && v.category !== orig.category) datos.order = ordenFinal(v.category, orig.id);

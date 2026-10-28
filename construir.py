@@ -278,7 +278,7 @@ def precio_vigente(precio, oferta, pct):
 
 def cargar():
     info = gen.colecciones()
-    campos = ["code", "name", "price", "priceOffer", "stock", "cantidad", "detail", "category", "order", "photo"]
+    campos = ["code", "name", "price", "priceOffer", "stock", "cantidad", "detail", "category", "order", "photo", "color"]
     docs = gen.documentos("catalog/products/items", campos)
     if len(docs) < 20:
         sys.exit("Solo llegaron %d productos. Se aborta sin publicar nada." % len(docs))
@@ -300,7 +300,7 @@ def cargar():
             "precio": precio, "oferta": oferta, "vigente": precio_vigente(precio, oferta, pct) or precio,
             "rebajado": bool(precio_vigente(precio, oferta, pct)),
             "hay": p0.get("stock") is True, "cantidad": p0.get("cantidad"), "orden": p0.get("order") or 0,
-            "ruta": ruta, "dim": gen.medidas(ruta), "color": gen.color_de(p0.get("name")),
+            "ruta": ruta, "dim": gen.medidas(ruta), "color": str(p0.get("color") or "").strip() or gen.color_de(p0.get("name")),
             "actualizado": (doc.get("updateTime") or "")[:10], "creado": doc.get("createTime") or "",
         })
     conteo = {}
