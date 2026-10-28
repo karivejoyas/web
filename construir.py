@@ -410,6 +410,7 @@ def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="
 <meta name="description" content="{d}">
 <meta name="robots" content="{rob}">
 <meta name="google-site-verification" content="gntO12xw5MtwsQ7yMhAah_xzH_QfZygK2XTzN83ulyM">
+<meta name="google-site-verification" content="SiVit-HXZLFAfeKjKZUczVcrXe4KV9qn7xE_ECb6DeA">
 <link rel="canonical" href="{u}">
 <meta name="theme-color" content="{tc}">
 <meta property="og:type" content="{tipo}"><meta property="og:site_name" content="{m}"><meta property="og:locale" content="es_CL">
