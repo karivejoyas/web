@@ -803,7 +803,7 @@ def pie(cols, scripts=""):
 <script src="/estatico/diseno.js?v={v}" defer></script>{scripts}{chat_js}
 </body>
 </html>
-""".format(olas=olas, m=e(MARCA), logo=e(logo_claro()), v=VERSION, scripts=scripts, flota=flota, chat=chat_html(), anio=date.today().year,
+""".format(olas=olas, m=e(MARCA), logo=e(logo_cabecera()), v=VERSION, scripts=scripts, flota=flota, chat=chat_html(), anio=date.today().year,
            k_bt=kv("pie.boletinTitulo"), bt=tx(pi.get("boletinTitulo")), k_bx=kv("pie.boletinTexto"), bx=tx(pi.get("boletinTexto")),
            k_txt=kv("pie.texto"), txt=tx(pi.get("texto")), k_fin=kv("pie.final"), fin=tx(pi.get("final")), pagos=pagos,
            cols="".join('<li><a href="/c/%s.html">%s</a></li>' % (e(c["slug"]), e(c["nombre"])) for c in cols),

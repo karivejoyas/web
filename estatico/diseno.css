@@ -282,3 +282,12 @@
 .ecm-muestra .ecm-olas.ola-sube .ola2 use{fill:#9A68C8;opacity:.7}
 .ecm-muestra .ecm-olas.ola-sube .ola3 use{fill:#5B2A82;opacity:.9}
 .ecm-muestra .ecm-olas.ola-sube .ola4 use{fill:var(--ecm-dark);opacity:1}
+/* menú «Colecciones»: el panel es blanco, así que sus enlaces van en tinta (no en blanco como la barra) */
+.ecm-muestra[data-portada="nueva"] .cabecera .menu .desplegable-panel{min-width:220px;padding:8px}
+.ecm-muestra[data-portada="nueva"] .cabecera .menu .desplegable-panel a{color:var(--tinta);text-transform:none;letter-spacing:0;font-weight:500;font-size:15px;white-space:nowrap}
+.ecm-muestra[data-portada="nueva"] .cabecera .menu .desplegable-panel a:hover{background:var(--ecm-lila);color:var(--morado)}
+/* pie: el logo morado original (con brillo), igual que arriba */
+.ecm-muestra .ecm-pie .f-logo img{filter:drop-shadow(0 0 14px rgba(196,150,240,.3))}
+/* al pasar de una página a otra la cabecera aparece de una vez (sin estirarse ni dejar un recuadro blanco en la esquina) */
+::view-transition-old(cabecera){display:none}
+::view-transition-new(cabecera),::view-transition-group(cabecera){animation:none}
