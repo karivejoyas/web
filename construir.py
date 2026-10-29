@@ -399,8 +399,9 @@ def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="
     url = SITIO + ruta.lstrip("/")
     j = ('<script type="application/ld+json">%s</script>' % json.dumps(jsonld, ensure_ascii=False).replace("</", "<\\/")) if jsonld else ""
     ef_por, ef_tr = efectos()
-    # transición al pasar de una página a otra (navegadores que la soportan)
-    vt = "" if ef_tr == "ninguna" else '<style id="kv-transicion">@media (prefers-reduced-motion:no-preference){@view-transition{navigation:auto}}</style>\n'
+    # transición al pasar de una página a otra (navegadores que la soportan);
+    # en el celular no: Safari del iPhone dejaba un recuadro blanco en la cabecera
+    vt = "" if ef_tr == "ninguna" else '<style id="kv-transicion">@media (prefers-reduced-motion:no-preference) and (min-width:768px){@view-transition{navigation:auto}}</style>\n'
     return """<!doctype html>
 <html lang="es-CL" data-ef-portada="{ef_por}" data-tr="{ef_tr}">
 <head>

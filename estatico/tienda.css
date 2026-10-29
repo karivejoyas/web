@@ -730,3 +730,5 @@ h2.con-ig{display:flex;align-items:center;gap:12px}
 /* videos de Instagram que se mueven solos (en bucle, sin sonido) */
 .coleccion-foto video{display:block;width:100%;height:100%;object-fit:cover;object-position:center 35%;background:var(--crema2);transition:transform 1.1s var(--salida)}
 @media (hover:hover){.coleccion:hover .coleccion-foto video{transform:scale(1.04)}}
+/* en el celular la cabecera no participa en la transición entre páginas (Safari del iPhone la recortaba) */
+@media (max-width:767px){.cabecera{view-transition-name:none}}
