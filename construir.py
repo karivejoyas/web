@@ -58,6 +58,30 @@ def envio_de(region):
     return ENV_RM if region == REGION_RM else ENV_RESTO
 
 
+# códigos ISO de las regiones y días hábiles que tarda Blue Express desde Santiago
+REGION_ISO = {"Arica y Parinacota": "CL-AP", "Tarapacá": "CL-TA", "Antofagasta": "CL-AN", "Atacama": "CL-AT", "Coquimbo": "CL-CO",
+              "Valparaíso": "CL-VS", "Metropolitana de Santiago": "CL-RM", "O'Higgins": "CL-LI", "Maule": "CL-ML", "Ñuble": "CL-NB",
+              "Biobío": "CL-BI", "La Araucanía": "CL-AR", "Los Ríos": "CL-LR", "Los Lagos": "CL-LL", "Aysén": "CL-AI", "Magallanes": "CL-MA"}
+DIAS_TRANSITO = {"Metropolitana de Santiago": (1, 1), "Arica y Parinacota": (3, 4), "Tarapacá": (2, 3), "Antofagasta": (2, 3),
+                 "Aysén": (8, 10), "Magallanes": (10, 12)}
+ENVIOS_SCHEMA = []
+
+
+def envios_schema():
+    """Envío para los datos de Google (OfferShippingDetails): las mismas tarifas
+    por región que cobra la web, con preparación de 1 a 2 días y el tránsito de
+    Blue Express. Las regiones con igual precio y plazo van juntas."""
+    grupos = {}
+    for r in REGIONES:
+        grupos.setdefault((envio_de(r), DIAS_TRANSITO.get(r, (2, 3))), []).append(REGION_ISO[r])
+    dias = lambda a, b: {"@type": "QuantitativeValue", "minValue": a, "maxValue": b, "unitCode": "DAY"}
+    return [{"@type": "OfferShippingDetails",
+             "shippingRate": {"@type": "MonetaryAmount", "value": precio, "currency": "CLP"},
+             "shippingDestination": [{"@type": "DefinedRegion", "addressCountry": "CL", "addressRegion": iso} for iso in isos],
+             "deliveryTime": {"@type": "ShippingDeliveryTime", "handlingTime": dias(1, 2), "transitTime": dias(*transito)}}
+            for (precio, transito), isos in grupos.items()]
+
+
 def envio_rango():
     otras = [envio_de(r) for r in REGIONES if r != REGION_RM]
     todas = otras + [envio_de(REGION_RM)]
@@ -1015,9 +1039,9 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
         b = bans.get(c["id"]) or {}
         if imagen(b.get("pc")) and len(slides) < 3:
             titulo = str(((TEMA.get("coleccionPagina") or {}).get("titulos") or {}).get(c["id"]) or gen.SEO_COLECCION.get(c["id"], (c["nombre"],))[0])
-            slides.append('<div class="slide"><img class="r" src="%s" alt="" style="object-position:%s" loading="lazy">'
+            slides.append('<div class="slide"><img class="r" src="%s" alt="%s" style="object-position:%s" loading="lazy">'
                           '<div class="caption left"><small>Colección %s</small><h2>%s</h2><a href="/c/%s.html" class="btn ecm-btn">%s</a></div></div>'
-                          % (e(original(imagen(b.get("pc")))), e(foco(b.get("foco")) or "50% 50%"), e(c["nombre"]), e(titulo), e(c["slug"]),
+                          % (e(original(imagen(b.get("pc")))), e(titulo + " – " + MARCA), e(foco(b.get("foco")) or "50% 50%"), e(c["nombre"]), e(titulo), e(c["slug"]),
                              e(P["colecciones"].get("botonTarjeta") or "Ver colección")))
     flechas = ('<button class="flecha prev" type="button" data-hero="-1" aria-label="Anterior">‹</button>'
                '<button class="flecha next" type="button" data-hero="1" aria-label="Siguiente">›</button>') if len(slides) > 1 else ""
@@ -1163,8 +1187,11 @@ def producto(p, cols):
     ruta = p["url"]
     url = SITIO + ruta.lstrip("/")
     etiqueta = p["nombre"] if not p["repetido"] else "%s (%s)" % (p["nombre"], p["codigo"])
+    # títulos de hasta 60 caracteres, lo que Google muestra completo
     titulo = "%s | Aros hechos a mano | %s" % (etiqueta, MARCA)
-    if len(titulo) > 65:
+    if len(titulo) > 60:
+        titulo = "%s · Hecho a mano | %s" % (etiqueta, MARCA)
+    if len(titulo) > 60:
         titulo = "%s | %s" % (etiqueta, MARCA)
     partes = ["%s a %s: aros artesanales hechos a mano en Chile%s." % (etiqueta, pesos(p["vigente"]), (", " + p["medida"].lower()) if p["medida"] else ""),
               "Envío a todo Chile desde Santiago.", "Compra online o por WhatsApp."]
@@ -1186,7 +1213,7 @@ def producto(p, cols):
         "offers": {"@type": "Offer", "url": url, "priceCurrency": "CLP", "price": str(p["vigente"]),
                    "availability": "https://schema.org/%s" % ("InStock" if p["hay"] else "OutOfStock"),
                    "itemCondition": "https://schema.org/NewCondition", "seller": {"@id": SITIO + "#organizacion"},
-                   "shippingDetails": gen.envios(), "hasMerchantReturnPolicy": gen.politica_devolucion()},
+                   "shippingDetails": ENVIOS_SCHEMA, "hasMerchantReturnPolicy": gen.politica_devolucion()},
     }
     if p["color"]:
         prod["color"] = p["color"]
@@ -1497,6 +1524,7 @@ def main():
     import firma as F
     firma_datos = F.firma()          # se toma ANTES de leer los datos: si algo cambia mientras se arma, la próxima revisión lo nota
     ajustes_tienda()
+    ENVIOS_SCHEMA[:] = envios_schema()        # con las tarifas ya leídas de Configuración → Envío
     os.makedirs(DIST + "/estatico", exist_ok=True)
     for f in os.listdir(EST):
         shutil.copy(os.path.join(EST, f), DIST + "/estatico/" + f)
