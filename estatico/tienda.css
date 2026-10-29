@@ -701,7 +701,7 @@ h2.con-ig{display:flex;align-items:center;gap:12px}
   color:#fff;font-size:15px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;transition:background-color .15s ease-in-out}
 .kv-aiwt__btn:hover,.kv-aiwt__btn:focus-visible{background-color:#6E3A97;color:#fff}
 .kv-aiwt__img{display:block;position:relative;margin:40px auto 60px;width:50%;height:auto;max-width:100%;padding:.25rem;background:#fff;
-  border:1px solid var(--borde);border-radius:var(--kv-radius);box-shadow:0 .125rem .25rem rgba(42,18,62,.075);object-fit:cover;transition:all 1s ease-out}
+  border:1px solid var(--borde);border-radius:var(--kv-radius);box-shadow:0 .125rem .25rem rgba(42,18,62,.075);object-fit:cover;transition:transform 1s ease-out,opacity 1s ease-out,box-shadow 1s ease-out}
 .kv-aiwt__img--1{z-index:1;aspect-ratio:3/4}
 .kv-aiwt__img:not(.kv-aiwt__img--1){position:absolute;top:50%;left:50%;margin:0;aspect-ratio:1/1;transform:translate(-50%,-50%)}
 .kv-aiwt__img--2{width:32%}.kv-aiwt__img--3{width:20%}.kv-aiwt__img--4{width:24%}.kv-aiwt__img--5{width:30%}

@@ -624,6 +624,7 @@
         A.$('#ingreso').hidden = true;
         A.$('#app').hidden = false;
         A.$('#cuenta-correo').textContent = user.email || '';
+        try { localStorage.setItem('kv_no_contar', '1'); } catch (e) {}   // este equipo es de la tienda: sus visitas a la web no se cuentan
         if (!escuchas.length) escuchar();
         navegar();
         if (A.respaldoAutomatico) setTimeout(A.respaldoAutomatico, 8000);

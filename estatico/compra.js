@@ -78,21 +78,21 @@
     const total = Math.max(0, sub - dcto) + (envio || 0);
     const mp = kvMercadoPago(A), t = kvTransferencia(A);
     const conTarjeta = medio === 'mercadopago' && mp.activo;
-    const campo = (k, etq, tipo, extra) => '<label class="campo"><span>' + etq + '</span><input data-c="' + k + '" type="' + (tipo || 'text') + '" value="' + escapeHtml(form[k] || '') + '"' + (extra || '') + '></label>';
+    const campo = (k, etq, tipo, extra) => '<label class="campo"><span>' + etq + '</span><input data-c="' + k + '" name="' + k + '" type="' + (tipo || 'text') + '" value="' + escapeHtml(form[k] || '') + '"' + (extra || '') + '></label>';
     const comunas = kvComunasDe(form.region);
     raiz.innerHTML =
       '<div class="pago-caja">' +
         '<h2>Tus datos</h2>' +
         campo('nombre', 'Nombre y apellido *', 'text', ' autocomplete="name" required') +
-        '<div class="doble">' + campo('correo', 'Correo electrónico *', 'email', ' autocomplete="email" required') +
+        '<div class="doble">' + campo('correo', 'Correo electrónico *', 'email', ' autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="off" placeholder="tucorreo@ejemplo.cl" required') +
         campo('telefono', 'Teléfono *', 'tel', ' autocomplete="tel" placeholder="+56 9 1234 5678" required') + '</div>' +
         '<h2 style="margin-top:14px">Envío</h2>' + (courier() ? '<div class="envio-con">' + courier('Despachamos a todo Chile con') + '</div>' : '') +
-        campo('direccion', 'Dirección (calle, número, depto) *', 'text', ' autocomplete="street-address" required') +
-        '<div class="doble"><label class="campo"><span>Región *</span><select data-c="region"><option value="">Elige tu región</option>' +
-          KV_REGIONES.map(r => '<option value="' + escapeHtml(r) + '"' + (form.region === r ? ' selected' : '') + '>' + escapeHtml(r) + ' · envío ' + formatCLP(kvEnvioCosto(r)) + '</option>').join('') + '</select></label>' +
-        '<label class="campo"><span>Comuna *</span><select data-c="comuna"' + (comunas.length ? '' : ' disabled') + '><option value="">' + (comunas.length ? 'Elige tu comuna' : 'Primero la región') + '</option>' +
+        campo('direccion', 'Dirección (calle, número, depto) *', 'text', ' autocomplete="address-line1" placeholder="Ej: Av. Grecia 1234, depto 56…" required') +
+        '<div class="doble"><label class="campo"><span>Región *</span><select data-c="region" name="region"><option value="">Elige tu región</option>' +
+          KV_REGIONES.map(r => '<option value="' + escapeHtml(r) + '"' + (form.region === r ? ' selected' : '') + '>' + escapeHtml(r === 'Metropolitana de Santiago' ? 'Metropolitana (RM)' : r) + ' · ' + formatCLP(kvEnvioCosto(r)) + '</option>').join('') + '</select></label>' +
+        '<label class="campo"><span>Comuna *</span><select data-c="comuna" name="comuna"' + (comunas.length ? '' : ' disabled') + '><option value="">' + (comunas.length ? 'Elige tu comuna' : 'Primero la región') + '</option>' +
           comunas.map(c => '<option' + (form.comuna === c ? ' selected' : '') + '>' + escapeHtml(c) + '</option>').join('') + '</select></label></div>' +
-        '<label class="campo"><span>Nota para tu pedido (opcional)</span><textarea data-c="notas" rows="2">' + escapeHtml(form.notas || '') + '</textarea></label>' +
+        '<label class="campo"><span>Nota para tu pedido (opcional)</span><textarea data-c="notas" name="notas" rows="2" placeholder="Ej: dejar con conserjería, regalo…">' + escapeHtml(form.notas || '') + '</textarea></label>' +
         '<h2 style="margin-top:14px">Pago</h2>' +
         (conTarjeta
           ? '<div class="medio-unico"><div class="mp-cab"><img class="mp-logo" src="/assets/pagos/mercadopago.webp" alt="Mercado Pago" width="64" height="60">' +
@@ -184,6 +184,7 @@
     if (sug && correoAvisado !== f.correo.trim()) { correoAvisado = f.correo.trim(); return pintarError('¿Quisiste poner ' + sug + '? Si tu correo está bien, vuelve a tocar el botón: ahí te llega tu pedido.'); }
     if (!f.telefono.trim()) return pintarError('Escribe tu teléfono.');
     if (!f.direccion.trim()) return pintarError('Escribe tu dirección.');
+    if (!/\d|s\/n|sin n[uú]mero/i.test(f.direccion)) return pintarError('A tu dirección le falta el número de la calle (por ejemplo «Av. Grecia 1234»). Si no tiene número, escribe «s/n».');
     if (!f.region) return pintarError('Elige tu región para calcular el envío.');
     if (!f.comuna) return pintarError('Elige tu comuna.');
     const conTarjeta = medio === 'mercadopago' && kvMercadoPago(A).activo;

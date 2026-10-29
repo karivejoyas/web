@@ -807,7 +807,7 @@ def pie(cols, scripts=""):
     olas = olas_ecm("ola-sube", "ola-sube" + ("" if o.get("animacion", True) else " quietas")) if o.get("activo", True) else ""
     return """</main>
 {olas}<section class="ecm-boletin"><div class="envoltura"><div><h2{k_bt}>{bt}</h2><p{k_bx}>{bx}</p></div>
-<div><form class="boletin" id="boletin"><input name="correo" type="email" placeholder="Correo electrónico..." aria-label="Tu correo" required><button class="btn ecm-btn" type="submit">Enviar</button></form>
+<div><form class="boletin" id="boletin"><input name="correo" type="email" placeholder="Correo electrónico…" aria-label="Tu correo" required><button class="btn ecm-btn" type="submit">Enviar</button></form>
 <div class="boletin-msg" id="boletin-msg" role="status"></div></div></div></section>
 <footer class="ecm-pie"><div class="envoltura">
   <div class="f-grid">

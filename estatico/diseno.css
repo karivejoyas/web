@@ -291,3 +291,9 @@
 /* al pasar de una página a otra la cabecera aparece de una vez (sin estirarse ni dejar un recuadro blanco en la esquina) */
 ::view-transition-old(cabecera){display:none}
 ::view-transition-new(cabecera),::view-transition-group(cabecera){animation:none}
+/* foco visible al usar el teclado en el boletín; toques sin demora ni destello en el celular */
+.ecm-boletin input:focus-visible{outline:2px solid var(--ecm-oro);outline-offset:2px}
+a,button,select,label,summary,input[type="submit"]{touch-action:manipulation}
+html{-webkit-tap-highlight-color:rgba(91,42,130,.12)}
+.cajon-panel,.buscador-panel,.ig-modal-caja{overscroll-behavior:contain}
+.ecm-hero h1,.ecm-hero h2,.ecm-titulo,.ecm-muestra main h1{text-wrap:balance}

@@ -374,11 +374,32 @@
   const RAIZ_DOC = 'projects/karive-catalogo/databases/(default)/documents/';
   let visitaId = '';
   const enMarco = (() => { try { return window.top !== window; } catch (e) { return true; } })();
-  if (!enMarco && !/[?&]nocontar\b/.test(location.search)) {
+  /* Solo se cuentan personas en karivejoyas.cl: no las pruebas en otras
+     direcciones, ni robots (Google, Bing, vistas previas de redes, navegadores
+     automáticos), ni los equipos donde se entró al panel (la dueña). */
+  const ROBOT = /bot\b|bot\/|crawl|spider|slurp|googleother|google-inspectiontool|storebot|adsbot|mediapartners|lighthouse|headless|pagespeed|facebookexternalhit|meta-externalagent|whatsapp|telegram|preview|bingpreview|petalbot|ahrefs|semrush|yandex|baidu/i;
+  const contar = (() => {
+    if (enMarco || /[?&]nocontar\b/.test(location.search)) return false;
+    if (!/(^|\.)karivejoyas\.cl$/.test(location.hostname)) return false;
+    if (navigator.webdriver || ROBOT.test(navigator.userAgent || '')) return false;
+    try { if (localStorage.getItem('kv_no_contar')) return false; } catch (e) {}
+    return true;
+  })();
+  try { if (/[?&]nocontar\b/.test(location.search)) localStorage.setItem('kv_no_contar', '1'); } catch (e) {}
+  // una visita = una persona mientras navega: se reutiliza en todas sus pestañas
+  // y termina tras 30 minutos sin actividad (como Google Analytics)
+  let visitaNueva = false;
+  if (contar) {
+    const ahora = Date.now(), nuevoId = () => 'v' + ahora.toString(36) + Math.random().toString(36).slice(2, 8);
     try {
-      visitaId = sessionStorage.getItem('kv_visita_id') || '';
-      if (!visitaId) { visitaId = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); sessionStorage.setItem('kv_visita_id', visitaId); }
-    } catch (e) { visitaId = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+      visitaId = localStorage.getItem('kv_visita_id') || '';
+      const ultima = Number(localStorage.getItem('kv_visita_ultima') || 0);
+      if (!visitaId || ahora - ultima > 30 * 60 * 1000) { visitaId = nuevoId(); visitaNueva = true; localStorage.setItem('kv_visita_id', visitaId); }
+      localStorage.setItem('kv_visita_ultima', String(ahora));
+    } catch (e) {
+      try { visitaId = sessionStorage.getItem('kv_visita_id') || ''; if (!visitaId) { visitaId = nuevoId(); visitaNueva = true; sessionStorage.setItem('kv_visita_id', visitaId); } }
+      catch (e2) { visitaId = nuevoId(); visitaNueva = true; }
+    }
   }
   /* Guarda campos en la visita; `agregar` suma elementos a listas sin repetir. */
   function visita(datos, agregar) {
@@ -389,9 +410,7 @@
     fetch(FS + ':commit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ writes: [w] }), keepalive: true }).catch(() => {});
   }
   if (visitaId) {
-    let nueva = false;
-    try { nueva = !sessionStorage.getItem('kv_visita_ok'); sessionStorage.setItem('kv_visita_ok', '1'); } catch (e) {}
-    if (nueva) {
+    if (visitaNueva) {
       const dev = kvVisitaDispositivo(), org = kvVisitaOrigen(document.referrer);
       visita({ creada: new Date().toISOString(), dispositivo: dev.dispositivo, so: dev.so, navegador: dev.navegador, origenTipo: org.tipo, origenHost: org.host, pais: '', region: '', ciudad: '', sitio: 'web nueva' });
       try {
