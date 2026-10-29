@@ -255,6 +255,7 @@
     raiz.innerHTML = '<div class="ok-caja" style="grid-column:1/-1"><div class="antetitulo">Pedido recibido</div>' +
       '<div class="ok-num">' + (num ? 'Pedido #' + num : '¡Listo!') + '</div>' +
       '<p>¡Gracias por tu compra! 💜 Te enviamos un correo de confirmación.<br>Cuando verifiquemos el pago preparamos tu pedido y te avisamos cuando vaya en camino.</p>' +
+      (num ? '<p>Puedes ver en qué va tu pedido cuando quieras en <a href="/mi-pedido.html?n=' + encodeURIComponent(num) + (form.correo ? '&c=' + encodeURIComponent(form.correo.trim()) : '') + '"><b>Mi pedido</b></a> (con tu número y tu correo).</p>' : '') +
       '<p><a class="btn btn-wa" href="https://wa.me/' + whatsapp() + '?text=' + encodeURIComponent(txt) + '">Avisar también por WhatsApp</a></p>' +
       '<a class="btn btn-2" href="/">Volver al inicio</a></div>';
   }

@@ -143,6 +143,7 @@
     if (est !== 'nuevo') hitos.push(['Pago verificado' + (p.stockDescontado ? ' · stock descontado' : ''), '', true]);
     if (est === 'preparando' || est === 'enviado') hitos.push(['En preparación', '', true]);
     if (p.enviadoFecha) hitos.push(['Enviado' + (p.tracking ? ' · ' + (p.courier || '') + ' ' + p.tracking : ''), p.enviadoFecha, true]);
+    if (p.recordatorioFecha) hitos.push(['Se le mandó el recordatorio de pago pendiente', p.recordatorioFecha, true]);
     if (p.avisoFecha) hitos.push(['Se le avisó por correo', p.avisoFecha, true]);
 
     vista.innerHTML = '<div class="pag">' +
@@ -238,9 +239,9 @@
     async verificar(p) {
       if (p.medioPago === 'mercadopago' && p.pagoEstado !== 'approved' &&
         !(await A.confirmar('Mercado Pago todavía no confirma este pago. ¿Lo marcas como verificado igual?', { si: 'Marcar verificado' }))) return;
-      try { await descontarStock(p); await actualizar(p.id, { estado: 'verificado' }); A.toast('Pago verificado ✓'); } catch (e) { A.errorGuardar(e); }
+      try { await descontarStock(p); await actualizar(p.id, { estado: 'verificado', verificadoFecha: new Date().toISOString() }); A.toast('Pago verificado ✓'); } catch (e) { A.errorGuardar(e); }
     },
-    async preparar(p) { try { await actualizar(p.id, { estado: 'preparando' }); A.toast('Pedido en preparación'); } catch (e) { A.errorGuardar(e); } },
+    async preparar(p) { try { await actualizar(p.id, { estado: 'preparando', preparandoFecha: new Date().toISOString() }); A.toast('Pedido en preparación'); } catch (e) { A.errorGuardar(e); } },
     async enviado(p, b) {
       const d = datosEnvio(p); b.disabled = true;
       try { await actualizar(p.id, Object.assign({ estado: 'enviado', enviadoFecha: new Date().toISOString() }, d)); A.toast('Marcado como enviado. Si quieres, ahora avísale por correo.'); }
@@ -401,4 +402,42 @@
     return s;
   }
   A.botonesRecuperar = botonesRecuperar;
+
+  /* ---------- «Mi pedido» en la web ----------
+     Cada vez que cambia un pedido, se publica un resumen SIN datos personales
+     (estado, fechas, productos, total y seguimiento) en catalog/seguimiento,
+     con un nombre que solo se obtiene sabiendo el correo y el número. Solo se
+     escribe lo que cambió (firma guardada en el pedido). */
+  let segCorriendo = false, segPendiente = false;
+  async function sincronizarSeguimiento() {
+    if (segCorriendo) { segPendiente = true; return; }
+    if (A.seguimientoError || !window.crypto || !crypto.subtle) return;
+    segCorriendo = true;
+    const limite = Date.now() - 180 * 864e5;
+    try {
+      for (const p of (A.pedidos || []).slice()) {
+        const correo = ((p.cliente || {}).correo || '').trim();
+        if (!p.num || !correo || Date.parse(p.fecha || 0) < limite) continue;
+        const pub = {
+          num: Number(p.num), estado: p.estado || 'nuevo', fecha: p.fecha || '',
+          verificadoFecha: p.verificadoFecha || '', preparandoFecha: p.preparandoFecha || '', enviadoFecha: p.enviadoFecha || '',
+          items: (p.items || []).map(i => ({ nombre: String(i.name || ''), cantidad: Number(i.qty) || 1 })),
+          total: Number(p.total) || 0,
+          courier: p.estado === 'enviado' ? (p.courier || 'Bluexpress') : '', tracking: p.estado === 'enviado' ? (p.tracking || '') : '',
+          trackingUrl: p.estado === 'enviado' ? (p.trackingUrl || '') : ''
+        };
+        const firma = (await kvSeguimientoId(JSON.stringify(pub), '')).slice(0, 16);
+        if (p.seguimientoFirma === firma) continue;
+        const id = await kvSeguimientoId(correo, p.num);
+        await A.ref.seguimiento.doc(id).set(Object.assign({ actualizado: new Date().toISOString() }, pub));
+        await A.ref.pedidos.doc(p.id).update({ seguimientoFirma: firma });
+      }
+    } catch (e) {
+      if (String(e && (e.code || e.message)).indexOf('permission') !== -1) A.seguimientoError = 'permiso';
+      else console.warn('Mi pedido:', e.message || e);
+    }
+    segCorriendo = false;
+    if (segPendiente) { segPendiente = false; setTimeout(sincronizarSeguimiento, 1500); }
+  }
+  A.sincronizarSeguimiento = sincronizarSeguimiento;
 })();

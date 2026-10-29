@@ -1217,3 +1217,11 @@ function kvCompressPhoto(file, cb, max, quality) {
   };
   reader.readAsDataURL(file);
 }
+
+/* «Mi pedido»: el resumen público de un pedido se guarda con un nombre que
+   solo se puede calcular sabiendo el correo y el número (así nadie más lo ve). */
+async function kvSeguimientoId(correo, num) {
+  const txt = String(correo || '').trim().toLowerCase() + '|' + String(num || '').replace(/\D/g, '');
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+  return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+}

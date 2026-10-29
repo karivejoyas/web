@@ -194,8 +194,12 @@
     "    match /catalog/web/temas/{id} {\n      allow read, write: if request.auth != null && request.auth.token.email == 'karive.joyas@gmail.com';\n    }\n" +
     "    match /catalog/web/respaldos/{id} {\n      allow read, write: if request.auth != null && request.auth.token.email == 'karive.joyas@gmail.com';\n    }";
 
+  // «Mi pedido»: la web lee el resumen de un pedido (solo de a uno, sabiendo
+  // su nombre) y solo el panel lo escribe
+  const REGLAS_SEG = "    match /catalog/seguimiento/items/{id} {\n      allow get: if true;\n      allow list: if false;\n      allow write: if request.auth != null && request.auth.token.email == 'karive.joyas@gmail.com';\n    }";
+
   function respaldos(vista) {
-    const ok = A.webError !== 'permiso';
+    const ok = A.webError !== 'permiso', okSeg = A.seguimientoError !== 'permiso';
     vista.innerHTML = marco('respaldos', A.cab('Respaldos y permisos') +
       '<div class="tarjeta"><div class="tarjeta-cab"><h2>Permiso para guardar la web</h2>' + (ok ? '<span class="ins verde">Activo</span>' : '<span class="ins rojo">Falta activarlo</span>') + '</div><div class="tarjeta-c">' +
         (ok ? '<p class="ayuda" style="margin:0">Todo bien: el panel puede guardar los textos, imágenes, temas y respaldos de la web.</p>' :
@@ -207,6 +211,12 @@
         '<button class="btn" id="cr-copiar">' + A.ic.copiar + ' Copiar</button>' +
         '<ol start="4" style="padding-left:20px;margin:12px 0 0"><li>Aprieta <b>Publicar</b> y vuelve a cargar esta página.</li></ol>') +
       '</div></div>' +
+      '<div class="tarjeta"><div class="tarjeta-cab"><h2>Permiso para «Mi pedido»</h2>' + (okSeg ? '<span class="ins verde">Activo</span>' : '<span class="ins rojo">Falta activarlo</span>') + '</div><div class="tarjeta-c">' +
+        (okSeg ? '<p class="ayuda" style="margin:0">Las clientas pueden ver en karivejoyas.cl/mi-pedido.html en qué va su pedido (con su número y su correo). El panel lo actualiza solo cada vez que cambias un estado.</p>' :
+        '<p>Para que las clientas puedan ver su pedido en la web, agrega estas líneas en <a href="https://console.firebase.google.com/project/karive-catalogo/firestore/rules" target="_blank" rel="noopener">Firebase → Firestore → Reglas</a>, justo debajo de <code>match /databases/{database}/documents {</code>, y aprieta <b>Publicar</b>. Solo dejan ver un resumen sin datos personales, y solo a quien sabe el número y el correo.</p>' +
+        '<pre style="background:#2A123E;color:#F6EEFB;border-radius:10px;padding:12px;overflow:auto;font-size:12px;margin:0 0 8px">' + h(REGLAS_SEG) + '</pre>' +
+        '<button class="btn" id="cr-copiar-seg">' + A.ic.copiar + ' Copiar</button>') +
+      '</div></div>' +
       '<div class="tarjeta"><div class="tarjeta-cab"><h2>Respaldos</h2><div class="acciones"><button class="btn btn-primario btn-chico" id="cr-crear"' + (ok ? '' : ' disabled') + '>Crear respaldo ahora</button></div></div>' +
         '<p class="ayuda" style="padding:6px 16px 0">Cada respaldo guarda los textos y diseño de la web, la configuración (cupones, colecciones, pagos…) y los datos de todos los productos (nombre, precio, stock, código), sin las fotos. Se hace uno automático cada día.</p>' +
         '<div id="cr-lista">' + (ok ? A.cargandoHtml : '') + '</div></div>' +
@@ -216,6 +226,7 @@
       '</div></div>');
 
     if (A.$('#cr-copiar', vista)) A.$('#cr-copiar', vista).addEventListener('click', async () => { try { await navigator.clipboard.writeText(REGLAS); A.toast('Reglas copiadas'); } catch (e) { window.prompt('Copia las reglas:', REGLAS); } });
+    if (A.$('#cr-copiar-seg', vista)) A.$('#cr-copiar-seg', vista).addEventListener('click', async () => { try { await navigator.clipboard.writeText(REGLAS_SEG); A.toast('Reglas copiadas'); } catch (e) { window.prompt('Copia las reglas:', REGLAS_SEG); } });
     A.$('#cr-crear', vista).addEventListener('click', async (e) => {
       e.target.disabled = true; e.target.textContent = 'Creando…';
       try { await crearRespaldo(false); A.toast('Respaldo creado ✓'); pintarLista(); } catch (err) { A.errorGuardar(err); }

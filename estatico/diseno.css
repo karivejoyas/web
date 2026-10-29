@@ -297,3 +297,26 @@ a,button,select,label,summary,input[type="submit"]{touch-action:manipulation}
 html{-webkit-tap-highlight-color:rgba(91,42,130,.12)}
 .cajon-panel,.buscador-panel,.ig-modal-caja{overscroll-behavior:contain}
 .ecm-hero h1,.ecm-hero h2,.ecm-titulo,.ecm-muestra main h1{text-wrap:balance}
+/* «Mi pedido» */
+.mi-pedido{max-width:640px;margin:28px auto 10px}
+.mi-pedido form{display:grid;gap:12px;grid-template-columns:1fr 1.6fr auto;align-items:end;background:#fff;border:1px solid var(--borde);border-radius:18px;padding:16px}
+.mi-pedido form .btn{min-height:48px}
+@media (max-width:640px){.mi-pedido form{grid-template-columns:1fr}}
+.mp-error{background:#FBEDEC;color:#8A1F17;border-radius:12px;padding:12px 14px;margin-top:14px}
+.mp-caja{margin-top:18px;background:#fff;border:1px solid var(--borde);border-radius:18px;padding:18px}
+.mp-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.mp-cab h2{margin:0;font-size:26px}
+.mp-pasos{list-style:none;margin:16px 0;padding:0;display:grid;gap:0}
+.mp-pasos li{position:relative;padding:0 0 18px 30px;color:var(--suave)}
+.mp-pasos li::before{content:"";position:absolute;left:6px;top:4px;width:12px;height:12px;border-radius:50%;border:2px solid var(--lila);background:#fff}
+.mp-pasos li::after{content:"";position:absolute;left:12px;top:20px;bottom:0;width:2px;background:var(--lila)}
+.mp-pasos li:last-child::after{display:none}
+.mp-pasos li.hecho,.mp-pasos li.ahora{color:var(--tinta)}
+.mp-pasos li.hecho::before{background:var(--morado);border-color:var(--morado)}
+.mp-pasos li.ahora::before{background:var(--ecm-oro);border-color:var(--morado);box-shadow:0 0 0 4px rgba(227,197,114,.35)}
+.mp-pasos small{display:block;color:var(--suave)}
+.mp-envio{background:var(--ecm-lila);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.mp-envio .btn{margin-top:10px}
+.mp-items{list-style:none;padding:0;margin:0 0 12px}
+.mp-items li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--borde)}
+.mp-nota{margin:10px 0 0;color:var(--suave)}

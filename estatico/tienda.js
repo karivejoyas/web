@@ -163,6 +163,17 @@
   let carro = {};
   try { carro = JSON.parse(localStorage.getItem(CARRO_KEY) || '{}') || {}; } catch (e) { carro = {}; }
   function carroGuardar() { try { localStorage.setItem(CARRO_KEY, JSON.stringify(carro)); } catch (e) {} carroContador(); visitaCarrito(); }
+  /* ?carro=ID:2,ID:1 (enlace del correo «tu pedido quedó pendiente»): vuelve a
+     armar ese carrito en este equipo y quita el parámetro de la dirección. */
+  (() => {
+    const q = new URLSearchParams(location.search), v = q.get('carro');
+    if (!v) return;
+    const nuevo = {};
+    v.split(',').forEach(x => { const m = /^([A-Za-z0-9_-]{4,40}):(\d{1,2})$/.exec(x.trim()); if (m && +m[2] > 0) nuevo[m[1]] = +m[2]; });
+    if (Object.keys(nuevo).length) { carro = nuevo; try { localStorage.setItem(CARRO_KEY, JSON.stringify(carro)); } catch (e) {} }
+    q.delete('carro');
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+  })();
   function carroContador() {
     const n = Object.values(carro).reduce((a, b) => a + (b || 0), 0);
     $$('.contador').forEach(c => { c.textContent = n > 99 ? '99+' : n; c.hidden = n === 0; });

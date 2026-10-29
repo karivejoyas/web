@@ -496,10 +496,18 @@ def anuncio_html():
             % ("" if an.get("activo", True) else " hidden", tx(partes[0]), json.dumps([tx(x) for x in partes], ensure_ascii=False).replace("</", "<\\/")))
 
 
+def menu_pie():
+    """Enlaces de ayuda del tema, más «Mi pedido» si todavía no está."""
+    l = list(TEMA.get("menuPie") or [])
+    if not any("mi-pedido" in str(it.get("url") or "") for it in l):
+        l.insert(0, {"texto": "Mi pedido", "url": "/mi-pedido.html"})
+    return l
+
+
 def encabezado(cols, actual="", inicio=False):
     """Cabecera de todas las páginas. En la portada va transparente sobre la
     foto; en el resto, sobre una franja morada oscura."""
-    pie_links = "".join('<a href="%s">%s</a>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in TEMA.get("menuPie") or [])
+    pie_links = "".join('<a href="%s">%s</a>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in menu_pie())
     return """<body class="ecm-muestra{interior}" data-portada="nueva">
 <a class="sr" href="#contenido">Saltar al contenido</a>
 {anuncio}
@@ -832,7 +840,7 @@ def pie(cols, scripts=""):
            k_bt=kv("pie.boletinTitulo"), bt=tx(pi.get("boletinTitulo")), k_bx=kv("pie.boletinTexto"), bx=tx(pi.get("boletinTexto")),
            k_txt=kv("pie.texto"), txt=tx(pi.get("texto")), k_fin=kv("pie.final"), fin=tx(pi.get("final")), pagos=pagos,
            cols="".join('<li><a href="/c/%s.html">%s</a></li>' % (e(c["slug"]), e(c["nombre"])) for c in cols),
-           ayuda="".join('<li><a href="%s">%s</a></li>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in TEMA.get("menuPie") or []),
+           ayuda="".join('<li><a href="%s">%s</a></li>' % (e(it.get("url") or "/"), e(it.get("texto") or "")) for it in menu_pie()),
            contacto=('<a class="f-fila" href="https://wa.me/%s" rel="noopener">%s %s</a>' % (WA, ICONOS["wa"], e(fono_bonito(WA))) if WA else "") +
                     ('<a class="f-fila" href="mailto:%s">%s %s</a>' % (e(CORREO), REDES_ICONOS["correo"], e(CORREO)) if CORREO else ""),
            redes="".join('<a href="%s" target="_blank" rel="noopener" aria-label="%s">%s</a>' % (e(u), n, REDES_ICONOS[k]) for k, n, u in redes if u.startswith("http")),
@@ -1394,6 +1402,19 @@ def paginas_texto(cols):
             continue
         TEMA["paginas"]["_x_" + slug] = x
         pagina_tema("_x_" + slug, "/paginas/%s.html" % slug)
+
+    # «Mi pedido»: número + correo → en qué va el pedido (estatico/mi-pedido.js)
+    pagina_texto("/mi-pedido.html", "Mi pedido | " + MARCA, "Revisa en qué va tu pedido de Karivé Joyas con tu número de pedido y tu correo.",
+                 '<h1>Mi pedido</h1><p>Escribe el número de tu pedido (está en el correo de confirmación) y el correo con que compraste.</p>'
+                 '<div class="mi-pedido" id="mi-pedido" data-wa="%s"><form novalidate>'
+                 '<label class="campo"><span>N° de pedido</span><input name="num" inputmode="numeric" autocomplete="off" placeholder="Ej: 128" required></label>'
+                 '<label class="campo"><span>Correo</span><input name="correo" type="email" autocomplete="email" spellcheck="false" autocapitalize="off" placeholder="tucorreo@ejemplo.cl" required></label>'
+                 '<button class="btn ecm-btn" type="submit">Ver mi pedido</button></form><div id="mp-resultado" aria-live="polite"></div></div>' % e(WA),
+                 cols, robots="noindex, follow")
+    ruta_mp = DIST + "/mi-pedido.html"
+    h_mp = open(ruta_mp, encoding="utf-8").read().replace('<script src="/estatico/tienda.js?v=%s" defer></script>' % VERSION,
+        '<script src="/estatico/tienda.js?v=%s" defer></script>\n<script src="/estatico/mi-pedido.js?v=%s" defer></script>' % (VERSION, VERSION), 1)
+    open(ruta_mp, "w", encoding="utf-8").write(h_mp)
 
     pagina_texto("/finalizar-compra.html", "Finalizar compra | " + MARCA, "Completa tus datos y paga tu pedido de Karivé Joyas.",
                  '<h1 style="margin-bottom:0">Finalizar compra</h1>', cols, robots="noindex, nofollow")

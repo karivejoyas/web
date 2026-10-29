@@ -35,6 +35,7 @@
       settings: cat.doc('settings'),
       pedidos: cat.doc('pedidos').collection('items'),
       visitas: cat.doc('visitas').collection('items'),
+      seguimiento: cat.doc('seguimiento').collection('items'),
       suscritos: cat.doc('suscriptores').collection('items'),
       web: cat.doc('web'),
       temas: cat.doc('web').collection('temas'),
@@ -292,6 +293,7 @@
     escuchas.push(A.ref.pedidos.onSnapshot(s => {
       A.pedidos = s.docs.map(d => Object.assign({ id: d.id }, d.data()));
       emitir('pedidos');
+      if (A.sincronizarSeguimiento) setTimeout(A.sincronizarSeguimiento, 2000);   // «Mi pedido» en la web
     }, e => console.error('pedidos', e)));
     escuchas.push(A.ref.visitas.orderBy('ultima', 'desc').limit(1500).onSnapshot(s => {
       A.visitas = s.docs.map(d => Object.assign({ id: d.id }, d.data()));
