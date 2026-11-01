@@ -303,7 +303,7 @@ function webRecordatorios() {
       '<p style="color:#6B5A7B;font-size:13px">Si ya no te interesa, no tienes que hacer nada: no volveremos a escribirte por este pedido.</p>' +
       '<p>Un abrazo,<br>Karivé Joyas · Santiago, Chile · <a href="https://karivejoyas.cl" style="color:#5B2A82">karivejoyas.cl</a></p></div>';
     try {
-      MailApp.sendEmail({ to: correo, subject: 'Tu pedido en Karivé Joyas quedó pendiente', body: texto, htmlBody: html, name: 'Karivé Joyas' });
+      webEnviarCorreo(correo, 'Tu pedido en Karivé Joyas quedó pendiente', texto, html);
     } catch (e) { Logger.log('❌ No se pudo enviar a ' + correo + ': ' + e); return; }
     UrlFetchApp.fetch(WEB_FS + '/' + p._ruta + '?updateMask.fieldPaths=recordatorioFecha', {
       method: 'patch', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + pase },
@@ -313,6 +313,15 @@ function webRecordatorios() {
   });
   props.setProperties({ WEB_REC_DIA: hoy, WEB_REC_N: String(enviados) });
   if (n) Logger.log('✉️ Recordatorios enviados: ' + n);
+}
+
+/* Envía desde contacto@karivejoyas.cl (alias de Gmail que sale por Resend) si
+   el alias está configurado; si no, desde la cuenta de Gmail de la tienda. */
+var WEB_REMITENTE = 'contacto@karivejoyas.cl';
+function webEnviarCorreo(para, asunto, texto, html) {
+  var opciones = { htmlBody: html, name: 'Karivé Joyas', replyTo: WEB_REMITENTE };
+  try { if (GmailApp.getAliases().indexOf(WEB_REMITENTE) !== -1) opciones.from = WEB_REMITENTE; } catch (e) {}
+  GmailApp.sendEmail(para, asunto, texto, opciones);
 }
 
 /* Para probar a mano: dice cuántos pedidos podría recordar ahora, sin enviar nada. */
