@@ -133,9 +133,9 @@ T_SOBRE = {
 }
 T_DESCRIPCIONES = {
     "flores": "Flores de arcilla polimérica modeladas y pintadas a mano, pétalo por pétalo. Colores vivos, piezas livianas y un toque romántico para iluminar tu look, del día a día a una ocasión especial.",
-    "charms": "Pequeños charms de arcilla que se mueven contigo: divertidos, coloridos y fáciles de combinar. Perfectos para darle personalidad a tus looks de todos los días.",
+    "charms": "Charms que se mueven contigo: divertidos, coloridos y fáciles de combinar. Perfectos para darle personalidad a tus looks de todos los días.",
     "argollas": "Argollas tejidas a mano con cristales y mostacillas que atrapan la luz en cada movimiento. Brillo delicado, colores para todos los gustos y un diseño que no pasa desapercibido.",
-    "topos": "Corazones pequeños tipo botón, livianos y cómodos para usar todo el día. Un detalle tierno y versátil que combina con todo, ideal para tener en varios colores.",
+    "topos": "Corazones en distintos tamaños, colores y terminaciones. Livianos y cómodos para usar todo el día: un detalle tierno y versátil que combina con todo.",
     "marina": "Conchitas, estrellas de mar y detalles inspirados en la costa, con terminaciones doradas y nacaradas. Para llevar el verano contigo todo el año.",
     "cmu236iia": "Diseños especiales para celebrar: Fiestas Patrias, Navidad y esas fechas que merecen algo distinto. Aros alegres y llenos de color para lucir en cada celebración.",
     "otros": "Formas, texturas y colores que no caben en una sola colección: piezas creativas, con mucha personalidad y hechas en series pequeñas.",
@@ -159,6 +159,9 @@ MIGRACIONES = [
     ["paginas.envios.html", "si se extravía", T_ENVIOS],
     ["paginas.envios.seoDesc", "al resto del país", T_ENVIOS_SEO],
     ["paginas.devoluciones.html", "3 meses de garantía", T_DEVOLUCIONES],
+    # textos de colección sin tamaños fijos (también van en la descripción de cada producto)
+    ["coleccionPagina.descripciones.topos", "tipo botón", T_DESCRIPCIONES["topos"]],
+    ["coleccionPagina.descripciones.charms", "Pequeños charms de arcilla", T_DESCRIPCIONES["charms"]],
     ["paginas.devoluciones.html", "antes de enviarlo.</p>\\n<h2>Si tu pedido llega", T_DEVOLUCIONES],   # sin cambios por arrepentimiento (la marca va como queda en JSON)
     ["paginas.devoluciones.seoDesc", "3 meses", T_DEVOLUCIONES_SEO],
     ["paginas.privacidad.html", "catálogo de solo lectura", T_PRIVACIDAD],

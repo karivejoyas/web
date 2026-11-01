@@ -5,6 +5,13 @@
 (function () {
   'use strict';
   // colores que entiende Google (mismos nombres que detecta el generador a partir del nombre)
+  /* Descripción automática de la web (igual que descripcion_producto() en construir.py). */
+  const DESC_FINAL = 'Al ser piezas hechas a mano, cada par puede tener pequeñas diferencias: eso las hace únicas. Se envían en su empaque, listos para regalar.';
+  function descAuto(nombre, catId) {
+    let colDesc = '';
+    try { colDesc = String((((A.temaVigente() || {}).coleccionPagina || {}).descripciones || {})[catId] || '').trim(); } catch (e) {}
+    return (nombre || 'Este producto').trim() + ': aros artesanales de la colección ' + A.nombreCol(catId) + ', hechos a mano.' + (colDesc ? ' ' + colDesc : '') + ' ' + DESC_FINAL;
+  }
   const COLORES_PROD = ["Amarillo", "Azul", "Beige", "Blanco", "Burdeo", "Café", "Celeste", "Cobre", "Coral", "Dorado", "Fucsia", "Gris", "Lila", "Morado", "Mostaza", "Multicolor", "Naranjo", "Negro", "Plateado", "Rojo", "Rosa", "Transparente", "Turquesa", "Verde", "Violeta"];
   const h = A.h;
 
@@ -151,9 +158,12 @@
           '<label class="campo"><span>Color</span><select id="pf-color" style="max-width:260px"><option value="">Automático (según el nombre)</option>' +
             COLORES_PROD.map(c => '<option' + (c === orig.color ? ' selected' : '') + '>' + c + '</option>').join('') +
           '</select><small>Google lo muestra en sus resultados de compras. Déjalo en automático si el nombre ya dice el color.</small></label>' +
+          '<label class="campo"><span>Descripción (la que se ve en la web)</span><textarea id="pf-desc" rows="5">' + h(orig.descripcion || descAuto(orig.name, orig.category)) + '</textarea>' +
+          '<small id="pf-desc-ayuda">' + (orig.descripcion ? 'Escrita por ti. ' : 'Texto automático: se arma con el nombre y la colección. Puedes cambiarlo o dejarlo tal cual. ') +
+          '<button type="button" class="enlace" id="pf-desc-auto"' + (orig.descripcion ? '' : ' hidden') + '>Volver al texto automático</button></small></label>' +
         '</div>' +
         '<div class="tarjeta"><div class="tarjeta-cab"><h2>Foto</h2></div><div class="tarjeta-c">' +
-          '<div class="foto-prod" id="pf-foto" role="button" tabindex="0" aria-label="Cambiar la foto">' + (nuevo ? '<div class="sin">' + A.ic.subir + '<br>Toca para subir la foto</div>' : '<img id="pf-img" data-foto="' + orig.id + '" src="' + h(A.foto(orig) || A.SIN_FOTO) + '" alt="">') + '</div>' +
+          '<div class="foto-prod" id="pf-foto" role="button" tabindex="0" aria-label="Cambiar la foto">' + (nuevo ? '<div class="sin">' + A.ic.subir + '<br>Toca o arrastra aquí la foto</div>' : '<img id="pf-img" data-foto="' + orig.id + '" src="' + h(A.foto(orig) || A.SIN_FOTO) + '" alt="">') + '</div>' +
           '<div class="foto-acc"><button class="btn btn-chico" id="pf-foto-btn">' + A.ic.subir + ' ' + (nuevo ? 'Subir foto' : 'Cambiar foto') + '</button>' + (nuevo ? '' : '<button class="btn btn-chico btn-peligro" id="pf-foto-quitar">Quitar foto</button>') + '</div>' +
           '<p class="ayuda mt" style="margin:8px 0 0">Se achica sola para que la web cargue rápido. Usa una foto cuadrada y bien iluminada.</p>' +
         '</div></div>' +
@@ -190,6 +200,8 @@
       const ctrlOn = $('pf-ctrl').checked;
       return {
         name: $('pf-nombre').value.trim(), detail: $('pf-detalle').value.trim(), color: $('pf-color').value,
+        // si el texto es igual al automático no se guarda: así sigue al día si cambian el nombre o la colección
+        descripcion: (() => { const d = $('pf-desc').value.trim(); return d === descAuto($('pf-nombre').value, $('pf-col').value).trim() ? '' : d; })(),
         price: A.num($('pf-precio').value), priceOffer: A.num($('pf-oferta').value),
         code: $('pf-codigo').value.trim().toUpperCase(), category: $('pf-col').value,
         stock: $('pf-estado').value === '1',
@@ -197,7 +209,7 @@
         _foto: fotoNueva ? 'nueva' : fotoQuitada ? 'quitada' : ''
       };
     };
-    const base = { name: orig.name || '', detail: orig.detail || '', color: orig.color || '', price: orig.price || 0, priceOffer: orig.priceOffer || 0, code: String(nuevo ? codigoSiguiente(orig.category) : orig.code || '').toUpperCase(), category: orig.category, stock: !!orig.stock, cantidad: kvStockCantidad(orig), _foto: '' };
+    const base = { name: orig.name || '', detail: orig.detail || '', color: orig.color || '', descripcion: orig.descripcion || '', price: orig.price || 0, priceOffer: orig.priceOffer || 0, code: String(nuevo ? codigoSiguiente(orig.category) : orig.code || '').toUpperCase(), category: orig.category, stock: !!orig.stock, cantidad: kvStockCantidad(orig), _foto: '' };
     const revisar = () => {
       if (nuevo || !A.igual(leer(), base)) A.marcarCambios(guardar, () => { A.limpiarCambios(); A.repintar(); });
       else A.limpiarCambios();
@@ -215,15 +227,38 @@
       $('pf-col-nota').hidden = nuevo;
       $('pf-col-nota').textContent = 'Se irá al final de la colección y su código pasará a ' + cod + '.';
     });
-    const subir = async () => {
-      const f = await A.elegirArchivo('image/*'); if (!f) return;
+    const usarFoto = async (f) => {
+      if (!f) return;
+      if (!/^image\//.test(f.type || '')) { A.toast('Ese archivo no es una foto.', true); return; }
       try {
         fotoNueva = await A.comprimir(f, 1600, 0.87); fotoQuitada = false;
         $('pf-foto').innerHTML = '<img src="' + fotoNueva + '" alt="">';
         revisar();
       } catch (e) { A.toast(e.message, true); }
     };
+    const subir = async () => usarFoto(await A.elegirArchivo('image/*'));
     $('pf-foto').addEventListener('click', subir);
+    // también se puede arrastrar la foto desde el computador
+    ['dragenter', 'dragover'].forEach(t => $('pf-foto').addEventListener(t, (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; $('pf-foto').classList.add('arrastrando'); }));
+    ['dragleave', 'dragend'].forEach(t => $('pf-foto').addEventListener(t, () => $('pf-foto').classList.remove('arrastrando')));
+    $('pf-foto').addEventListener('drop', (e) => {
+      e.preventDefault(); $('pf-foto').classList.remove('arrastrando');
+      usarFoto(Array.from(e.dataTransfer.files || []).find(f => /^image\//.test(f.type)) || (e.dataTransfer.files || [])[0]);
+    });
+    // descripción: mientras sea la automática, se actualiza sola al cambiar el nombre o la colección
+    let descPrevia = descAuto(orig.name, orig.category);
+    const descAlDia = () => {
+      const nueva = descAuto($('pf-nombre').value, $('pf-col').value), d = $('pf-desc');
+      if (d.value.trim() === descPrevia.trim()) d.value = nueva;
+      descPrevia = nueva;
+      const propia = d.value.trim() !== nueva.trim();
+      $('pf-desc-auto').hidden = !propia;
+      $('pf-desc-ayuda').firstChild.textContent = propia ? 'Escrita por ti. ' : 'Texto automático: se arma con el nombre y la colección. Puedes cambiarlo o dejarlo tal cual. ';
+    };
+    $('pf-nombre').addEventListener('input', descAlDia);
+    $('pf-col').addEventListener('change', descAlDia);
+    $('pf-desc').addEventListener('input', descAlDia);
+    $('pf-desc-auto').addEventListener('click', () => { $('pf-desc').value = descAuto($('pf-nombre').value, $('pf-col').value); descAlDia(); revisar(); });
     $('pf-foto').addEventListener('keydown', (e) => { if (e.key === 'Enter') subir(); });
     $('pf-foto-btn').addEventListener('click', subir);
     if ($('pf-foto-quitar')) $('pf-foto-quitar').addEventListener('click', async () => {
@@ -256,7 +291,7 @@
       if (avisos.length && !(await A.confirmar('Revisa esto:\n\n• ' + avisos.join('\n• '), { titulo: '¿Guardar de todas formas?', si: 'Guardar igual' }))) return false;
 
       const datos = {};
-      ['name', 'detail', 'color', 'price', 'priceOffer', 'code', 'category', 'stock', 'cantidad'].forEach(k => { if (nuevo || !A.igual(v[k], base[k])) datos[k] = v[k]; });
+      ['name', 'detail', 'color', 'descripcion', 'price', 'priceOffer', 'code', 'category', 'stock', 'cantidad'].forEach(k => { if (nuevo || !A.igual(v[k], base[k])) datos[k] = v[k]; });
       if (v._foto === 'nueva') datos.photo = fotoNueva;
       if (v._foto === 'quitada') datos.photo = null;
       if (!nuevo && v.category !== orig.category) datos.order = ordenFinal(v.category, orig.id);

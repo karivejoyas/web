@@ -16,6 +16,17 @@
     $$('[data-an]', an).forEach(b => b.addEventListener('click', () => { paso(+b.dataset.an); auto(); }));
     auto();
   }
+  // ficha de producto: la foto se agranda donde apunta el mouse (solo con mouse)
+  const fichaFoto = $('.ficha-foto');
+  if (fichaFoto && !quieto && matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    const img = $('img', fichaFoto);
+    fichaFoto.addEventListener('mousemove', (e) => {
+      const r = fichaFoto.getBoundingClientRect();
+      img.style.transformOrigin = ((e.clientX - r.left) / r.width * 100).toFixed(1) + '% ' + ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%';
+      fichaFoto.classList.add('acercar');
+    });
+    fichaFoto.addEventListener('mouseleave', () => fichaFoto.classList.remove('acercar'));
+  }
   // portada con carrusel
   const hero = $('.ecm-hero');
   if (hero) {

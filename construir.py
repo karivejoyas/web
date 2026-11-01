@@ -302,7 +302,7 @@ def precio_vigente(precio, oferta, pct):
 
 def cargar():
     info = gen.colecciones()
-    campos = ["code", "name", "price", "priceOffer", "stock", "cantidad", "detail", "category", "order", "photo", "color"]
+    campos = ["code", "name", "price", "priceOffer", "stock", "cantidad", "detail", "category", "order", "photo", "color", "descripcion"]
     docs = gen.documentos("catalog/products/items", campos)
     if len(docs) < 20:
         sys.exit("Solo llegaron %d productos. Se aborta sin publicar nada." % len(docs))
@@ -321,6 +321,7 @@ def cargar():
         prods.append({
             "id": doc["name"].split("/")[-1], "codigo": cod, "nombre": gen.limpio(p0.get("name")),
             "medida": gen.limpio(p0.get("detail")), "cat": cat, "col": ic,
+            "descripcion": str(p0.get("descripcion") or "").strip(),        # escrita en el panel (si no, la automática)
             "precio": precio, "oferta": oferta, "vigente": precio_vigente(precio, oferta, pct) or precio,
             "rebajado": bool(precio_vigente(precio, oferta, pct)),
             "hay": p0.get("stock") is True, "cantidad": p0.get("cantidad"), "orden": p0.get("order") or 0,
@@ -501,6 +502,8 @@ def menu_pie():
     l = list(TEMA.get("menuPie") or [])
     if not any("mi-pedido" in str(it.get("url") or "") for it in l):
         l.insert(0, {"texto": "Mi pedido", "url": "/mi-pedido.html"})
+    if not any("/guias" in str(it.get("url") or "") for it in l):
+        l.append({"texto": "Guías", "url": "/guias/"})
     return l
 
 
@@ -889,12 +892,14 @@ def tarjeta(p, i=0, lazy=True):
     precio = pesos(p["vigente"]) + (("<s>%s</s>" % pesos(p["precio"])) if p["rebajado"] else "")
     return ('<li class="tarjeta" data-tarjeta="{id}" data-col="{col}" data-precio="{pv}" data-i="{i}" data-n="{n}" style="--i:{im}">'
             '<a class="tarjeta-foto" href="{url}"><img src="{img}" alt="{alt}" width="480" height="480"{lz}>{et}<span class="tarjeta-ver" aria-hidden="true"><span data-kv="producto.verDetalle">' + e((TEMA.get("producto") or {}).get("verDetalle") or "Ver detalle") + '</span> ' + FLECHA_DER + '</span></a>'
-            '<div class="tarjeta-txt"><a class="tarjeta-nombre" href="{url}">{nom}</a><span class="precio">{precio}</span>'
-            '<div class="agregar"><button type="button" class="btn btn-2" data-agregar="{id}"{dis}>{txt}</button></div></div></li>').format(
+            '<div class="tarjeta-txt"><a class="tarjeta-nombre" href="{url}">{nom}</a><span class="tarjeta-col">{coln}</span>'
+            '<div class="tarjeta-pie"><span class="precio">{precio}</span>'
+            '<div class="agregar"><button type="button" class="btn btn-2" data-agregar="{id}" aria-label="{arl}"{dis}>{txt}</button></div></div></div></li>').format(
         id=e(p["id"]), col=e(p["col"]["slug"]), pv=p["vigente"], i=i, im=i % 4, n=p["creado"][:19].replace("-", "").replace(":", "").replace("T", ""),
         url=e(p["url"]), img=e(p["img_chica"]), alt=e("%s, aros hechos a mano – %s" % (p["nombre"], MARCA)),
         lz=' loading="lazy" decoding="async"' if lazy else "", et=etiqueta, nom=e(p["nombre"]), precio=precio,
-        dis="" if p["hay"] else " disabled", txt="Agregar al carrito" if p["hay"] else "Agotado")
+        dis="" if p["hay"] else " disabled", txt="Añadir" if p["hay"] else "Agotado",
+        coln=e(p["col"]["nombre"]), arl=e("Agregar %s al carrito" % p["nombre"]))
 
 
 def escribir(ruta, contenido):
@@ -1152,6 +1157,21 @@ def descripcion_col(c):
     return str(((TEMA.get("coleccionPagina") or {}).get("descripciones") or {}).get(c["id"]) or "").strip()
 
 
+DESC_FINAL = "Al ser piezas hechas a mano, cada par puede tener pequeñas diferencias: eso las hace únicas. Se envían en su empaque, listos para regalar."
+
+
+def descripcion_producto(p):
+    """La descripción que escribió la dueña en el panel o, si no hay, la
+    automática (igual que kvDescripcionAuto en admin/productos.js)."""
+    if p.get("descripcion"):
+        return p["descripcion"]
+    col = p["col"]
+    texto = "%s: aros artesanales de la colección %s, hechos a mano." % (p["nombre"], col["nombre"])
+    if descripcion_col(col):
+        texto += " " + descripcion_col(col)
+    return texto + " " + DESC_FINAL
+
+
 def coleccion(c, cols):
     h1, frase = gen.SEO_COLECCION.get(c["id"], ("Aros %s hechos a mano" % c["nombre"].lower(), "aros artesanales"))
     h1 = str(((TEMA.get("coleccionPagina") or {}).get("titulos") or {}).get(c["id"]) or "").strip() or h1
@@ -1207,9 +1227,7 @@ def producto(p, cols):
         partes.pop()
     desc = gen.corta(" ".join(partes), 158)
     alt = "%s, aros artesanales hechos a mano%s – %s" % (p["nombre"], (" color " + p["color"].lower()) if p["color"] else "", MARCA)
-    texto = "%s: aros artesanales de la colección %s, hechos a mano." % (p["nombre"], col["nombre"])
-    if descripcion_col(col):
-        texto += " " + descripcion_col(col)
+    texto = descripcion_producto(p)
     faq = preguntas_producto(p["nombre"], p["medida"])
     otros = [q for q in col.get("_prods", []) if q["codigo"] != p["codigo"]][:4]
     w, hh = p["dim"] or (1000, 1000)
@@ -1262,7 +1280,7 @@ def producto(p, cols):
     <a class="btn btn-2 btn-bloque" href="https://wa.me/{wa}?text={wat}">Consultar por WhatsApp</a>
     <ul class="lista-confianza" data-kv-lista="producto.beneficios">{benef}</ul>
     <div class="acordeon">
-      <details open><summary>Descripción</summary><p>{texto} Al ser piezas hechas a mano, cada par puede tener pequeñas diferencias: eso las hace únicas. Se envían en su empaque, listos para regalar.</p></details>
+      <details open><summary>Descripción</summary><p>{texto}</p></details>
       <details><summary>Medidas y material</summary><ul>{medida}<li>Hecho a mano en Chile</li>{color}</ul></details>
       <details><summary>Envíos</summary><p>Despachamos desde Santiago a todo Chile: {rm} a la Región Metropolitana y {resto} a regiones, según la región. <a href="/envios.html">Más sobre envíos</a>.</p></details>
       <details><summary>¿Llegó con algún problema?</summary><p>Escríbenos por WhatsApp o Instagram e intentaremos solucionar tu problema lo más pronto posible, según sea el caso. <a href="/devoluciones.html">Cambios y devoluciones</a>.</p></details>
@@ -1437,13 +1455,57 @@ def paginas_texto(cols):
 
 # ---------------------------------------------------- archivos para buscadores
 
+# ------------------------------------------------------------------ guías
+
+GUIAS_FECHA = "2026-11-01"
+
+
+def guias(cols):
+    """Guías (guias.py): una página por guía y el índice /guias/."""
+    import guias as G
+    tarjetas = ""
+    for g in G.GUIAS:
+        ruta = "/guias/%s.html" % g["slug"]
+        url = SITIO + ruta.lstrip("/")
+        jsonld = {"@context": "https://schema.org", "@graph": [
+            {"@type": "Article", "@id": url + "#guia", "headline": g["titulo"], "description": g["desc"], "url": url,
+             "image": SITIO + g["imagen"].lstrip("/"), "inLanguage": "es-CL", "datePublished": GUIAS_FECHA, "dateModified": GUIAS_FECHA,
+             "author": {"@id": SITIO + "#organizacion"}, "publisher": {"@id": SITIO + "#organizacion"}, "mainEntityOfPage": url},
+            {"@type": "BreadcrumbList", "itemListElement": [
+                {"@type": "ListItem", "position": 1, "name": "Inicio", "item": SITIO},
+                {"@type": "ListItem", "position": 2, "name": "Guías", "item": SITIO + "guias/"},
+                {"@type": "ListItem", "position": 3, "name": g["titulo"], "item": url}]},
+            _organizacion_web()]}
+        cuerpo = ('<nav class="migas" aria-label="Ruta"><a href="/">Inicio</a> / <a href="/guias/">Guías</a> / <span>%s</span></nav>'
+                  '<h1>%s</h1><img class="guia-foto" src="%s" alt="%s" width="1200" height="800" loading="eager">%s'
+                  '<div class="guia-fin"><p>¿Te quedó alguna duda? Escríbenos y te ayudamos.</p>'
+                  '<a class="btn ecm-btn" href="/tienda/">Ver la tienda</a> <a class="btn ecm-btn-borde" href="https://wa.me/%s">Hablar por WhatsApp</a></div>'
+                  % (e(g["titulo"]), e(g["titulo"]), e(g["imagen"]), e(g["titulo"]), g["html"], WA))
+        h = cabeza(g["seo"], g["desc"], ruta, SITIO + g["imagen"].lstrip("/"), jsonld, tipo="article")
+        h += encabezado(cols)
+        h += '<div class="envoltura"><article class="texto-pag guia">%s</article></div>\n' % cuerpo
+        h += pie(cols)
+        escribir(ruta, h)
+        tarjetas += ('<a class="guia-tarjeta" href="%s"><img src="%s" alt="" width="600" height="400" loading="lazy"><span><b>%s</b><small>%s</small></span></a>'
+                     % (ruta, e(g["imagen"]), e(g["titulo"]), e(g["resumen"])))
+    h = cabeza("Guías: cuidado de aros e ideas para regalar | " + MARCA,
+               "Guías de Karivé Joyas: cómo cuidar tus aros hechos a mano, ideas de aros para regalar y todo sobre los aros de arcilla polimérica.",
+               "/guias/", SITIO + G.GUIAS[0]["imagen"].lstrip("/"))
+    h += encabezado(cols)
+    h += ('<div class="envoltura"><div class="texto-pag guias-indice"><h1>Guías</h1><p>Consejos para cuidar tus aros, elegir un regalo y conocer cómo los hacemos.</p>'
+          '<div class="guias-lista">%s</div></div></div>\n' % tarjetas)
+    h += pie(cols)
+    escribir("/guias/index.html", h)
+
+
 def archivos_buscadores(prods, cols):
     hoy = date.today().isoformat()
     vis = [p for p in prods]
     ult = max([p["actualizado"] for p in prods if p["actualizado"]] or [hoy])
     with open(DIST + "/sitemap.xml", "w", encoding="utf-8") as fh:
         fh.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n')
-        for r in ["", "tienda/", "nosotros.html", "preguntas-frecuentes.html", "envios.html", "contacto.html", "devoluciones.html"]:
+        import guias as G
+        for r in ["", "tienda/", "nosotros.html", "preguntas-frecuentes.html", "envios.html", "contacto.html", "devoluciones.html", "guias/"] + ["guias/%s.html" % g["slug"] for g in G.GUIAS]:
             fh.write("  <url><loc>%s%s</loc><lastmod>%s</lastmod></url>\n" % (SITIO, r, ult))
         for x in TEMA["paginas"].get("extra") or []:
             slug = gen.slug(x.get("slug") or x.get("titulo") or "")
@@ -1461,7 +1523,8 @@ def archivos_buscadores(prods, cols):
     for p in sorted(prods, key=lambda p: (p["cat"], p["orden"])):
         filas.append({
             "id": p["codigo"], "title": gen.corta("%s – Aros artesanales hechos a mano | %s" % (p["nombre"], MARCA), 150),
-            "description": ("%s de %s. Aros artesanales hechos a mano en Chile.%s Colección %s. Código %s."
+            "description": gen.corta(p["descripcion"], 4900) if p["descripcion"] else
+                           ("%s de %s. Aros artesanales hechos a mano en Chile.%s Colección %s. Código %s."
                             % (p["nombre"], MARCA, (" Medida %s." % p["medida"].rstrip(".")) if p["medida"] else "", p["col"]["nombre"], p["codigo"])),
             "link": SITIO + "p/%s.html" % p["codigo"], "image_link": p["foto_abs"],
             "availability": "in_stock" if p["hay"] else "out_of_stock",
@@ -1567,6 +1630,7 @@ def main():
     for p in prods:
         producto(p, cols)
     paginas_texto(cols)
+    guias(cols)
     archivos_buscadores(prods, cols)
     panel()
     ajustes_respaldo()
