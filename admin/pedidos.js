@@ -177,6 +177,13 @@
             '<div><a target="_blank" rel="noopener" href="https://wa.me/' + telWa + '">' + h(cli.telefono || '') + '</a></div></div>' +
           '<div class="dato-cli"><div class="etq">Dirección de envío</div>' + h(dir.calle || '') + '<br>' + h(dir.comuna || '') + '<br>' + h(dir.region || '') + '</div>' +
           (otros.length && p.cupon ? '<div class="nota">⚠ Usó el cupón <b>' + h(p.cupon.codigo) + '</b> y ya había comprado antes (pedido #' + h(otros[0].num || '?') + ').</div>' : '') +
+          (function () {
+            if (!p.cupon) return '';
+            const rb = kvBienvenidaRevisar(p.cupon.codigo, cli.correo, new Date(p.fecha || Date.now()).getTime());
+            if (!rb.esBienvenida) return '';
+            return rb.ok ? '<div class="nota ok">✓ Código de bienvenida válido: es de este correo y estaba vigente.</div>'
+              : '<div class="nota">⚠ Código de bienvenida con problema: ' + h(rb.error) + '</div>';
+          })() +
         '</div></div>' +
         (otros.length ? '<div class="tarjeta"><div class="tarjeta-cab"><h2>Pedidos anteriores</h2></div><div class="tarjeta-c">' + otros.slice(0, 5).map(o =>
           '<div class="resumen-fila"><a href="#/pedidos/' + o.id + '">#' + h(o.num || '—') + '</a><span class="tenue">' + h(A.fecha(o.fecha, false)) + '</span><span>' + A.clp(o.total) + '</span></div>').join('') + '</div></div>' : '') +

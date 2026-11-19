@@ -36,3 +36,4 @@ hay que subir tráfico **y** quitar fricciones.
 - La cesta ya no se abre sola al agregar: el ícono salta y aparece un aviso con «Ver carrito».
 - Mercado Pago: confirmado por la dueña que cobra $0 de envío cuando corresponde envío gratis.
 - Regalo de bienvenida 10 % en la primera compra (código BIENVENIDA10): ventanita a los 12 s o al bajar la página (una vez; si la cierran vuelve a los 3 días), aviso en la franja de arriba, el código se ve en pantalla, se aplica solo al pagar y llega por correo. Se puede apagar o cambiar en Panel → Marketing → Regalo de bienvenida.
+- 19-11 (2): el código fijo BIENVENIDA10 se reemplazó por un **código personal** por correo (KV-XXXX-XXXXX), que solo sirve con ese correo y vence a las 72 h (se cambia en Marketing → Regalo de bienvenida). El pedido en el panel dice si el código es válido para ese correo. En «Tu pedido» del pago ahora se puede cambiar la cantidad y quitar productos.

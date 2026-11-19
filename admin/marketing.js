@@ -31,7 +31,6 @@
     const dg = kvDescuentoConfig(s), vig = kvDescuentoActivo(s);
     const cups = kvCupones(s);
     const b = kvBienvenida(s);
-    const existeBien = cups.some(c => kvCuponNormalizar(c.codigo) === b.codigo);
     const mv = s.masVistos || {};
     const rank = A.rankingVistos();
 
@@ -57,10 +56,10 @@
         '<p class="ayuda">En la web aparece una ventanita (y un aviso en la franja de arriba) que invita a dejar el correo a cambio de un descuento en la primera compra. El código se muestra en pantalla, se aplica solo al pagar y también se envía por correo. Los correos quedan en Clientes → Suscriptores.</p>' +
         A.interruptor('bi-activo', b.activo, 'Mostrar el regalo de bienvenida') +
         '<div class="fila-campos"><label class="campo"><span>Descuento</span><div class="campo-pre"><input id="bi-pct" inputmode="numeric" value="' + b.pct + '"><span>%</span></div></label>' +
-        '<label class="campo"><span>Código del cupón</span><input id="bi-codigo" value="' + h(b.codigo) + '" style="text-transform:uppercase"></label></div>' +
+        '<label class="campo"><span>Cada código dura</span><div class="campo-pre"><input id="bi-horas" inputmode="numeric" value="' + b.horas + '"><span>horas</span></div><small>72 = 3 días.</small></label></div>' +
         '<label class="campo"><span>Título</span><input id="bi-titulo" value="' + h(b.titulo) + '"></label>' +
         '<label class="campo"><span>Texto</span><textarea id="bi-texto" rows="2">' + h(b.texto) + '</textarea><small>{PCT} se reemplaza por el porcentaje.</small></label>' +
-        (b.activo ? '<div class="nota ok">✓ El código «' + h(b.codigo) + '» da ' + b.pct + '% de descuento' + (existeBien ? ' (está en tu lista de cupones; se usan sus condiciones)' : '') + '. Es solo para la primera compra: si alguien que ya compró lo usa, el pedido te muestra un aviso.</div>' : '') +
+        (b.activo ? '<div class="nota ok">✓ Cada persona recibe un <b>código personal</b> (por ejemplo KV-AB12-C3D4E) que da ' + b.pct + '% de descuento, solo sirve con su correo y vence a las ' + b.horas + ' horas. Si alguien que ya compró lo usa, el pedido te muestra un aviso.</div>' : '') +
       '</div><div class="tarjeta-pie"><button class="btn btn-primario" id="bi-guardar">Guardar</button></div></div>' +
 
       '<div class="tarjeta"><div class="tarjeta-cab"><h2>Lo más visto</h2>' + (mv.activo ? '<span class="ins verde">Publicado</span>' : '<span class="ins">Apagado</span>') + '</div><div class="tarjeta-c">' +
@@ -97,13 +96,9 @@
     $('bi-guardar').addEventListener('click', async () => {
       const pct = A.num($('bi-pct').value);
       try {
-        await guardarSettings({ bienvenida: { activo: $('bi-activo').checked, pct: pct || 10, codigo: kvCuponNormalizar($('bi-codigo').value) || 'BIENVENIDA10', titulo: $('bi-titulo').value.trim(), texto: $('bi-texto').value.trim() } });
+        await guardarSettings({ bienvenida: { activo: $('bi-activo').checked, pct: pct || 10, horas: A.num($('bi-horas').value) || 72, titulo: $('bi-titulo').value.trim(), texto: $('bi-texto').value.trim() } });
         A.toast('Regalo de bienvenida guardado ✓');
       } catch (e) { A.errorGuardar(e); }
-    });
-    if ($('bi-crear')) $('bi-crear').addEventListener('click', async () => {
-      const l = kvCupones(A.settings).concat([{ codigo: b.codigo, tipo: 'pct', valor: b.pct, minimo: 0, hasta: '', activo: true }]);
-      try { await guardarSettings({ cupones: l }); A.toast('Cupón ' + b.codigo + ' creado ✓'); } catch (e) { A.errorGuardar(e); }
     });
     $('mv-guardar').addEventListener('click', async () => {
       const n = A.num($('mv-cuantos').value) || 8;

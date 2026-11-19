@@ -34,12 +34,12 @@
   // el regalo de bienvenida es solo para la primera compra (en este equipo; el panel avisa si el correo ya había comprado)
   const yaCompro = () => { try { return !!localStorage.getItem('kv_ya_compro'); } catch (e) { return false; } };
   function cuponRevisar(cod) {
-    const r = kvCuponValidar(cod, A, subtotal());
+    const r = kvCuponValidar(cod, A, subtotal(), null, form.correo);
     if (r.ok && r.cupon.bienvenida && yaCompro()) return { ok: false, error: 'Este código es solo para la primera compra 💜' };
     return r;
   }
   const subtotal = () => items.reduce((s, it) => s + KV.precioDe(it.p) * it.qty, 0);
-  const descuento = () => { if (!cupon) return 0; const r = kvCuponValidar(cupon.codigo, A, subtotal()); return r.ok ? r.descuento : 0; };
+  const descuento = () => { if (!cupon) return 0; const r = kvCuponValidar(cupon.codigo, A, subtotal(), null, form.correo); return r.ok ? r.descuento : 0; };
   const whatsapp = () => { const m = String(A.whatsapp || '+56988829803').match(/\d+/g); return m ? m.join('') : '56988829803'; };
 
   function pintarError(msg) { const e = $('#pago-error'); e.textContent = msg; e.hidden = false; e.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
@@ -94,8 +94,7 @@
     raiz.innerHTML =
       // en el celular, el resumen arriba (plegable) para ver qué y cuánto se paga
       '<details class="pago-resumen-movil"><summary><span>Ver tu pedido (' + nItems + ')</span><b>' + formatCLP(total) + '</b></summary>' +
-        items.map(it => '<div class="resumen-item"><img src="' + escapeHtml(it.p.img) + '" alt="" width="48" height="48"><div>' + escapeHtml(it.p.name) +
-          '<br><small class="nota">' + it.qty + ' × ' + formatCLP(KV.precioDe(it.p)) + '</small></div><b>' + formatCLP(KV.precioDe(it.p) * it.qty) + '</b></div>').join('') +
+        items.map(filaItem).join('') +
         '<div class="fila"><span>Envío</span><span>' + (envio == null ? 'elige tu región' : envio ? formatCLP(envio) : 'Gratis') + '</span></div></details>' +
       '<div class="pago-caja">' +
         '<h2>Tus datos</h2>' +
@@ -130,12 +129,11 @@
         '<p class="nota" style="margin-top:10px">Al comprar aceptas nuestra <a href="/devoluciones.html">política de cambios</a> (no hay cambios ni devoluciones por arrepentimiento; si hay un problema, lo vemos contigo) y la <a href="/privacidad.html">de privacidad</a>.</p>' +
       '</div>' +
       '<aside class="pago-caja"><h2>Tu pedido</h2>' +
-        items.map(it => '<div class="resumen-item"><img src="' + escapeHtml(it.p.img) + '" alt="" width="56" height="56"><div>' + escapeHtml(it.p.name) +
-          '<br><small class="nota">' + it.qty + ' × ' + formatCLP(KV.precioDe(it.p)) + '</small></div><b>' + formatCLP(KV.precioDe(it.p) * it.qty) + '</b></div>').join('') +
+        items.map(filaItem).join('') +
         '<div class="cupon"><input id="cupon" placeholder="Código de descuento" value="' + escapeHtml(cuponTxt) + '" autocomplete="off">' +
           (cupon ? '<button type="button" class="btn btn-2" id="cupon-quitar">Quitar</button>' : '<button type="button" class="btn btn-2" id="cupon-aplicar">Aplicar</button>') + '</div>' +
         (cuponErr ? '<div class="cupon-msg error">' + escapeHtml(cuponErr) + '</div>' : '') +
-        (cupon ? '<div class="cupon-msg ok">✓ ' + escapeHtml(cupon.codigo) + ': ' + escapeHtml(kvCuponTexto(cupon)) + '</div>' : '') +
+        (cupon ? (function () { const rv = cuponRevisar(cupon.codigo); return rv.ok ? '<div class="cupon-msg ok">✓ ' + escapeHtml(cupon.codigo) + ': ' + escapeHtml(kvCuponTexto(cupon)) + (cupon.bienvenida ? ' · solo con ' + escapeHtml(String(form.correo || '').trim()) : '') + '</div>' : '<div class="cupon-msg error">' + escapeHtml(rv.error) + '</div>'; })() : '') +
         '<div class="fila"><span>Subtotal</span><span>' + formatCLP(sub) + '</span></div>' +
         (dcto ? '<div class="fila"><span>Descuento</span><span>−' + formatCLP(dcto) + '</span></div>' : '') +
         '<div class="fila"><span>Envío' + (form.region ? (form.region === KV_REGION_RM ? ' (RM)' : ' (regiones)') : '') + '</span><span>' + (envio == null ? 'elige tu región' : envio ? formatCLP(envio) : 'Gratis 🎉') + '</span></div>' +
@@ -146,7 +144,30 @@
     conectar();
   }
 
+  // fila de un producto del pedido, con − / + y «Quitar»
+  function filaItem(it) {
+    return '<div class="resumen-item"><img src="' + escapeHtml(it.p.img) + '" alt="" width="56" height="56"><div>' + escapeHtml(it.p.name) +
+      '<br><small class="nota">' + formatCLP(KV.precioDe(it.p)) + ' c/u</small>' +
+      '<div class="resumen-cant"><div class="cantidad cantidad-chica"><button type="button" data-cant="-1" data-id="' + it.p.id + '" aria-label="Quitar uno">−</button><span>' + it.qty + '</span>' +
+      '<button type="button" data-cant="1" data-id="' + it.p.id + '" aria-label="Agregar uno">+</button></div>' +
+      '<button type="button" class="carro-quitar" data-cant="0" data-id="' + it.p.id + '">Quitar</button></div></div>' +
+      '<b>' + formatCLP(KV.precioDe(it.p) * it.qty) + '</b></div>';
+  }
+  async function cambiarCantidad(id, d) {
+    const r = await KV.carroCambiar(id, d);
+    if (r && r.aviso) KV.aviso(r.aviso);
+    items = await KV.carroItems();
+    if (!items.length) { location.reload(); return; }
+    const abierto = !!raiz.querySelector('.pago-resumen-movil[open]');
+    pintar();
+    if (abierto) { const dm = raiz.querySelector('.pago-resumen-movil'); if (dm) dm.open = true; }
+  }
+
   function conectar() {
+    raiz.querySelectorAll('[data-cant]').forEach(b => b.addEventListener('click', () => cambiarCantidad(b.dataset.id, parseInt(b.dataset.cant, 10))));
+    // si cambia el correo con un código de bienvenida puesto, se vuelve a revisar
+    const correoIn = raiz.querySelector('[data-c="correo"]');
+    if (correoIn) correoIn.addEventListener('change', () => { if (cupon) pintar(); });
     // el mensaje de WhatsApp se arma al tocarlo, con lo último que se escribió
     const tw = raiz.querySelector('.transf-wa');
     if (tw) tw.addEventListener('click', () => {
@@ -314,7 +335,8 @@
     items = await KV.carroItems();
     // código guardado (regalo de bienvenida): se aplica solo
     try {
-      const auto = localStorage.getItem('kv_cupon_auto');
+      const auto = localStorage.getItem('kv_cupon_auto'), autoCorreo = localStorage.getItem('kv_bienv_correo');
+      if (auto && autoCorreo && !String(form.correo || '').trim()) form.correo = autoCorreo;
       if (auto && !cupon && items.length) { const r = cuponRevisar(auto); if (r.ok) { cupon = r.cupon; cuponTxt = kvCuponNormalizar(auto); } }
     } catch (e) {}
     // vista previa del panel (Personalizar): pedido de ejemplo, sin tocar el carrito

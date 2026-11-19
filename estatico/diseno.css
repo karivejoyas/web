@@ -442,3 +442,9 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
   .bienv-c h2{font-size:21px}
 }
 .aviso-toast{width:max-content;max-width:min(calc(100vw - 32px),440px);text-align:left;line-height:1.35}
+/* pago: cambiar cantidades o quitar desde «Tu pedido» */
+.resumen-cant{display:flex;align-items:center;gap:12px;margin-top:6px}
+.cantidad-chica{margin:0}
+.cantidad-chica button{width:34px;height:34px;font-size:18px}
+.cantidad-chica span{min-width:22px;font-size:14px}
+.resumen-cant .carro-quitar{margin:0}

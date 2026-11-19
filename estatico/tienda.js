@@ -413,13 +413,14 @@
     try {
       const a = await ajustes();
       const b = kvBienvenida(a);
-      await fsCrear('catalog/suscriptores/items', { correo: correo, fecha: new Date().toISOString(), origen: 'web', codigo: b.activo ? b.codigo : '', acepta: true });
-      if (b.activo && a.igPubUrl) {
+      const nuevo = b.activo && b.pct > 0 ? kvBienvenidaNueva(correo, b.horas) : null;
+      await fsCrear('catalog/suscriptores/items', { correo: correo, fecha: new Date().toISOString(), origen: 'web', codigo: nuevo ? nuevo.codigo : '', vence: nuevo ? nuevo.vence.toISOString() : '', acepta: true });
+      if (nuevo && a.igPubUrl) {
         fetch(a.igPubUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ accion: 'bienvenida', correo: correo, codigo: b.codigo, pct: b.pct }) }).catch(() => {});
+          body: JSON.stringify({ accion: 'bienvenida', correo: correo, codigo: nuevo.codigo, pct: b.pct, vence: kvVenceTexto(nuevo.vence) }) }).catch(() => {});
       }
-      if (b.activo) { try { if (!localStorage.getItem('kv_ya_compro')) localStorage.setItem('kv_cupon_auto', b.codigo); localStorage.setItem('kv_bienv', 'listo'); } catch (e) {} }
-      msg.innerHTML = b.activo ? '¡Listo! Tu código de ' + b.pct + '% es <b>' + escapeHtml(b.codigo) + '</b>: se aplica solo al pagar y también te lo enviamos por correo 💜' : '¡Listo! Te avisaremos de las novedades 💜';
+      if (nuevo) { try { if (!localStorage.getItem('kv_ya_compro')) { localStorage.setItem('kv_cupon_auto', nuevo.codigo); localStorage.setItem('kv_bienv_correo', correo); } localStorage.setItem('kv_bienv', 'listo'); } catch (e) {} }
+      msg.innerHTML = nuevo ? '¡Listo! Tu código personal de ' + b.pct + '% es <b>' + escapeHtml(nuevo.codigo) + '</b>. Vale con este correo hasta el ' + escapeHtml(kvVenceTexto(nuevo.vence)) + ', se aplica solo al pagar y te lo enviamos por correo 💜' : '¡Listo! Te avisaremos de las novedades 💜';
       bol.reset();
     } catch (err) { msg.textContent = 'No pudimos guardar tu correo. Intenta de nuevo.'; }
   });
@@ -437,15 +438,18 @@
     if (!forzar && (LS.get('kv_ya_compro') || visto === 'listo' || (/^cerrado:\d+$/.test(visto) && Date.now() - +visto.slice(8) < 3 * 864e5))) return;
     if (!forzar && $$('.cajon.abierto, .buscador.abierto, .zoom.abierto, .menu-movil.abierto').length) return 'ocupado';
     bienvAbierta = true;
-    const pct = b.pct, codigoGuardado = visto === 'listo' ? (LS.get('kv_cupon_auto') || b.codigo) : '';
+    const pct = b.pct, guardado = LS.get('kv_cupon_auto') || '', correoGuardado = LS.get('kv_bienv_correo') || '';
+    const rg = guardado ? kvBienvenidaRevisar(guardado, correoGuardado) : null;
+    const codigoGuardado = visto === 'listo' && rg && rg.ok ? guardado : '';
+    if (!forzar && visto === 'listo' && !codigoGuardado && guardado) return;   // ya lo pidió y venció: no insistir
     const v = document.createElement('div');
     v.className = 'bienv'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-labelledby', 'bienv-t');
-    const exito = (cod) => '<span class="antetitulo">Tu regalo 🎁</span><h2 id="bienv-t">¡Listo! Tienes ' + pct + '% de descuento</h2>' +
-      '<p>Tu código es</p><div class="bienv-cod"><b>' + escapeHtml(cod) + '</b><button type="button" class="btn btn-borde btn-chico" data-copiar>Copiar</button></div>' +
-      '<p class="bienv-nota">Ya quedó guardado: <b>se aplica solo al pagar</b>. También te lo enviamos por correo. Válido en tu primera compra.</p>' +
+    const exito = (cod, correo, vence) => '<span class="antetitulo">Tu regalo 🎁</span><h2 id="bienv-t">¡Listo! Tienes ' + pct + '% de descuento</h2>' +
+      '<p>Tu código personal es</p><div class="bienv-cod"><b>' + escapeHtml(cod) + '</b><button type="button" class="btn btn-borde btn-chico" data-copiar>Copiar</button></div>' +
+      '<p class="bienv-nota">Ya quedó guardado: <b>se aplica solo al pagar</b> con el correo <b>' + escapeHtml(correo) + '</b>. Es para tu primera compra y vale hasta el <b>' + escapeHtml(kvVenceTexto(vence)) + '</b>. También te lo enviamos por correo.</p>' +
       '<button type="button" class="btn btn-1 btn-bloque" data-bienv-cerrar>Ver los aros</button>';
     v.innerHTML = '<div class="bienv-caja"><button type="button" class="bienv-x" aria-label="Cerrar" data-bienv-cerrar>×</button>' +
-      '<div class="bienv-foto" aria-hidden="true"><span>' + pct + '%</span></div><div class="bienv-c">' + (codigoGuardado ? exito(codigoGuardado) :
+      '<div class="bienv-foto" aria-hidden="true"><span>' + pct + '%</span></div><div class="bienv-c">' + (codigoGuardado ? exito(codigoGuardado, correoGuardado, rg.vence) :
       '<span class="antetitulo">Regalo de bienvenida</span><h2 id="bienv-t">' + escapeHtml(b.titulo) + '</h2>' +
       '<p>' + escapeHtml(b.texto.replace(/\{PCT\}/g, pct)) + '</p>' +
       '<form class="bienv-form" novalidate><input name="correo" type="email" inputmode="email" autocomplete="email" placeholder="Tu correo electrónico" aria-label="Tu correo electrónico" required>' +
@@ -473,10 +477,11 @@
         const correo = (f.correo.value || '').trim().toLowerCase(), msg = $('.bienv-msg', v), btn = $('button', f);
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { msg.textContent = 'Revisa tu correo, parece que falta algo.'; f.correo.focus(); return; }
         btn.disabled = true; msg.textContent = 'Guardando…';
-        try { await fsCrear('catalog/suscriptores/items', { correo: correo, fecha: new Date().toISOString(), origen: 'web-bienvenida', codigo: b.codigo, acepta: true }); } catch (err) {}
-        if (a.igPubUrl) fetch(a.igPubUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion: 'bienvenida', correo: correo, codigo: b.codigo, pct: pct }) }).catch(() => {});
-        LS.set('kv_bienv', 'listo'); LS.set('kv_cupon_auto', b.codigo);
-        $('.bienv-c', v).innerHTML = exito(b.codigo);
+        const nuevo = kvBienvenidaNueva(correo, b.horas);
+        try { await fsCrear('catalog/suscriptores/items', { correo: correo, fecha: new Date().toISOString(), origen: 'web-bienvenida', codigo: nuevo.codigo, vence: nuevo.vence.toISOString(), acepta: true }); } catch (err) {}
+        if (a.igPubUrl) fetch(a.igPubUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion: 'bienvenida', correo: correo, codigo: nuevo.codigo, pct: pct, vence: kvVenceTexto(nuevo.vence) }) }).catch(() => {});
+        LS.set('kv_bienv', 'listo'); LS.set('kv_cupon_auto', nuevo.codigo); LS.set('kv_bienv_correo', correo);
+        $('.bienv-c', v).innerHTML = exito(nuevo.codigo, correo, nuevo.vence);
       });
     }
   }
@@ -662,6 +667,16 @@
   if (cab) { const rev = () => cab.classList.toggle('bajando', scrollY > 40); addEventListener('scroll', rev, { passive: true }); rev(); }
 
   // lo que usa la página de pago
-  window.KV = { productos: productos, productosAlDia: productosAlDia, ajustes: ajustes, carroItems: carroItems, carro: () => carro, vaciarCarro: () => { carro = {}; carroGuardar(); },
+  // suma o resta del carrito (d = 0 lo quita), respetando el stock
+  async function carroCambiar(id, d) {
+    if (!d) { delete carro[id]; carroGuardar(); return {}; }
+    const p = (await productos()).find(x => x.id === id);
+    const tope = p ? kvStockCantidad(p) : null;
+    const nuevo = (carro[id] || 0) + d;
+    if (tope !== null && nuevo > tope) return { aviso: 'Solo queda' + (tope === 1 ? ' 1 unidad' : 'n ' + tope + ' unidades') };
+    if (nuevo <= 0) delete carro[id]; else carro[id] = nuevo;
+    carroGuardar(); return {};
+  }
+  window.KV = { productos: productos, productosAlDia: productosAlDia, ajustes: ajustes, carroItems: carroItems, carro: () => carro, carroCambiar: carroCambiar, vaciarCarro: () => { carro = {}; carroGuardar(); },
                 fsCrear: fsCrear, fsActualizar: fsActualizar, aviso: aviso, precioDe: precioDe, visita: visita };
 })();

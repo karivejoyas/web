@@ -1124,21 +1124,69 @@ function kvBienvenida(settings) {
   return {
     activo: b.activo !== false,   // encendido salvo que se apague en el panel
     pct: b.pct != null ? Number(b.pct) : 10,
-    codigo: kvCuponNormalizar(b.codigo || 'BIENVENIDA10'),
+    horas: Number(b.horas) > 0 ? Number(b.horas) : 72,   // cuánto dura cada código personal
     titulo: b.titulo || '¿Primera vez por acá? 💜',
     texto: b.texto || 'Déjanos tu correo y te regalamos un {PCT}% de descuento en tu primera compra.'
   };
 }
 
+/* Código personal de bienvenida: uno distinto para cada correo, que solo sirve
+   con ese correo y vence. Formato KV-XXXX-YYYYY: XXXX es la hora en que vence
+   (base 36) e YYYYY la firma del correo con esa hora. Se puede revisar sin base
+   de datos, en la web y en el panel. */
+var KV_BIENV_SAL = 'karive|bienvenida|2026';
+function kvFirma(txt) {
+  let a = 0x811c9dc5, b = 0x9e3779b9;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt.charCodeAt(i);
+    a = Math.imul(a ^ c, 16777619) >>> 0;
+    b = Math.imul(b ^ c, 2246822519) >>> 0;
+    b = ((b << 13) | (b >>> 19)) >>> 0;
+  }
+  return ((a ^ Math.imul(b, 3266489917)) >>> 0) % 60466176;   // 36^5
+}
+function kvBienvenidaCodigo(correo, venceHora) {
+  const e = Number(venceHora).toString(36).toUpperCase().padStart(4, '0');
+  const f = kvFirma(String(correo || '').trim().toLowerCase() + '|' + e + '|' + KV_BIENV_SAL).toString(36).toUpperCase().padStart(5, '0');
+  return 'KV-' + e + '-' + f;
+}
+function kvBienvenidaNueva(correo, horas) {
+  const vence = Math.floor(Date.now() / 36e5) + (Number(horas) || 72);
+  return { codigo: kvBienvenidaCodigo(correo, vence), vence: new Date(vence * 36e5) };
+}
+function kvVenceTexto(d) {
+  try { return d.toLocaleString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) + ' h'; } catch (e) { return d.toISOString().slice(0, 16).replace('T', ' '); }
+}
+/* {esBienvenida, ok, error, vence, venceHora} */
+function kvBienvenidaRevisar(codigo, correo, ahora) {
+  const c = String(codigo || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const m = c.match(/^KV([0-9A-Z]{4})([0-9A-Z]{5})$/);
+  if (!m) return { esBienvenida: false };
+  const venceHora = parseInt(m[1], 36), vence = new Date(venceHora * 36e5);
+  const r = { esBienvenida: true, ok: false, vence: vence, venceHora: venceHora };
+  const mail = String(correo || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { r.error = 'Escribe primero tu correo (en «Tus datos»): el código de bienvenida va ligado al correo con que lo pediste.'; return r; }
+  if (kvBienvenidaCodigo(mail, venceHora).replace(/-/g, '') !== c) { r.error = 'Este código de bienvenida es de otro correo. Usa el mismo correo con que lo pediste.'; return r; }
+  if ((ahora || Date.now()) > vence.getTime()) { r.error = 'Este código venció (' + kvVenceTexto(vence) + '). Si aún no has comprado, escríbenos por WhatsApp.'; return r; }
+  r.ok = true; return r;
+}
+
 /* Revisa un cupón contra el subtotal. Devuelve {ok, error, cupon, descuento}.
-   `hoy` se puede pasar para poder probarlo con otra fecha. */
-function kvCuponValidar(codigo, settings, subtotal, hoy) {
+   `hoy` se puede pasar para poder probarlo con otra fecha. `correo` hace falta
+   para los códigos personales de bienvenida. */
+function kvCuponValidar(codigo, settings, subtotal, hoy, correo) {
   const cod = kvCuponNormalizar(codigo);
   if (!cod) return { ok: false, error: 'Escribe un código.' };
-  let c = kvCupones(settings).find(x => kvCuponNormalizar(x.codigo) === cod);
-  // el código del regalo de bienvenida funciona aunque no esté en la lista de cupones
-  const bi = kvBienvenida(settings);
-  if (bi.activo && bi.pct > 0 && cod === bi.codigo) c = Object.assign({ codigo: bi.codigo, tipo: 'porcentaje', valor: bi.pct, activo: true }, c || {}, { bienvenida: true });
+  const rb = kvBienvenidaRevisar(cod, correo, hoy ? new Date(hoy).getTime() : 0);
+  if (rb.esBienvenida) {
+    const bi = kvBienvenida(settings);
+    if (!bi.activo || !(bi.pct > 0)) return { ok: false, error: 'Ese código ya no está disponible.' };
+    if (!rb.ok) return { ok: false, error: rb.error };
+    const cb = { codigo: kvBienvenidaCodigo(correo, rb.venceHora), tipo: 'porcentaje', valor: bi.pct, activo: true, bienvenida: true };
+    const db = kvCuponDescuento(cb, subtotal);
+    return db > 0 ? { ok: true, cupon: cb, descuento: db } : { ok: false, error: 'Ese código no aplica a tu carrito.' };
+  }
+  const c = kvCupones(settings).find(x => kvCuponNormalizar(x.codigo) === cod);
   if (!c) return { ok: false, error: 'Ese código no existe. Revísalo e intenta de nuevo.' };
   if (c.activo === false) return { ok: false, error: 'Ese cupón ya no está disponible.' };
   if (c.hasta) {
