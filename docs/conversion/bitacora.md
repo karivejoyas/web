@@ -30,3 +30,9 @@ hay que subir tráfico **y** quitar fricciones.
 - Pago en celular: «Ver tu pedido (N) · $total» plegable arriba, aviso «Agrega $X más y tu envío es gratis» y sello de Mercado Pago junto al botón.
 - Panel → Informes: embudo con 6 pasos (entraron, abrieron producto, carrito, pago, pedido, pagaron), % entre pasos y en qué paso se pierden más.
 - Pendiente de verificar: una compra de prueba con tarjeta que califique para envío gratis, para confirmar que Mercado Pago cobra $0 de envío. Merchant Center: actualizar envío (tarifa y gratis desde $29.990).
+
+### Pedido de la dueña el 19-11 (después de la revisión)
+- Carrito: botón «Quitar» en cada producto (además de − / +) y sugerencias «Combina con» que se agregan sin salir del carrito.
+- La cesta ya no se abre sola al agregar: el ícono salta y aparece un aviso con «Ver carrito».
+- Mercado Pago: confirmado por la dueña que cobra $0 de envío cuando corresponde envío gratis.
+- Regalo de bienvenida 10 % en la primera compra (código BIENVENIDA10): ventanita a los 12 s o al bajar la página (una vez; si la cierran vuelve a los 3 días), aviso en la franja de arriba, el código se ve en pantalla, se aplica solo al pagar y llega por correo. Se puede apagar o cambiar en Panel → Marketing → Regalo de bienvenida.

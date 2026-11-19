@@ -31,6 +31,13 @@
   }
   function pendBorrar() { try { localStorage.removeItem(PEND); } catch (e) {} document.cookie = PEND + '=;path=/;max-age=0'; }
 
+  // el regalo de bienvenida es solo para la primera compra (en este equipo; el panel avisa si el correo ya había comprado)
+  const yaCompro = () => { try { return !!localStorage.getItem('kv_ya_compro'); } catch (e) { return false; } };
+  function cuponRevisar(cod) {
+    const r = kvCuponValidar(cod, A, subtotal());
+    if (r.ok && r.cupon.bienvenida && yaCompro()) return { ok: false, error: 'Este código es solo para la primera compra 💜' };
+    return r;
+  }
   const subtotal = () => items.reduce((s, it) => s + KV.precioDe(it.p) * it.qty, 0);
   const descuento = () => { if (!cupon) return 0; const r = kvCuponValidar(cupon.codigo, A, subtotal()); return r.ok ? r.descuento : 0; };
   const whatsapp = () => { const m = String(A.whatsapp || '+56988829803').match(/\d+/g); return m ? m.join('') : '56988829803'; };
@@ -161,7 +168,7 @@
     const ci = $('#cupon'); if (ci) ci.addEventListener('input', e => { cuponTxt = e.target.value; });
     const ca = $('#cupon-aplicar');
     if (ca) ca.addEventListener('click', () => {
-      const r = kvCuponValidar(cuponTxt, A, subtotal());
+      const r = cuponRevisar(cuponTxt);
       if (r.ok) { cupon = r.cupon; cuponErr = ''; cuponTxt = kvCuponNormalizar(cuponTxt); } else { cupon = null; cuponErr = r.error; }
       pintar();
     });
@@ -260,6 +267,7 @@
   }
 
   function listo(num, total) {
+    try { localStorage.setItem('kv_ya_compro', '1'); localStorage.removeItem('kv_cupon_auto'); } catch (e) {}
     if (KV.visita) KV.visita({ hizoPedido: true });
     const txt = 'Hola Karivé 💜 ' + (form.nombre ? 'Soy ' + form.nombre.trim() + ', acabo' : 'Acabo') + ' de hacer ' + (num ? 'el pedido #' + num : 'un pedido') +
       (total ? ' por ' + formatCLP(total) : '') + ' en la web. ¡Quedo atenta!';
@@ -304,6 +312,11 @@
     try { A = await KV.ajustes(); } catch (e) { A = {}; }
     if (await vueltaPago()) return;
     items = await KV.carroItems();
+    // código guardado (regalo de bienvenida): se aplica solo
+    try {
+      const auto = localStorage.getItem('kv_cupon_auto');
+      if (auto && !cupon && items.length) { const r = cuponRevisar(auto); if (r.ok) { cupon = r.cupon; cuponTxt = kvCuponNormalizar(auto); } }
+    } catch (e) {}
     // vista previa del panel (Personalizar): pedido de ejemplo, sin tocar el carrito
     if (!items.length && window.top !== window && /[?&]vista\b/.test(location.search)) {
       const lista = await KV.productos();

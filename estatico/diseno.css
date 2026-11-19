@@ -405,3 +405,40 @@ html{-webkit-tap-highlight-color:rgba(91,42,130,.12)}
 }
 .pago-seguro{font-size:13px;color:var(--ecm-suave);text-align:center;margin:10px 0 0}
 .envio-gratis-nota{background:var(--ecm-lila);border-radius:12px;padding:10px 14px}
+/* ---- carrito: quitar, aviso con «Ver carrito» y salto del ícono ---- */
+.carro-quitar{display:inline-block;margin-top:4px;padding:4px 0;background:none;border:0;color:var(--ecm-suave);font-size:13px;text-decoration:underline;cursor:pointer}
+.carro-quitar:hover{color:#B3261E}
+.aviso-toast{display:flex;align-items:center;gap:12px;justify-content:center}
+.aviso-ver{background:#fff;color:var(--ecm-dark,#2A123E);border:0;border-radius:999px;padding:6px 12px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap}
+body.ver-barra-compra .aviso-toast{bottom:92px}
+@keyframes kv-salta{0%,100%{transform:scale(1)}35%{transform:scale(1.28)}65%{transform:scale(.92)}}
+#btn-carro.salta{animation:kv-salta .6s ease}
+.an-txt{cursor:pointer}
+/* ---- regalo de bienvenida ---- */
+.bienv{position:fixed;inset:0;z-index:90;background:rgba(22,10,34,.55);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;transition:opacity .25s}
+.bienv.ver{opacity:1}
+.bienv-caja{position:relative;display:grid;grid-template-columns:220px 1fr;max-width:640px;width:100%;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(22,10,34,.6);transform:translateY(16px);transition:transform .3s}
+.bienv.ver .bienv-caja{transform:none}
+.bienv-foto{background:url(/assets/sobre/argollas-lila.jpg) center/cover;display:flex;align-items:flex-end;justify-content:flex-start;padding:16px}
+.bienv-foto span{background:var(--ecm-dark,#2A123E);color:var(--ecm-oro,#E3C572);font-family:var(--ecm-titulos);font-weight:700;font-size:30px;padding:8px 14px;border-radius:14px}
+.bienv-c{padding:28px 26px 20px}
+.bienv-c h2{font-family:var(--ecm-titulos);font-size:24px;line-height:1.2;margin:4px 0 8px;color:var(--tinta)}
+.bienv-c p{margin:0 0 14px;color:var(--ecm-suave);font-size:15px;line-height:1.45}
+.bienv-form input{width:100%;min-height:48px;border:1.5px solid var(--borde);border-radius:12px;padding:0 14px;font-size:16px;margin-bottom:10px;background:#FBF7F1}
+.bienv-form input:focus{outline:2px solid var(--morado);border-color:transparent}
+.bienv-msg{font-size:13px;color:#B3261E;min-height:1em;margin-top:6px}
+.bienv-legal{font-size:12px!important;margin:6px 0 4px!important}
+.bienv-no{background:none;border:0;color:var(--ecm-suave);text-decoration:underline;font-size:13px;padding:6px 0;cursor:pointer}
+.bienv-x{position:absolute;top:8px;right:10px;width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.9);font-size:26px;line-height:1;cursor:pointer;color:var(--tinta);z-index:1}
+.bienv-cod{display:flex;align-items:center;justify-content:space-between;gap:10px;border:2px dashed var(--morado);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.bienv-cod b{font-size:20px;letter-spacing:.06em;color:var(--tinta)}
+.bienv-nota{font-size:13.5px!important}
+@media (max-width:767px){
+  .bienv{align-items:flex-end;padding:0}
+  .bienv-caja{grid-template-columns:1fr;border-radius:20px 20px 0 0;max-height:92vh;overflow:auto;transform:translateY(100%)}
+  .bienv-foto{height:120px;align-items:center;justify-content:center}
+  .bienv-foto span{font-size:26px}
+  .bienv-c{padding:20px 18px calc(16px + env(safe-area-inset-bottom))}
+  .bienv-c h2{font-size:21px}
+}
+.aviso-toast{width:max-content;max-width:min(calc(100vw - 32px),440px);text-align:left;line-height:1.35}

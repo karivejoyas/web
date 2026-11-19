@@ -1122,7 +1122,7 @@ function kvCuponNormalizar(codigo) {
 function kvBienvenida(settings) {
   const b = (settings && settings.bienvenida) || {};
   return {
-    activo: !!b.activo,
+    activo: b.activo !== false,   // encendido salvo que se apague en el panel
     pct: b.pct != null ? Number(b.pct) : 10,
     codigo: kvCuponNormalizar(b.codigo || 'BIENVENIDA10'),
     titulo: b.titulo || '¿Primera vez por acá? 💜',
@@ -1135,7 +1135,10 @@ function kvBienvenida(settings) {
 function kvCuponValidar(codigo, settings, subtotal, hoy) {
   const cod = kvCuponNormalizar(codigo);
   if (!cod) return { ok: false, error: 'Escribe un código.' };
-  const c = kvCupones(settings).find(x => kvCuponNormalizar(x.codigo) === cod);
+  let c = kvCupones(settings).find(x => kvCuponNormalizar(x.codigo) === cod);
+  // el código del regalo de bienvenida funciona aunque no esté en la lista de cupones
+  const bi = kvBienvenida(settings);
+  if (bi.activo && bi.pct > 0 && cod === bi.codigo) c = Object.assign({ codigo: bi.codigo, tipo: 'porcentaje', valor: bi.pct, activo: true }, c || {}, { bienvenida: true });
   if (!c) return { ok: false, error: 'Ese código no existe. Revísalo e intenta de nuevo.' };
   if (c.activo === false) return { ok: false, error: 'Ese cupón ya no está disponible.' };
   if (c.hasta) {

@@ -139,11 +139,17 @@
 
   /* ---------- utilidades de pantalla ---------- */
   let toastT = null;
-  function aviso(txt) {
+  function aviso(txt, conCarro) {
     let t = $('#aviso-toast');
     if (!t) { t = document.createElement('div'); t.id = 'aviso-toast'; t.className = 'aviso-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
-    t.textContent = txt; t.classList.add('ver');
-    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('ver'), 2600);
+    t.textContent = txt;
+    if (conCarro) {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'aviso-ver'; b.textContent = 'Ver carrito';
+      b.addEventListener('click', () => { t.classList.remove('ver'); carroPintar(); abrirCajon('cajon-carro'); });
+      t.appendChild(b);
+    }
+    t.classList.add('ver');
+    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('ver'), conCarro ? 4500 : 2600);
   }
   function precioDe(p) { return kvPrecioOferta(p) || p.price || 0; }
   function precioHtml(p) {
@@ -206,11 +212,13 @@
       aviso('Solo queda' + (tope === 1 ? ' 1 unidad' : 'n ' + tope + ' unidades') + ' de ' + p.name);
     } else {
       carro[id] = nuevo; carroGuardar();
-      aviso('✓ ' + p.name + ' agregado al carrito');
+      const cj = $('#cajon-carro');
+      aviso('✓ ' + p.name + ' agregado', !(cj && cj.classList.contains('abierto')));
     }
     carroPintar();
     await volarAlCarro(id);
-    abrirCajon('cajon-carro');
+    // la cesta no se abre sola: el ícono del carrito salta y el aviso trae «Ver carrito»
+    const bc = $('#btn-carro'); if (bc) { bc.classList.remove('salta'); void bc.offsetWidth; bc.classList.add('salta'); }
   }
 
   /* La foto del producto vuela hasta la bolsa, la bolsa se mueve y el número salta. */
@@ -276,7 +284,8 @@
     }
     cont.innerHTML = '<div class="carro">' + gratis + '<div class="carro-lista">' + items.map(it =>
       '<div class="carro-item"><img src="' + escapeHtml(it.p.img) + '" alt="" width="72" height="72" loading="lazy">' +
-      '<div><b>' + escapeHtml(it.p.name) + '</b><small>' + escapeHtml(it.p.code) + ' · ' + formatCLP(precioDe(it.p)) + '</small></div>' +
+      '<div><b>' + escapeHtml(it.p.name) + '</b><small>' + escapeHtml(it.p.code) + ' · ' + formatCLP(precioDe(it.p)) + '</small>' +
+      '<button type="button" class="carro-quitar" data-quitar="' + it.p.id + '" aria-label="Quitar ' + escapeHtml(it.p.name) + ' del carrito">Quitar</button></div>' +
       '<div class="cantidad"><button type="button" data-qty="-1" data-id="' + it.p.id + '" aria-label="Quitar uno">−</button><span>' + it.qty + '</span>' +
       '<button type="button" data-qty="1" data-id="' + it.p.id + '" aria-label="Agregar uno">+</button></div></div>').join('') +
       '</div><div class="carro-pie"><div class="fila total"><span>Subtotal</span><span>' + formatCLP(sub) + '</span></div>' +
@@ -294,6 +303,7 @@
       if (nuevo <= 0) delete carro[id]; else carro[id] = nuevo;
       carroGuardar(); carroPintar();
     }));
+    cont.querySelectorAll('[data-quitar]').forEach(b => b.addEventListener('click', () => { delete carro[b.dataset.quitar]; carroGuardar(); carroPintar(); }));
     cont.querySelectorAll('[data-cerrar]').forEach(b => b.addEventListener('click', () => cerrarCajon(b.dataset.cerrar)));
   }
   const btnCarro = $('#btn-carro');
@@ -408,9 +418,80 @@
         fetch(a.igPubUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ accion: 'bienvenida', correo: correo, codigo: b.codigo, pct: b.pct }) }).catch(() => {});
       }
-      msg.textContent = b.activo ? '¡Listo! Te enviamos tu cupón de ' + b.pct + '% a tu correo 💜' : '¡Listo! Te avisaremos de las novedades 💜';
+      if (b.activo) { try { if (!localStorage.getItem('kv_ya_compro')) localStorage.setItem('kv_cupon_auto', b.codigo); localStorage.setItem('kv_bienv', 'listo'); } catch (e) {} }
+      msg.innerHTML = b.activo ? '¡Listo! Tu código de ' + b.pct + '% es <b>' + escapeHtml(b.codigo) + '</b>: se aplica solo al pagar y también te lo enviamos por correo 💜' : '¡Listo! Te avisaremos de las novedades 💜';
       bol.reset();
     } catch (err) { msg.textContent = 'No pudimos guardar tu correo. Intenta de nuevo.'; }
+  });
+
+  /* ---------- regalo de bienvenida: % de descuento en la primera compra por dejar el correo ---------- */
+  const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+  const enMarcoB = (() => { try { return window.top !== window; } catch (e) { return true; } })();
+  let bienvAbierta = false;
+  async function bienvenida(forzar) {
+    if (bienvAbierta || enMarcoB) return;
+    let a = {}; try { a = await ajustes(); } catch (e) {}
+    const b = kvBienvenida(a);
+    if (!b.activo || !(b.pct > 0)) return;
+    const visto = LS.get('kv_bienv') || '';
+    if (!forzar && (LS.get('kv_ya_compro') || visto === 'listo' || (/^cerrado:\d+$/.test(visto) && Date.now() - +visto.slice(8) < 3 * 864e5))) return;
+    if (!forzar && $$('.cajon.abierto, .buscador.abierto, .zoom.abierto, .menu-movil.abierto').length) return 'ocupado';
+    bienvAbierta = true;
+    const pct = b.pct, codigoGuardado = visto === 'listo' ? (LS.get('kv_cupon_auto') || b.codigo) : '';
+    const v = document.createElement('div');
+    v.className = 'bienv'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-labelledby', 'bienv-t');
+    const exito = (cod) => '<span class="antetitulo">Tu regalo 🎁</span><h2 id="bienv-t">¡Listo! Tienes ' + pct + '% de descuento</h2>' +
+      '<p>Tu código es</p><div class="bienv-cod"><b>' + escapeHtml(cod) + '</b><button type="button" class="btn btn-borde btn-chico" data-copiar>Copiar</button></div>' +
+      '<p class="bienv-nota">Ya quedó guardado: <b>se aplica solo al pagar</b>. También te lo enviamos por correo. Válido en tu primera compra.</p>' +
+      '<button type="button" class="btn btn-1 btn-bloque" data-bienv-cerrar>Ver los aros</button>';
+    v.innerHTML = '<div class="bienv-caja"><button type="button" class="bienv-x" aria-label="Cerrar" data-bienv-cerrar>×</button>' +
+      '<div class="bienv-foto" aria-hidden="true"><span>' + pct + '%</span></div><div class="bienv-c">' + (codigoGuardado ? exito(codigoGuardado) :
+      '<span class="antetitulo">Regalo de bienvenida</span><h2 id="bienv-t">' + escapeHtml(b.titulo) + '</h2>' +
+      '<p>' + escapeHtml(b.texto.replace(/\{PCT\}/g, pct)) + '</p>' +
+      '<form class="bienv-form" novalidate><input name="correo" type="email" inputmode="email" autocomplete="email" placeholder="Tu correo electrónico" aria-label="Tu correo electrónico" required>' +
+      '<button type="submit" class="btn btn-1 btn-bloque">Quiero mi ' + pct + '% de descuento</button><div class="bienv-msg" role="status"></div></form>' +
+      '<p class="bienv-legal">Te enviaremos novedades de vez en cuando. Puedes darte de baja cuando quieras.</p>' +
+      '<button type="button" class="bienv-no" data-bienv-cerrar>No, gracias</button>') + '</div></div>';
+    document.body.appendChild(v);
+    requestAnimationFrame(() => requestAnimationFrame(() => v.classList.add('ver')));
+    const esc = (e) => { if (e.key === 'Escape') cerrar(); };
+    function cerrar() {
+      if (LS.get('kv_bienv') !== 'listo') LS.set('kv_bienv', 'cerrado:' + Date.now());
+      v.classList.remove('ver'); bienvAbierta = false; setTimeout(() => v.remove(), 300); document.removeEventListener('keydown', esc);
+    }
+    document.addEventListener('keydown', esc);
+    v.addEventListener('click', e => {
+      if (e.target === v || e.target.closest('[data-bienv-cerrar]')) cerrar();
+      const cp = e.target.closest('[data-copiar]');
+      if (cp) { try { navigator.clipboard.writeText(cp.previousElementSibling.textContent); cp.textContent = '✓ Copiado'; } catch (err) {} }
+    });
+    const f = $('.bienv-form', v);
+    if (f) {
+      setTimeout(() => { if (matchMedia('(min-width:768px)').matches) f.correo.focus(); }, 350);
+      f.addEventListener('submit', async e => {
+        e.preventDefault();
+        const correo = (f.correo.value || '').trim().toLowerCase(), msg = $('.bienv-msg', v), btn = $('button', f);
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { msg.textContent = 'Revisa tu correo, parece que falta algo.'; f.correo.focus(); return; }
+        btn.disabled = true; msg.textContent = 'Guardando…';
+        try { await fsCrear('catalog/suscriptores/items', { correo: correo, fecha: new Date().toISOString(), origen: 'web-bienvenida', codigo: b.codigo, acepta: true }); } catch (err) {}
+        if (a.igPubUrl) fetch(a.igPubUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ accion: 'bienvenida', correo: correo, codigo: b.codigo, pct: pct }) }).catch(() => {});
+        LS.set('kv_bienv', 'listo'); LS.set('kv_cupon_auto', b.codigo);
+        $('.bienv-c', v).innerHTML = exito(b.codigo);
+      });
+    }
+  }
+  if (!/finalizar-compra|mi-pedido/.test(location.pathname)) {
+    let disparado = false;
+    const alBajar = () => { const h = document.documentElement; if (h.scrollTop > 600 && h.scrollTop > (h.scrollHeight - innerHeight) * 0.45) disparar(); };
+    function disparar() { if (disparado) return; disparado = true; window.removeEventListener('scroll', alBajar); bienvenida(false).then(r => { if (r === 'ocupado') setTimeout(() => bienvenida(false), 20000); }); }
+    setTimeout(disparar, 12000);
+    window.addEventListener('scroll', alBajar, { passive: true });
+    document.addEventListener('mouseout', e => { if (!e.relatedTarget && e.clientY <= 0) disparar(); });
+  }
+  // la franja de arriba («10% en tu primera compra») y cualquier enlace a #bienvenida abren la ventanita
+  document.addEventListener('click', e => {
+    const t = e.target.closest('.an-txt, a[href="#bienvenida"]');
+    if (t && (t.matches('a') || /primera compra/i.test(t.textContent))) { e.preventDefault(); bienvenida(true); }
   });
 
   /* ============================================================

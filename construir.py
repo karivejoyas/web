@@ -161,10 +161,19 @@ def solo_digitos(s):
     return re.sub(r"[^0-9]", "", str(s or ""))
 
 
+BIENV_PCT = 10
+
+
 def ajustes_tienda():
     """WhatsApp, redes, correo y envíos: lo que se edita en el panel."""
     global WA, IG, FBK, ENV_RM, ENV_RESTO, ENV_POR_REGION, CORREO, WA_MSG, TEMA, VARS, RESENAS
-    s = leer_doc("catalog/settings", ["whatsapp", "instagram", "facebook", "whatsappMsg", "envioTarifas", "resenas"])
+    s = leer_doc("catalog/settings", ["whatsapp", "instagram", "facebook", "whatsappMsg", "envioTarifas", "resenas", "bienvenida"])
+    bi = s.get("bienvenida") or {}
+    global BIENV_PCT
+    try:
+        BIENV_PCT = 0 if bi.get("activo") is False else int(bi.get("pct") or 10)
+    except (TypeError, ValueError):
+        BIENV_PCT = 10
     RESENAS = [r for r in (s.get("resenas") or []) if isinstance(r, dict) and r.get("producto")]
     wa = solo_digitos(s.get("whatsapp"))
     if len(wa) == 9:
@@ -500,6 +509,8 @@ def anuncio_html():
     partes = [x.strip() for x in str(an.get("texto") or "").split("·") if x.strip()] or [""]
     if texto_envio_gratis() and not any("gratis" in p.lower() for p in partes):
         partes = [texto_envio_gratis()] + [p for p in partes if p]
+    if BIENV_PCT > 0 and not any("primera compra" in p.lower() for p in partes):
+        partes = [p for p in partes if p] + ["🎁 %d%% de descuento en tu primera compra · toca aquí" % BIENV_PCT]
     return ('<div class="anuncio anuncio-flechas"%s><button type="button" data-an="-1" aria-label="Anterior">‹</button>'
             '<span class="an-txt" aria-live="polite">%s</span><button type="button" data-an="1" aria-label="Siguiente">›</button>'
             '<script type="application/json" id="an-partes">%s</script></div>'

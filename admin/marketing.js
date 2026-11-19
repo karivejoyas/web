@@ -54,13 +54,13 @@
       '</div><div class="tarjeta-pie"><button class="btn btn-primario" id="dg-guardar">Guardar descuento</button></div></div>' +
 
       '<div class="tarjeta"><div class="tarjeta-cab"><h2>Regalo de bienvenida</h2>' + (b.activo ? '<span class="ins verde">Activo</span>' : '<span class="ins">Apagado</span>') + '</div><div class="tarjeta-c">' +
-        '<p class="ayuda">Una ventanita en el catálogo antiguo invita a dejar el correo a cambio de un descuento. Los correos quedan en Clientes → Suscriptores.</p>' +
+        '<p class="ayuda">En la web aparece una ventanita (y un aviso en la franja de arriba) que invita a dejar el correo a cambio de un descuento en la primera compra. El código se muestra en pantalla, se aplica solo al pagar y también se envía por correo. Los correos quedan en Clientes → Suscriptores.</p>' +
         A.interruptor('bi-activo', b.activo, 'Mostrar el regalo de bienvenida') +
         '<div class="fila-campos"><label class="campo"><span>Descuento</span><div class="campo-pre"><input id="bi-pct" inputmode="numeric" value="' + b.pct + '"><span>%</span></div></label>' +
         '<label class="campo"><span>Código del cupón</span><input id="bi-codigo" value="' + h(b.codigo) + '" style="text-transform:uppercase"></label></div>' +
         '<label class="campo"><span>Título</span><input id="bi-titulo" value="' + h(b.titulo) + '"></label>' +
         '<label class="campo"><span>Texto</span><textarea id="bi-texto" rows="2">' + h(b.texto) + '</textarea><small>{PCT} se reemplaza por el porcentaje.</small></label>' +
-        (b.activo && !existeBien ? '<div class="nota">⚠ El cupón «' + h(b.codigo) + '» todavía no existe, así que el descuento no se podrá usar. <button class="btn btn-chico" id="bi-crear">Crearlo ahora</button></div>' : (b.activo ? '<div class="nota ok">✓ El cupón «' + h(b.codigo) + '» existe y está listo.</div>' : '')) +
+        (b.activo ? '<div class="nota ok">✓ El código «' + h(b.codigo) + '» da ' + b.pct + '% de descuento' + (existeBien ? ' (está en tu lista de cupones; se usan sus condiciones)' : '') + '. Es solo para la primera compra: si alguien que ya compró lo usa, el pedido te muestra un aviso.</div>' : '') +
       '</div><div class="tarjeta-pie"><button class="btn btn-primario" id="bi-guardar">Guardar</button></div></div>' +
 
       '<div class="tarjeta"><div class="tarjeta-cab"><h2>Lo más visto</h2>' + (mv.activo ? '<span class="ins verde">Publicado</span>' : '<span class="ins">Apagado</span>') + '</div><div class="tarjeta-c">' +
