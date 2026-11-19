@@ -95,31 +95,38 @@
     const fila = (r) => '<div class="env-fila"><span>' + h(r) + '</span><div class="campo-pre"><span>$</span><input data-region="' + h(r) + '" inputmode="numeric" value="' + kvEnvioDe(t, r) + '"></div></div>';
     vista.innerHTML = marco('envios', A.cab('Envío y entrega') +
       '<div class="tarjeta"><div class="tarjeta-cab"><h2>Tarifas de envío por región</h2>' +
-        '<div class="acciones"><button class="btn btn-chico" id="ce-zonas">Usar la propuesta por zonas</button><button class="btn btn-chico btn-plano" id="ce-igual">Mismo precio para todas las regiones</button></div></div><div class="tarjeta-c">' +
+        '<div class="acciones"><button class="btn btn-chico" id="ce-menos">Bajar $1.000 a todas</button><button class="btn btn-chico" id="ce-zonas">Usar la propuesta por zonas</button><button class="btn btn-chico btn-plano" id="ce-igual">Mismo precio para todas las regiones</button></div></div><div class="tarjeta-c">' +
         '<p class="ayuda" style="margin-top:0">En la página de pago la clienta elige su región y se cobra el precio de esa región. Los textos de la web (tabla de Envíos, preguntas frecuentes, beneficios) se arman solos con estos precios.</p>' +
         '<div class="env-tabla">' + KV_REGIONES.map(fila).join('') + '</div>' +
         '<div class="nota info" id="ce-rango"></div>' +
+        '<div class="fila-campos" style="margin-top:14px"><label class="campo"><span>Envío gratis en la RM desde</span><div class="campo-pre"><span>$</span><input id="ce-gratis-rm" inputmode="numeric" value="' + kvEnvioGratisDesde(t, KV_REGION_RM) + '"></div></label>' +
+        '<label class="campo"><span>Envío gratis en regiones desde</span><div class="campo-pre"><span>$</span><input id="ce-gratis-reg" inputmode="numeric" value="' + kvEnvioGratisDesde(t, 'Valparaíso') + '"></div></label></div>' +
+        '<p class="ayuda">Monto en productos, después de descuentos. Pon 0 para no dar envío gratis. La web lo muestra en el anuncio, el carrito («te faltan $X…»), las fichas y la página de Envíos.</p>' +
         '<div class="nota">Revisa una compra de prueba a una región después de cambiar los precios: el total que cobra Mercado Pago debe incluir el envío de esa región.</div>' +
       '</div></div>' +
       '<div class="tarjeta tarjeta-c"><h2 style="margin-bottom:6px">Retiro en tienda</h2><p class="ayuda" style="margin:0">No disponible: la tienda es solo en línea y despacha desde Santiago.</p></div>');
     const ins = () => A.$$('[data-region]', vista);
-    const leer = () => { const por = {}; ins().forEach(i => { por[i.dataset.region] = A.num(i.value); }); return por; };
+    const leer = () => { const por = {}; ins().forEach(i => { por[i.dataset.region] = A.num(i.value); }); por._gratisRM = A.num(A.$('#ce-gratis-rm', vista).value); por._gratisReg = A.num(A.$('#ce-gratis-reg', vista).value); return por; };
     const rango = () => {
-      const r = kvEnvioRango({ porRegion: leer() });
+      const por0 = leer(); delete por0._gratisRM; delete por0._gratisReg;
+      const r = kvEnvioRango({ porRegion: por0 });
       A.$('#ce-rango', vista).innerHTML = 'Así se verá en la web: <b>' + A.clp(r.rm) + '</b> en la Región Metropolitana y ' +
         (r.regMin === r.regMax ? '<b>' + A.clp(r.regMin) + '</b> en regiones.' : '<b>de ' + A.clp(r.regMin) + ' a ' + A.clp(r.regMax) + '</b> en regiones, según la región.');
     };
     rango(); vista.addEventListener('input', rango);
     const poner = (f) => { ins().forEach(i => { i.value = f(i.dataset.region); }); rango(); ins()[0].dispatchEvent(new Event('input', { bubbles: true })); };
     A.$('#ce-zonas', vista).addEventListener('click', () => poner(r => ZONAS[r]));
+    A.$('#ce-menos', vista).addEventListener('click', () => poner(r => Math.max(990, A.num(A.$('[data-region="' + r + '"]', vista).value) - 1000)));
     A.$('#ce-igual', vista).addEventListener('click', async () => {
       const n = A.num(window.prompt('¿Cuánto cobras a todas las regiones (fuera de la RM)?', String(kvEnvioRango({ porRegion: leer() }).regMin)));
       if (n > 0) poner(r => r === KV_REGION_RM ? A.num(A.$('[data-region="' + KV_REGION_RM + '"]', vista).value) : n);
     });
     formulario(vista, leer, async (por) => {
+      const gratisRM = por._gratisRM || 0, gratisRegiones = por._gratisReg || 0;
+      delete por._gratisRM; delete por._gratisReg;
       if (Object.keys(por).some(r => !(por[r] > 0))) { A.avisar('Todas las regiones deben tener un precio mayor que cero.'); return false; }
       const otras = KV_REGIONES.filter(r => r !== KV_REGION_RM).map(r => por[r]);
-      await A.ref.settings.set({ envioTarifas: { rm: por[KV_REGION_RM], regiones: Math.min.apply(null, otras), porRegion: por } }, { merge: true });
+      await A.ref.settings.set({ envioTarifas: { rm: por[KV_REGION_RM], regiones: Math.min.apply(null, otras), porRegion: por, gratisRM: gratisRM, gratisRegiones: gratisRegiones } }, { merge: true });
     });
   }
 

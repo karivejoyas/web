@@ -73,14 +73,23 @@
       raiz.innerHTML = '<div class="ok-caja"><h2>Tu carrito está vacío</h2><p>Elige tus joyas favoritas en la tienda.</p><a class="btn btn-1" href="/tienda/">Ir a la tienda</a></div>';
       return;
     }
-    const sub = subtotal(), dcto = descuento();
-    const envio = form.region ? kvEnvioCosto(form.region) : null;
-    const total = Math.max(0, sub - dcto) + (envio || 0);
+    const sub = subtotal(), dcto = descuento(), neto = Math.max(0, sub - dcto);
+    const envio = form.region ? kvEnvioCosto(form.region, neto) : null;
+    const total = neto + (envio || 0);
+    // cuánto falta para el envío gratis en la región elegida
+    const umbral = form.region ? kvEnvioGratisDesde(window.kvEnvioTarifas, form.region) : 0;
+    const falta = umbral && envio ? umbral - neto : 0;
+    const nItems = items.reduce((s, it) => s + it.qty, 0);
     const mp = kvMercadoPago(A), t = kvTransferencia(A);
     const conTarjeta = medio === 'mercadopago' && mp.activo;
     const campo = (k, etq, tipo, extra) => '<label class="campo"><span>' + etq + '</span><input data-c="' + k + '" name="' + k + '" type="' + (tipo || 'text') + '" value="' + escapeHtml(form[k] || '') + '"' + (extra || '') + '></label>';
     const comunas = kvComunasDe(form.region);
     raiz.innerHTML =
+      // en el celular, el resumen arriba (plegable) para ver qué y cuánto se paga
+      '<details class="pago-resumen-movil"><summary><span>Ver tu pedido (' + nItems + ')</span><b>' + formatCLP(total) + '</b></summary>' +
+        items.map(it => '<div class="resumen-item"><img src="' + escapeHtml(it.p.img) + '" alt="" width="48" height="48"><div>' + escapeHtml(it.p.name) +
+          '<br><small class="nota">' + it.qty + ' × ' + formatCLP(KV.precioDe(it.p)) + '</small></div><b>' + formatCLP(KV.precioDe(it.p) * it.qty) + '</b></div>').join('') +
+        '<div class="fila"><span>Envío</span><span>' + (envio == null ? 'elige tu región' : envio ? formatCLP(envio) : 'Gratis') + '</span></div></details>' +
       '<div class="pago-caja">' +
         '<h2>Tus datos</h2>' +
         campo('nombre', 'Nombre y apellido *', 'text', ' autocomplete="name" required') +
@@ -89,7 +98,7 @@
         '<h2 style="margin-top:14px">Envío</h2>' + (courier() ? '<div class="envio-con">' + courier('Despachamos a todo Chile con') + '</div>' : '') +
         campo('direccion', 'Dirección (calle, número, depto) *', 'text', ' autocomplete="address-line1" placeholder="Ej: Av. Grecia 1234, depto 56…" required') +
         '<div class="doble"><label class="campo"><span>Región *</span><select data-c="region" name="region"><option value="">Elige tu región</option>' +
-          KV_REGIONES.map(r => '<option value="' + escapeHtml(r) + '"' + (form.region === r ? ' selected' : '') + '>' + escapeHtml(r === 'Metropolitana de Santiago' ? 'Metropolitana (RM)' : r) + ' · ' + formatCLP(kvEnvioCosto(r)) + '</option>').join('') + '</select></label>' +
+          KV_REGIONES.map(r => '<option value="' + escapeHtml(r) + '"' + (form.region === r ? ' selected' : '') + '>' + escapeHtml(r === 'Metropolitana de Santiago' ? 'Metropolitana (RM)' : r) + ' · ' + (kvEnvioCosto(r, neto) ? formatCLP(kvEnvioCosto(r, neto)) : 'envío gratis') + '</option>').join('') + '</select></label>' +
         '<label class="campo"><span>Comuna *</span><select data-c="comuna" name="comuna"' + (comunas.length ? '' : ' disabled') + '><option value="">' + (comunas.length ? 'Elige tu comuna' : 'Primero la región') + '</option>' +
           comunas.map(c => '<option' + (form.comuna === c ? ' selected' : '') + '>' + escapeHtml(c) + '</option>').join('') + '</select></label></div>' +
         '<label class="campo"><span>Nota para tu pedido (opcional)</span><textarea data-c="notas" name="notas" rows="2" placeholder="Ej: dejar con conserjería, regalo…">' + escapeHtml(form.notas || '') + '</textarea></label>' +
@@ -110,6 +119,7 @@
         '<div class="error-caja" id="pago-error" hidden></div>' +
         '<button type="button" class="btn btn-1 btn-bloque" id="confirmar" style="margin-top:14px"' + (enviando ? ' disabled' : '') + '>' +
           (enviando ? 'Enviando…' : conTarjeta ? 'Pagar ' + formatCLP(total) + ' con tarjeta' : 'Confirmar pedido por ' + formatCLP(total)) + '</button>' +
+        (conTarjeta ? '<p class="pago-seguro">🔒 Pago protegido por Mercado Pago: los datos de tu tarjeta los ingresas en Mercado Pago, no en esta web.</p>' : '') +
         '<p class="nota" style="margin-top:10px">Al comprar aceptas nuestra <a href="/devoluciones.html">política de cambios</a> (no hay cambios ni devoluciones por arrepentimiento; si hay un problema, lo vemos contigo) y la <a href="/privacidad.html">de privacidad</a>.</p>' +
       '</div>' +
       '<aside class="pago-caja"><h2>Tu pedido</h2>' +
@@ -121,7 +131,8 @@
         (cupon ? '<div class="cupon-msg ok">✓ ' + escapeHtml(cupon.codigo) + ': ' + escapeHtml(kvCuponTexto(cupon)) + '</div>' : '') +
         '<div class="fila"><span>Subtotal</span><span>' + formatCLP(sub) + '</span></div>' +
         (dcto ? '<div class="fila"><span>Descuento</span><span>−' + formatCLP(dcto) + '</span></div>' : '') +
-        '<div class="fila"><span>Envío' + (form.region ? (form.region === KV_REGION_RM ? ' (RM)' : ' (regiones)') : '') + '</span><span>' + (envio != null ? formatCLP(envio) : 'elige tu región') + '</span></div>' +
+        '<div class="fila"><span>Envío' + (form.region ? (form.region === KV_REGION_RM ? ' (RM)' : ' (regiones)') : '') + '</span><span>' + (envio == null ? 'elige tu región' : envio ? formatCLP(envio) : 'Gratis 🎉') + '</span></div>' +
+        (falta > 0 ? '<div class="cupon-msg ok">Agrega ' + formatCLP(falta) + ' más y tu envío es <b>gratis</b>. <a href="/tienda/">Seguir comprando</a></div>' : '') +
         '<div class="fila total"><span>Total</span><span>' + formatCLP(total) + '</span></div>' +
         '<ul class="lista-confianza"><li>🚚 ' + (nombresCouriers() ? 'Despacho a todo Chile con ' + escapeHtml(nombresCouriers()) : 'Despacho a todo Chile desde Santiago') + '</li><li>💬 ¿Dudas? <a href="https://wa.me/' + whatsapp() + '">Escríbenos por WhatsApp</a></li></ul>' +
       '</aside>';
@@ -132,7 +143,7 @@
     // el mensaje de WhatsApp se arma al tocarlo, con lo último que se escribió
     const tw = raiz.querySelector('.transf-wa');
     if (tw) tw.addEventListener('click', () => {
-      const env = form.region ? kvEnvioCosto(form.region) : null;
+      const env = form.region ? kvEnvioCosto(form.region, Math.max(0, subtotal() - descuento())) : null;
       tw.href = 'https://wa.me/' + whatsapp() + '?text=' + encodeURIComponent(mensajeTransferencia(Math.max(0, subtotal() - descuento()) + (env || 0), env));
     });
     raiz.querySelectorAll('[data-c]').forEach(n => n.addEventListener(n.tagName === 'SELECT' ? 'change' : 'input', () => {
@@ -195,7 +206,7 @@
     // precios y stock al día justo antes de cobrar
     items = await KV.carroItems();
     if (!items.length) { pintar(); return; }
-    const envio = kvEnvioCosto(f.region), sub = subtotal(), dcto = descuento();
+    const sub = subtotal(), dcto = descuento(), envio = kvEnvioCosto(f.region, Math.max(0, sub - dcto));
     const pedido = {
       cliente: { nombre: f.nombre.trim(), correo: f.correo.trim(), telefono: f.telefono.trim() },
       direccion: { calle: f.direccion.trim(), comuna: f.comuna, region: f.region },

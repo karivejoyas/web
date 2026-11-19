@@ -27,6 +27,11 @@
     const vieron = vis.filter(v => Math.max((v.productos || []).length, (v.productosIds || []).length) > 0).length;
     const carrito = vis.filter(v => v.agregoCarrito || (v.carritoActual || []).length).length;
     const pidieron = vis.filter(v => v.hizoPedido).length;
+    const enPago = vis.filter(v => (v.contacto || {}).correo || v.hizoPedido).length;
+    const pasos = [['Entraron a la tienda', vis.length], ['Abrieron un producto', vieron], ['Agregaron al carrito', carrito], ['Llegaron al pago', enPago], ['Hicieron el pedido', pidieron], ['Pagaron', ventas.length]];
+    let fuga = null;
+    pasos.forEach((x, i) => { if (i && pasos[i - 1][1] >= 3) { const caida = 1 - x[1] / pasos[i - 1][1]; if (!fuga || caida > fuga.caida) fuga = { caida: caida, de: pasos[i - 1][0], a: x[0] }; } });
+    const CONSEJO = { 'Abrieron un producto': 'la portada y las colecciones: fotos, precios visibles y llegar rápido a los productos.', 'Agregaron al carrito': 'la ficha: fotos, medida, precio y el botón «Agregar al carrito».', 'Llegaron al pago': 'el carrito: costo de envío claro y un botón de pago visible.', 'Hicieron el pedido': 'el formulario de pago: pocos datos, confianza y medios de pago.', 'Pagaron': 'los pedidos sin pagar: escríbeles para ayudarles a terminar.' };
 
     // productos y colecciones más vendidos
     const vendidos = {}, porCol = {};
@@ -60,10 +65,10 @@
         '<div class="tarjeta"><div class="tarjeta-cab"><h2>Ventas</h2></div>' + A.grafico(A.serie(per, A.pedidos.filter(A.esVenta), A.fechaPedido, p => Number(p.total) || 0).map(d => Object.assign(d, { tip: A.clp(d.valor) })), { titulo: 'Ventas', formato: (v) => v >= 1000 ? '$' + Math.round(v / 1000) + 'k' : '$' + v }) + '</div>' +
         '<div class="tarjeta"><div class="tarjeta-cab"><h2>Sesiones</h2></div>' + A.grafico(A.serie(per, A.visitas, fechaVisita, () => 1).map(d => Object.assign(d, { tip: d.valor + ' sesiones' })), { titulo: 'Sesiones' }) + '</div>' +
       '</div>' +
-      '<div class="tarjeta tarjeta-c"><h2 style="margin-bottom:12px">Embudo de compra</h2><div class="barras-h">' +
-        [['Entraron a la tienda', vis.length], ['Abrieron un producto', vieron], ['Agregaron al carrito', carrito], ['Hicieron el pedido', pidieron]].map(x =>
-          '<div class="bh"><span>' + x[0] + '</span><div class="bh-pista"><div class="bh-relleno" style="width:' + Math.max(1.5, pct(x[1], vis.length)) + '%"></div></div><b>' + x[1] + ' <small class="tenue">(' + coma(pct(x[1], vis.length)) + '%)</small></b></div>').join('') +
-      '</div></div>' +
+      '<div class="tarjeta tarjeta-c"><h2 style="margin-bottom:4px">Embudo de compra</h2><p class="ayuda" style="margin:0 0 12px">Cuántas sesiones llegan a cada paso. Entre paréntesis, el % del paso anterior.</p><div class="barras-h">' +
+        pasos.map((x, i) =>
+          '<div class="bh"><span>' + x[0] + '</span><div class="bh-pista"><div class="bh-relleno" style="width:' + Math.max(1.5, pct(x[1], vis.length)) + '%"></div></div><b>' + x[1] + (i ? ' <small class="tenue">(' + coma(pct(x[1], pasos[i - 1][1])) + '%)</small>' : '') + '</b></div>').join('') +
+      '</div>' + (fuga && fuga.caida > 0 ? '<p class="ayuda" style="margin-top:12px">👉 Donde más se pierden: de «' + h(fuga.de) + '» a «' + h(fuga.a) + '» (' + coma(Math.round(fuga.caida * 1000) / 10) + '% no sigue). Conviene revisar ' + CONSEJO[fuga.a] + '</p>' : '') + '</div>' +
       '<div class="rejilla-2">' +
         '<div class="tarjeta"><div class="tarjeta-cab"><h2>Productos más vendidos</h2></div>' + (!topVend.length ? '<div class="tarjeta-c ayuda">Sin ventas en este periodo.</div>' :
           '<div class="tabla-env mt"><table class="tabla"><thead><tr><th>Producto</th><th class="num">Unid.</th><th class="num">Ventas</th></tr></thead><tbody>' + topVend.map(x => '<tr><td>' + h(x.nombre) + ' <span class="tenue">' + h(x.code || '') + '</span></td><td class="num">' + x.n + '</td><td class="num">' + A.clp(x.plata) + '</td></tr>').join('') + '</tbody></table></div>') + '</div>' +

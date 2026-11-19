@@ -80,9 +80,16 @@
     const r = kvEnvioRango(window.kvEnvioTarifas);
     return 'Envío: ' + formatCLP(r.rm) + ' en la Región Metropolitana · ' + (r.regMin === r.regMax ? formatCLP(r.regMin) + ' al resto de Chile.' : 'de ' + formatCLP(r.regMin) + ' a ' + formatCLP(r.regMax) + ' en regiones, según tu región (se calcula al pagar).');
   }
+  /* "Envío gratis desde $19.990 en la RM y $29.990 en regiones" ('' si no hay envío gratis) */
+  function textoGratis() {
+    const t = window.kvEnvioTarifas, rm = kvEnvioGratisDesde(t, KV_REGION_RM), reg = kvEnvioGratisDesde(t, 'Valparaíso');
+    if (!rm && !reg) return '';
+    return 'Envío gratis' + (rm ? ' desde ' + formatCLP(rm) + ' en la RM' : '') + (rm && reg ? ' y' : '') + (reg ? ' desde ' + formatCLP(reg) + ' en regiones' : '') + '.';
+  }
   function usarTarifas(v) {
     const t = (v && v.envioTarifas) || {};
-    window.kvEnvioCosto = function (region) { return kvEnvioDe(t, region); };
+    // con monto (productos ya con descuento) aplica el envío gratis; sin monto, la tarifa de la región
+    window.kvEnvioCosto = function (region, monto) { return monto == null ? kvEnvioDe(t, region) : kvEnvioPagar(t, region, monto); };
     window.kvEnvioTarifas = t;
   }
 
@@ -231,6 +238,23 @@
     ], { duration: 720, easing: 'cubic-bezier(.5,0,.3,1)' });
     return anim.finished.catch(() => {}).then(() => { img.remove(); saltar(); return new Promise(r => setTimeout(r, 260)); });
   }
+  /* «Combina con»: 2 productos disponibles que no están en el carrito, de la
+     misma colección que lo elegido (si no hay, de otras). */
+  async function sugerencias(items) {
+    const caja = $('#carro-sugeridos'); if (!caja) return;
+    try {
+      const todos = (await productos()).filter(p => kvEnStock(p) && !carro[p.id]);
+      const cols = items.map(it => it.p.category);
+      const orden = (p) => (cols.indexOf(p.category) !== -1 ? 0 : 1) + Math.random() * .9;
+      const elegidos = todos.map(p => [orden(p), p]).sort((a, b) => a[0] - b[0]).slice(0, 2).map(x => x[1]);
+      if (!elegidos.length) return;
+      caja.innerHTML = '<h3>Combina con</h3>' + elegidos.map(p =>
+        '<div class="sug"><a href="/p/' + encodeURIComponent(p.code) + '.html"><img src="' + escapeHtml(p.img) + '" alt="" width="56" height="56" loading="lazy"></a>' +
+        '<div><a href="/p/' + encodeURIComponent(p.code) + '.html">' + escapeHtml(p.name) + '</a><small>' + formatCLP(precioDe(p)) + '</small></div>' +
+        '<button type="button" class="btn btn-borde btn-chico" data-sug="' + escapeHtml(p.id) + '">Añadir</button></div>').join('');
+      caja.querySelectorAll('[data-sug]').forEach(b => b.addEventListener('click', async () => { b.disabled = true; await agregar(b.dataset.sug, 1); carroPintar(); }));
+    } catch (e) {}
+  }
   async function carroPintar() {
     const cont = $('#carro-cuerpo'); if (!cont) return;
     const items = await carroItems();
@@ -239,15 +263,28 @@
       return;
     }
     const sub = items.reduce((s, it) => s + precioDe(it.p) * it.qty, 0);
-    cont.innerHTML = '<div class="carro"><div class="carro-lista">' + items.map(it =>
+    // avance hacia el envío gratis (con la tarifa de la RM, que es el primer umbral)
+    const t = window.kvEnvioTarifas, umbralRM = kvEnvioGratisDesde(t, KV_REGION_RM), umbralReg = kvEnvioGratisDesde(t, 'Valparaíso');
+    let gratis = '';
+    if (umbralRM || umbralReg) {
+      const meta = umbralRM && sub < umbralRM ? umbralRM : umbralReg && sub < umbralReg ? umbralReg : 0;
+      const pct = Math.min(100, Math.round(sub / (meta || sub || 1) * 100));
+      gratis = '<div class="carro-gratis">' + (meta
+        ? 'Te faltan <b>' + formatCLP(meta - sub) + '</b> para el <b>envío gratis' + (meta === umbralRM ? ' en la RM' : ' a todo Chile') + '</b>' + (meta === umbralRM && umbralReg ? ' (en regiones, desde ' + formatCLP(umbralReg) + ')' : '') + '.'
+        : '🎉 ¡Tienes <b>envío gratis</b>' + (umbralReg && sub >= umbralReg ? ' a todo Chile' : ' en la RM') + '!') +
+        '<span class="carro-barra"><i style="width:' + (meta ? pct : 100) + '%"></i></span></div>';
+    }
+    cont.innerHTML = '<div class="carro">' + gratis + '<div class="carro-lista">' + items.map(it =>
       '<div class="carro-item"><img src="' + escapeHtml(it.p.img) + '" alt="" width="72" height="72" loading="lazy">' +
       '<div><b>' + escapeHtml(it.p.name) + '</b><small>' + escapeHtml(it.p.code) + ' · ' + formatCLP(precioDe(it.p)) + '</small></div>' +
       '<div class="cantidad"><button type="button" data-qty="-1" data-id="' + it.p.id + '" aria-label="Quitar uno">−</button><span>' + it.qty + '</span>' +
       '<button type="button" data-qty="1" data-id="' + it.p.id + '" aria-label="Agregar uno">+</button></div></div>').join('') +
       '</div><div class="carro-pie"><div class="fila total"><span>Subtotal</span><span>' + formatCLP(sub) + '</span></div>' +
-      '<p class="nota">' + textoEnvio() + ' Si tienes un cupón, lo aplicas al pagar.</p>' +
+      '<p class="nota">' + textoEnvio() + ' ' + textoGratis() + ' Si tienes un cupón, lo aplicas al pagar.</p>' +
       '<a class="btn btn-1 btn-bloque" href="/finalizar-compra.html">Finalizar compra</a>' +
-      '<button type="button" class="btn btn-2 btn-bloque" style="margin-top:8px" data-cerrar="cajon-carro">Seguir comprando</button></div></div>';
+      '<button type="button" class="btn btn-borde btn-bloque" style="margin-top:8px" data-cerrar="cajon-carro">Seguir comprando</button>' +
+      '<div class="carro-sugeridos" id="carro-sugeridos"></div></div></div>';
+    sugerencias(items);
     cont.querySelectorAll('[data-qty]').forEach(b => b.addEventListener('click', async () => {
       const id = b.dataset.id, d = parseInt(b.dataset.qty, 10);
       const p = (await productos()).find(x => x.id === id);

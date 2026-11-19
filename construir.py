@@ -45,6 +45,7 @@ WA = gen.WHATSAPP
 IG, FBK = gen.INSTAGRAM, gen.FACEBOOK
 ENV_RM, ENV_RESTO = gen.ENVIO_RM, gen.ENVIO_RESTO
 ENV_POR_REGION = {}          # Configuración → Envío: precio de cada región (si se fijó)
+ENV_GRATIS = {"rm": 19990, "regiones": 29990}   # envío gratis desde (Configuración → Envío; 0 = sin envío gratis)
 REGIONES = ["Arica y Parinacota", "Tarapacá", "Antofagasta", "Atacama", "Coquimbo", "Valparaíso", "Metropolitana de Santiago",
             "O'Higgins", "Maule", "Ñuble", "Biobío", "La Araucanía", "Los Ríos", "Los Lagos", "Aysén", "Magallanes"]
 REGION_RM = "Metropolitana de Santiago"
@@ -182,6 +183,12 @@ def ajustes_tienda():
         ENV_RM = int(tar["rm"])
     if int(tar.get("regiones") or 0) > 0:
         ENV_RESTO = int(tar["regiones"])
+    for k, campo in (("rm", "gratisRM"), ("regiones", "gratisRegiones")):
+        if campo in tar:
+            try:
+                ENV_GRATIS[k] = max(0, int(tar.get(campo) or 0))
+            except (TypeError, ValueError):
+                pass
     for r, n in (tar.get("porRegion") or {}).items():
         try:
             if int(n or 0) > 0:
@@ -491,6 +498,8 @@ def anuncio_html():
     """Barra de anuncio: una parte del texto a la vez (se separan con «·»), con flechas."""
     an = TEMA.get("anuncio") or {}
     partes = [x.strip() for x in str(an.get("texto") or "").split("·") if x.strip()] or [""]
+    if texto_envio_gratis() and not any("gratis" in p.lower() for p in partes):
+        partes = [texto_envio_gratis()] + [p for p in partes if p]
     return ('<div class="anuncio anuncio-flechas"%s><button type="button" data-an="-1" aria-label="Anterior">‹</button>'
             '<span class="an-txt" aria-live="polite">%s</span><button type="button" data-an="1" aria-label="Siguiente">›</button>'
             '<script type="application/json" id="an-partes">%s</script></div>'
@@ -1271,7 +1280,7 @@ def producto(p, cols):
   <div class="ficha-info">
     <div class="ficha-codigo">{cn} · {cod}</div>
     <h1>{nom}</h1>
-    <div class="precio" id="ficha-precio">{precio}</div>
+    <div class="precio" id="ficha-precio">{precio}</div>{medida_corta}
     <div class="{scls}" id="ficha-stock">{stxt}</div>
     <div class="comprar">
       <div class="cantidad"><button type="button" data-mas="-1" aria-label="Uno menos">−</button><span id="ficha-cantidad">1</span><button type="button" data-mas="1" aria-label="Uno más">+</button></div>
@@ -1279,6 +1288,7 @@ def producto(p, cols):
     </div>
     <a class="btn btn-2 btn-bloque" href="https://wa.me/{wa}?text={wat}">Consultar por WhatsApp</a>
     <ul class="lista-confianza" data-kv-lista="producto.beneficios">{benef}</ul>
+    <div class="barra-compra" aria-hidden="true"><span class="bc-precio">{precio}</span><button type="button" class="btn btn-1" data-agregar="{id}" data-cantidad-de="#ficha-cantidad" tabindex="-1"{dis}>{btxt}</button></div>
     <div class="acordeon">
       <details open><summary>Descripción</summary><p>{texto}</p></details>
       <details><summary>Medidas y material</summary><ul>{medida}<li>Hecho a mano en Chile</li>{color}</ul></details>
@@ -1295,8 +1305,9 @@ def producto(p, cols):
            dis="" if p["hay"] else " disabled", btxt="Agregar al carrito" if p["hay"] else "Agotado", wa=WA, wat=wa_txt,
            rm=VARS["envio_rm"], resto=VARS["envio_regiones"], texto=e(texto),
            opiniones=opiniones_html(p["id"]),
-           benef="".join("<li>%s</li>" % tx(x) for x in (TEMA.get("producto") or {}).get("beneficios") or []),
+           benef=(("<li>🎁 %s.</li>" % e(texto_envio_gratis())) if texto_envio_gratis() else "") + "".join("<li>%s</li>" % tx(x) for x in (TEMA.get("producto") or {}).get("beneficios") or []),
            medida=("<li>Medida: %s</li>" % e(p["medida"])) if p["medida"] else "",
+           medida_corta=('<div class="ficha-medida">Medida: %s</div>' % e(p["medida"])) if p["medida"] else "",
            color=("<li>Color: %s</li>" % e(p["color"])) if p["color"] else "",
            faq="".join("<details><summary>%s</summary><p>%s</p></details>" % (e(q), e(a)) for q, a in faq),
            rel=('<section class="seccion" style="padding-top:10px"><div class="seccion-cab"><h2>También te pueden gustar</h2><a class="ver-todo" href="/c/%s.html">Ver %s →</a></div><ul class="grilla">%s</ul></section>'
@@ -1337,13 +1348,24 @@ def variables_envio():
     return {"envio_rm": pesos(envio_de(REGION_RM)), "envio_regiones": rango(rmn, rmx), "envio_min": pesos(mn), "envio_max": pesos(mx), "envio_rango": rango(mn, mx)}
 
 
+def texto_envio_gratis():
+    """«Envío gratis desde $19.990 en la RM y desde $29.990 en regiones» ('' si no hay)."""
+    rm, reg = ENV_GRATIS.get("rm") or 0, ENV_GRATIS.get("regiones") or 0
+    if not rm and not reg:
+        return ""
+    partes = (["desde %s en la RM" % pesos(rm)] if rm else []) + (["desde %s en regiones" % pesos(reg)] if reg else [])
+    return "Envío gratis " + " y ".join(partes)
+
+
 def tabla_envios():
     """Costo por región; las regiones con el mismo precio van juntas."""
     grupos = {}
     for r in REGIONES:
         grupos.setdefault(envio_de(r), []).append("Región Metropolitana" if r == REGION_RM else r)
     filas = "".join('<tr><td>%s</td><td class="num">%s</td></tr>' % (e(", ".join(rs)), pesos(n)) for n, rs in sorted(grupos.items()))
-    return '<table class="tabla-envios"><thead><tr><th>Región</th><th class="num">Envío</th></tr></thead><tbody>%s</tbody></table>' % filas
+    gratis = texto_envio_gratis()
+    return ('<table class="tabla-envios"><thead><tr><th>Región</th><th class="num">Envío</th></tr></thead><tbody>%s</tbody></table>' % filas +
+            ('<p class="envio-gratis-nota">🎁 <strong>%s</strong> (en productos, después de descuentos).</p>' % e(gratis) if gratis else ""))
 
 
 def tarjetas_contacto():

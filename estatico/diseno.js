@@ -16,6 +16,14 @@
     $$('[data-an]', an).forEach(b => b.addEventListener('click', () => { paso(+b.dataset.an); auto(); }));
     auto();
   }
+  // ficha en el celular: barra fija con precio y «Agregar al carrito» cuando el botón principal no se ve
+  const btnFicha = $('#ficha-agregar'), barra = $('.barra-compra');
+  if (btnFicha && barra && 'IntersectionObserver' in window) {
+    new IntersectionObserver(([en]) => document.body.classList.toggle('ver-barra-compra', !en.isIntersecting && en.boundingClientRect.top < 0))
+      .observe(btnFicha);
+    const bb = $('button', barra);
+    new MutationObserver(() => { bb.disabled = btnFicha.disabled; bb.textContent = btnFicha.textContent; }).observe(btnFicha, { attributes: true, childList: true, characterData: true, subtree: true });
+  }
   // ficha de producto: la foto se agranda donde apunta el mouse (solo con mouse)
   const fichaFoto = $('.ficha-foto');
   if (fichaFoto && !quieto && matchMedia('(hover: hover) and (pointer: fine)').matches) {

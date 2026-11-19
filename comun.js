@@ -984,6 +984,21 @@ function kvEnvioRango(tarifas) {
   return { min: Math.min.apply(null, vals), max: Math.max.apply(null, vals), regMin: Math.min.apply(null, reg), regMax: Math.max.apply(null, reg), rm: kvEnvioDe(tarifas, KV_REGION_RM) };
 }
 function kvEnvioCosto(region) { return kvEnvioDe(null, region); }
+/* Envío gratis desde un monto en productos (Configuración → Envío):
+   tarifas.gratisRM y tarifas.gratisRegiones; 0 = sin envío gratis. Si no
+   se ha fijado, rigen los montos aprobados por la dueña (19.990 / 29.990). */
+var KV_ENVIO_GRATIS_DEF = { rm: 19990, regiones: 29990 };
+function kvEnvioGratisDesde(tarifas, region) {
+  const t = tarifas || {}, v = region === KV_REGION_RM ? t.gratisRM : t.gratisRegiones;
+  if (v === 0 || v === '0') return 0;
+  const n = Number(v);
+  return n > 0 ? n : (region === KV_REGION_RM ? KV_ENVIO_GRATIS_DEF.rm : KV_ENVIO_GRATIS_DEF.regiones);
+}
+/* Lo que se cobra de envío según la región y el monto de los productos (ya con descuentos). */
+function kvEnvioPagar(tarifas, region, monto) {
+  const umbral = kvEnvioGratisDesde(tarifas, region);
+  return umbral > 0 && Number(monto) >= umbral ? 0 : kvEnvioDe(tarifas, region);
+}
 
 /* Un correo mal escrito es una venta que se pierde en silencio: la clienta no
    recibe nada y despues el panel no puede avisarle el envio. Estas son las
