@@ -16,6 +16,13 @@
     $$('[data-an]', an).forEach(b => b.addEventListener('click', () => { paso(+b.dataset.an); auto(); }));
     auto();
   }
+  // «Encuentra tu estilo»: en el celular la cinta se detiene mientras la tocan y sigue 2 s después
+  const marco = $('.estilos-marco');
+  if (marco) {
+    let t = null;
+    marco.addEventListener('touchstart', () => { clearTimeout(t); marco.classList.add('quieto'); }, { passive: true });
+    marco.addEventListener('touchend', () => { clearTimeout(t); t = setTimeout(() => marco.classList.remove('quieto'), 2000); }, { passive: true });
+  }
   // ficha en el celular: barra fija con precio y «Agregar al carrito» cuando el botón principal no se ve
   const btnFicha = $('#ficha-agregar'), barra = $('.barra-compra');
   if (btnFicha && barra && 'IntersectionObserver' in window) {

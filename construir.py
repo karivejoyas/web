@@ -1093,7 +1093,7 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     sec["hero"] = '<section class="ecm-hero" aria-roledescription="carrusel">%s%s</section>%s' % ("".join(slides), flechas, olas_ecm("ola-baja", "ola-baja"))
     # «Encuentra tu estilo»: 4 colecciones grandes bajo la portada (como «El tamaño del gesto» de Triballe)
     CC = P.get("colecciones") or {}
-    con_prods = [c for c in cols if any(p["hay"] for p in c["_prods"])][:4]
+    con_prods = [c for c in cols if any(p["hay"] for p in c["_prods"])]
     def foto_col(c):
         fija = imagen((CC.get("imagenes") or {}).get(c["id"]))
         if fija:
@@ -1102,19 +1102,23 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
             return img_cols[c["id"]]
         p = next((p for p in c["_prods"] if p["hay"]), None)
         return p["img"] if p else ""
-    tarjetas_col = "".join(
-        '<li><a class="estilo" href="/c/%s.html"><span class="estilo-foto"><img src="%s" alt="Aros %s hechos a mano – %s" loading="lazy" width="600" height="750"></span>'
-        '<h3>%s</h3><p>%s</p><span class="estilo-ver">%s <span aria-hidden="true">→</span></span></a></li>'
-        % (e(c["slug"]), e(foto_col(c)), e(c["nombre"].lower()), e(MARCA), e(c["nombre"]),
-           e(FRASE_COLECCION.get(c["slug"]) or "Aros hechos a mano, en series pequeñas."), e(CC.get("botonTarjeta") or "Ver colección"))
-        for c in con_prods)
+    # cinta que avanza sola de derecha a izquierda; la lista va dos veces para que el giro no se note
+    # (la copia queda oculta para lectores de pantalla y fuera del orden del teclado)
+    def tarjeta_col(c, copia):
+        oculto = ' aria-hidden="true"' if copia else ''
+        tab = ' tabindex="-1"' if copia else ''
+        return ('<li%s><a class="estilo" href="/c/%s.html"%s><span class="estilo-foto"><img src="%s" alt="%s" loading="lazy" width="600" height="750"></span>'
+                '<h3>%s</h3><p>%s</p><span class="estilo-ver">%s <span aria-hidden="true">→</span></span></a></li>'
+                % (oculto, e(c["slug"]), tab, e(foto_col(c)), "" if copia else e("Aros %s hechos a mano – %s" % (c["nombre"].lower(), MARCA)), e(c["nombre"]),
+                   e(FRASE_COLECCION.get(c["slug"]) or "Aros hechos a mano, en series pequeñas."), e(CC.get("botonTarjeta") or "Ver colección")))
+    tarjetas_col = "".join(tarjeta_col(c, False) for c in con_prods) + "".join(tarjeta_col(c, True) for c in con_prods)
     sec["colecciones"] = ('<section class="ecm-seccion envoltura ecm-estilos" id="colecciones"><div class="estilos-cab"><div><span class="ojo"%s>%s</span><h2%s>%s</h2></div>'
-                          '<p%s>%s</p></div><ul class="estilos">%s</ul>'
+                          '<p%s>%s</p></div><div class="estilos-marco"><ul class="estilos" style="--dur:%ds">%s</ul></div>'
                           '<div class="centro"><a class="enlace-flecha" href="/tienda/"%s>%s</a></div></section>'
                           % (kv("portada.colecciones.antetitulo"), tx(CC.get("antetitulo") or "Colecciones"),
                              kv("portada.colecciones.titulo"), tx(CC.get("titulo") or "Encuentra tu estilo"),
                              kv("portada.colecciones.texto"), tx(CC.get("texto") or "Aros hechos a mano, en series pequeñas. Elige por colección y encuentra el par que va contigo."),
-                             tarjetas_col, kv("portada.colecciones.enlace"), tx(CC.get("enlace") or "Ver todo →"))) if con_prods else ""
+                             7 * len(con_prods), tarjetas_col, kv("portada.colecciones.enlace"), tx(CC.get("enlace") or "Ver todo →"))) if con_prods else ""
     # lo nuevo, en grilla de 5 columnas
     sec["nuevos"] = ('<section class="ecm-seccion envoltura"><div class="ecm-hr"></div><h2 class="ecm-titulo"%s>%s</h2><ul class="grilla ecm-grilla">%s</ul>'
                      '<div class="centro"><a class="btn ecm-btn" href="/tienda/?orden=nuevos">%s</a></div></section>'

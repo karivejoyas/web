@@ -454,7 +454,17 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
 .estilos-cab .ojo{display:block;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#B8963E;margin-bottom:6px}
 .estilos-cab h2{font-family:var(--ecm-titulos);font-size:clamp(28px,3.6vw,42px);line-height:1.1;margin:0;color:var(--tinta)}
 .estilos-cab p{margin:0;color:var(--ecm-suave);font-size:15.5px;line-height:1.55}
-.estilos{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+/* cinta: avanza sola de derecha a izquierda y se detiene con el mouse encima (o al tocarla) */
+.estilos-marco{overflow:hidden;margin:0 -8px;padding:0 8px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
+.estilos{list-style:none;margin:0;padding:0;display:flex;gap:22px;width:max-content;animation:kv-cinta var(--dur,48s) linear infinite}
+.estilos li{flex:none;width:clamp(240px,22vw,310px)}
+@keyframes kv-cinta{to{transform:translateX(calc(-50% - 11px))}}
+.estilos-marco:hover .estilos,.estilos-marco:focus-within .estilos,.estilos-marco.quieto .estilos{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){
+  .estilos{animation:none}
+  .estilos-marco{overflow-x:auto;-webkit-mask-image:none;mask-image:none}
+  .estilos li[aria-hidden]{display:none}
+}
 .estilo{display:block;text-decoration:none;color:inherit}
 .estilo-foto{display:block;aspect-ratio:4/5;overflow:hidden;border-radius:14px;background:var(--ecm-lila)}
 .estilo-foto img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
@@ -468,8 +478,8 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
 .enlace-flecha{font-weight:600;color:var(--tinta);text-decoration:underline;text-underline-offset:4px}
 @media (max-width:899px){
   .estilos-cab{grid-template-columns:1fr;gap:10px;margin-bottom:18px}
-  .estilos{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:72%;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;padding-bottom:6px;margin-right:-16px;padding-right:16px;scrollbar-width:none}
-  .estilos::-webkit-scrollbar{display:none}
-  .estilos li{scroll-snap-align:start}
+  .estilos{gap:14px}
+  .estilos li{width:64vw;max-width:280px}
+  @keyframes kv-cinta{to{transform:translateX(calc(-50% - 7px))}}
   .estilo h3{font-size:19px}
 }
