@@ -467,7 +467,10 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
 .cinta-vista{overflow:hidden!important;touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .cinta-vista.arrastrando{cursor:grabbing}
 .cinta-vista.arrastrando a{pointer-events:none}
-.cinta-pista{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;overflow:visible!important;width:max-content;will-change:transform;-webkit-backface-visibility:hidden;backface-visibility:hidden;scroll-snap-type:none!important}
+.cinta-pista{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;overflow:visible!important;width:max-content;scroll-snap-type:none!important;position:relative}
+/* ya medidas, cada tarjeta queda en su lugar y se mueve sola (diseno.js) */
+.cinta-pista.cinta-abs{display:block!important;width:auto}
+.cinta-pista.cinta-abs>*{position:absolute!important;top:var(--pt,0);left:0;width:var(--ancho)!important;height:var(--alto,auto)!important;margin:0!important;transition:none!important;animation:none!important;opacity:1!important;-webkit-backface-visibility:hidden;backface-visibility:hidden}
 .cinta-pista>*{scroll-snap-align:none!important}
 .cinta-pista img,.cinta-pista video{-webkit-user-drag:none;pointer-events:none}
 /* más queridos: el mismo ancho de tarjeta que tenía la grilla */
