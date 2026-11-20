@@ -48,3 +48,10 @@ hay que subir tráfico **y** quitar fricciones.
 - Arreglos: las cintas siguen solas 2 s después de arrastrarlas aunque el mouse quede encima; en el iPhone la cinta de colecciones ya no queda en blanco (se quitó el difuminado con máscara y las fotos se cargan de una vez).
 - 20-11 (2): las cintas ahora se mueven como una sola pieza (transform) y el dedo se maneja aparte, con inercia: en el iPhone dejaban de verse unos segundos al dar la vuelta. Instagram en el celular muestra la foto de cada publicación en la cinta (los videos parpadeaban). La pastilla del 10 % también aparece, como recordatorio, a quien ya pidió su código y no lo ha usado.
 - 20-11 (3): cintas reescritas: cada tarjeta se mueve por separado y reaparece por el otro lado fuera de la pantalla (sin fila gigante ni «volver al inicio»). Se quitaron dentro de las cintas la animación propia de las tarjetas (hacía que cruzaran la pantalla al dar la vuelta) y el efecto «aparecer al verse» (las dejaba en blanco al entrar).
+
+## 2026-11-20 · Primera campaña de prueba en Meta (aprobada y activada por la dueña)
+- Campaña «Prueba 1 · Fotos de colecciones» (120250279634560003), objetivo Tráfico, desde la cuenta 1978823892839689 (personal).
+- 4 conjuntos de $1.001 (total $4.004), todo Chile, mujeres 18–55 (sugerencia, Advantage+ Audience), ubicaciones automáticas, del 20-11 16:34 al 21-11 16:34.
+- Mismo texto en los 4; cambia solo la foto: A Flores (modelo), B Argollas de cristal, C Charms, D Corazones. Enlaces con utm_campaign=prueba1 y utm_content por foto.
+- Píxel 1668222701367142 instalado en la web (PageView, ViewContent, AddToCart, InitiateCheckout, Purchase). Dominio karivejoyas.cl verificado en Meta.
+- Pendiente: tras el primer cobro, mover la cuenta al negocio «Karivé Joyas» (Meta no lo permite antes), conectar píxel y catálogo, y probar el carrusel de catálogo y los videos (moño y serpiente, cuando estén en la tienda).
