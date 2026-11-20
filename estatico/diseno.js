@@ -17,16 +17,27 @@
     auto();
   }
   /* ---------- cintas que avanzan solas (colecciones, más queridos, Instagram) ----------
-     - avanzan sin fin (los productos se repiten al final con una copia oculta)
-     - se detienen con el mouse encima, al tocarlas o al usar el teclado dentro
-     - se pueden arrastrar con el mouse y deslizar con el dedo
-     - quien pidió «reducir movimiento» las ve quietas y las mueve a mano */
-  function cinta(sc, lista, opc) {
-    const orig = Array.from(lista.children);
+     La fila entera se mueve como una sola pieza (transform), sin cambiar el
+     desplazamiento: así Safari del iPhone no la deja en blanco al dar la vuelta.
+     - avanza sin fin (al final se repiten los productos con una copia oculta)
+     - se detiene con el mouse encima, al tocarla o al usar el teclado dentro
+     - se arrastra con el mouse o se desliza con el dedo (con inercia)
+     - quien pidió «reducir movimiento» la ve quieta y la mueve a mano */
+  const tactil = matchMedia('(hover: none)').matches;
+  function cinta(pista, opc) {
+    // la «vista» recorta la fila; si no existe, se crea alrededor
+    let vista = opc.vista;
+    if (!vista) { vista = document.createElement('div'); pista.parentNode.insertBefore(vista, pista); vista.appendChild(pista); }
+    vista.classList.add('cinta-vista'); pista.classList.add('cinta-pista');
+    // Instagram en el celular: la foto en vez del video (los videos parpadeaban al entrar y salir de la pantalla)
+    if (opc.fotosEnTactil && tactil) pista.querySelectorAll('video').forEach(v => {
+      const im = document.createElement('img'); im.src = v.getAttribute('poster') || ''; im.alt = v.getAttribute('aria-label') || '';
+      im.width = 480; im.height = 600; v.parentNode.replaceChild(im, v);
+    });
+    const orig = Array.from(pista.children);
     if (orig.length < 2) return null;
-    sc.classList.add('cinta-js');
-    // en el iPhone las fotos «lazy» de una fila que se mueve sola a veces no cargan: se piden de una vez
-    lista.querySelectorAll('img[loading="lazy"]').forEach(i => { i.loading = 'eager'; });
+    // las fotos «lazy» de una fila que se mueve sola a veces no cargan: se piden de una vez
+    pista.querySelectorAll('img[loading="lazy"]').forEach(i => { i.loading = 'eager'; });
     const dir = opc.dir || 1;   // 1: de derecha a izquierda · -1: de izquierda a derecha
     const vel = () => innerWidth < 768 ? (opc.velMovil || 26) : (opc.vel || 40);
     const copiar = () => orig.forEach(n => {
@@ -35,61 +46,82 @@
       c.querySelectorAll('a, button, video, input, [tabindex]').forEach(x => x.setAttribute('tabindex', '-1'));
       c.querySelectorAll('[data-revelar]').forEach(x => x.classList.add('visto'));
       c.querySelectorAll('video').forEach(v => { v.muted = true; verVideo(v); });
-      lista.appendChild(c);
+      pista.appendChild(c);
     });
     copiar();
     let P = 0;
     const medir = () => {
-      P = lista.querySelector('.cinta-clon').offsetLeft - orig[0].offsetLeft;
-      for (let k = 0; k < 4 && P > 0 && sc.scrollWidth < P + sc.clientWidth + 2; k++) copiar();
+      pista.style.setProperty('--cw', vista.clientWidth + 'px');
+      P = pista.querySelector('.cinta-clon').offsetLeft - orig[0].offsetLeft;
+      for (let k = 0; k < 4 && P > 0 && pista.scrollWidth < P + vista.clientWidth + 2; k++) copiar();
     };
     medir(); addEventListener('resize', medir);
-    let pos = 0, ultimo = 0, t0 = 0, hasta = 0, encima = false, tocando = false, foco = false, visible = true, arr = null, movio = false, empuje = null;
-    const poner = () => { if (P > 0) { pos = ((pos % P) + P) % P; } sc.scrollLeft = pos; ultimo = sc.scrollLeft; };
-    const quieta = () => encima || tocando || foco || arr || !visible || document.hidden || performance.now() < hasta;
+    let pos = 0, t0 = 0, hasta = 0, encima = false, foco = false, visible = true, arr = null, movio = false, empuje = null, inercia = 0;
+    const pintar = () => { if (P > 0) pos = ((pos % P) + P) % P; pista.style.transform = 'translate3d(' + (-pos).toFixed(2) + 'px,0,0)'; };
+    const quieta = () => encima || foco || arr || !visible || document.hidden || performance.now() < hasta;
     function paso(t) {
       const dt = t0 ? Math.min(64, t - t0) / 1000 : 0; t0 = t;
       if (P > 0 && !arr) {
-        if (Math.abs(sc.scrollLeft - ultimo) > 1) pos = sc.scrollLeft;   // la movieron a mano
         if (empuje) {
           const k = Math.min(1, (t - empuje.t) / 450);
           pos = empuje.de + (empuje.a - empuje.de) * (1 - Math.pow(1 - k, 3));
           if (k >= 1) empuje = null;
-          poner();
-        } else if (!quieta()) { pos += dir * vel() * dt; poner(); }
-        else if (!tocando && (pos < 1 || pos >= P)) poner();   // da la vuelta también si la movieron a mano
+          pintar();
+        } else if (Math.abs(inercia) > 15) {       // sigue un poco después de soltarla con el dedo
+          pos += inercia * dt; inercia *= Math.exp(-dt * 3.2); pintar();
+          hasta = Math.max(hasta, performance.now() + 1800);
+        } else if (!quieta()) { inercia = 0; pos += dir * vel() * dt; pintar(); }
       }
       requestAnimationFrame(paso);
     }
-    requestAnimationFrame(paso);
-    sc.addEventListener('mouseenter', () => { encima = true; });
-    sc.addEventListener('mouseleave', () => { encima = false; });
-    // solo el foco del teclado la detiene (un clic con el mouse no la deja quieta para siempre)
-    sc.addEventListener('focusin', e => { try { foco = e.target.matches(':focus-visible'); } catch (err) { foco = false; } });
-    sc.addEventListener('focusout', () => { foco = false; });
-    sc.addEventListener('touchstart', () => { tocando = true; }, { passive: true });
-    const soltar = () => { tocando = false; hasta = performance.now() + 2000; };
-    sc.addEventListener('touchend', soltar, { passive: true });
-    sc.addEventListener('touchcancel', soltar, { passive: true });
-    // arrastrar con el mouse
-    sc.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.button !== 0) return; e.preventDefault(); arr = { x: e.clientX, pos: pos }; movio = false; empuje = null; });
-    addEventListener('pointermove', e => {
-      if (!arr) return;
-      const d = e.clientX - arr.x;
-      if (!movio && Math.abs(d) > 5) { movio = true; sc.classList.add('arrastrando'); }
-      if (!movio) return;
-      pos = arr.pos - d;
-      if (P > 0 && pos >= P) { pos -= P; arr.pos -= P; } else if (P > 0 && pos < 0) { pos += P; arr.pos += P; }
-      sc.scrollLeft = pos; ultimo = sc.scrollLeft;
+    pintar(); requestAnimationFrame(paso);
+    // mouse encima (solo mouse: en el celular un toque no debe dejarla quieta para siempre)
+    vista.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') encima = true; });
+    vista.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') encima = false; });
+    // teclado: se detiene y muestra la tarjeta enfocada
+    vista.addEventListener('focusin', e => {
+      let kb = false; try { kb = e.target.matches(':focus-visible'); } catch (err) {}
+      foco = kb; vista.scrollLeft = 0;
+      if (kb) { const li = e.target.closest('.cinta-pista > *'); if (li) { pos = li.offsetLeft - 16; pintar(); } }
     });
-    // al soltar sigue sola a los 2 s, aunque el mouse quede encima (vuelve a detenerse si sale y entra de nuevo)
-    addEventListener('pointerup', () => { if (!arr) return; const fue = movio; arr = null; sc.classList.remove('arrastrando'); if (fue) { encima = false; hasta = performance.now() + 2000; } });
-    sc.addEventListener('click', e => { if (movio) { e.preventDefault(); e.stopPropagation(); movio = false; } }, true);
-    sc.addEventListener('dragstart', e => e.preventDefault());
-    if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(sc);
-    return { empujar: (n) => { const ancho = orig[0].getBoundingClientRect().width + (parseFloat(getComputedStyle(lista).columnGap) || 0); empuje = { de: pos, a: pos + n * ancho, t: performance.now() }; hasta = performance.now() + 3000; } };
+    vista.addEventListener('focusout', () => { foco = false; });
+    // arrastrar (mouse) o deslizar (dedo)
+    let hist = [];
+    vista.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      if (e.pointerType === 'mouse') e.preventDefault();
+      arr = { x: e.clientX, pos: pos, id: e.pointerId }; movio = false; empuje = null; inercia = 0; hist = [[performance.now(), 0]];
+    });
+    addEventListener('pointermove', e => {
+      if (!arr || e.pointerId !== arr.id) return;
+      const d = e.clientX - arr.x;
+      if (!movio) {
+        if (Math.abs(d) < 6) return;
+        movio = true; vista.classList.add('arrastrando');
+        try { vista.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      hist.push([performance.now(), d]); if (hist.length > 6) hist.shift();
+      pos = arr.pos - d; pintar();
+    }, { passive: true });
+    const soltar = e => {
+      if (!arr || (e && e.pointerId !== arr.id)) return;
+      const fue = movio, tipo = e && e.pointerType;
+      arr = null; vista.classList.remove('arrastrando');
+      if (fue) {
+        const a = hist[0], b = hist[hist.length - 1], dtm = Math.max(16, b[0] - a[0]);
+        if (tipo !== 'mouse' && performance.now() - b[0] < 120) inercia = Math.max(-2500, Math.min(2500, -(b[1] - a[1]) / dtm * 1000));
+        if (tipo === 'mouse') encima = false;   // sigue sola aunque el mouse quede encima
+      }
+      hasta = performance.now() + 2000;
+    };
+    addEventListener('pointerup', soltar);
+    addEventListener('pointercancel', soltar);
+    vista.addEventListener('click', e => { if (movio) { e.preventDefault(); e.stopPropagation(); movio = false; } }, true);
+    vista.addEventListener('dragstart', e => e.preventDefault());
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(vista);
+    return { empujar: (n) => { const ancho = orig[0].getBoundingClientRect().width + (parseFloat(getComputedStyle(pista).columnGap) || 0); empuje = { de: pos, a: pos + n * ancho, t: performance.now() }; hasta = performance.now() + 3000; } };
   }
-  // los videos de Instagram de las copias también se reproducen solo cuando se ven
+  // los videos de Instagram de las copias también se reproducen solo cuando se ven (computador)
   const ioCopias = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
     const v = e.target;
     if (e.isIntersecting) { v.preload = 'auto'; const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); } else v.pause();
@@ -98,11 +130,11 @@
   const cintas = {};
   if (!quieto) {
     const marcoEst = $('.estilos-marco'), listaEst = $('.estilos');
-    if (marcoEst && listaEst) cintas.estilos = cinta(marcoEst, listaEst, { dir: 1, vel: 45, velMovil: 30 });
+    if (marcoEst && listaEst) cintas.estilos = cinta(listaEst, { vista: marcoEst, dir: 1, vel: 45, velMovil: 30 });
     const pistaFav = $('.ecm-pista');
-    if (pistaFav) cintas.favoritos = cinta(pistaFav, pistaFav, { dir: -1, vel: 35, velMovil: 26 });
+    if (pistaFav) cintas.favoritos = cinta(pistaFav, { dir: -1, vel: 35, velMovil: 26 });
     const ig = $('.ecm-ig .ig-grilla');
-    if (ig) cintas.instagram = cinta(ig, ig, { dir: 1, vel: 35, velMovil: 26 });
+    if (ig) cintas.instagram = cinta(ig, { dir: 1, vel: 35, velMovil: 26, fotosEnTactil: true });
   }
   // ficha en el celular: barra fija con precio y «Agregar al carrito» cuando el botón principal no se ve
   const btnFicha = $('#ficha-agregar'), barra = $('.barra-compra');

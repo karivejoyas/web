@@ -463,15 +463,21 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
 .estilos-marco::-webkit-scrollbar{display:none}
 .estilos{list-style:none;margin:0;padding:0;display:flex;gap:22px;width:max-content}
 .estilos li{flex:none;width:clamp(240px,22vw,310px)}
-.cinta-js{scroll-snap-type:none!important;cursor:grab;-webkit-user-select:none;user-select:none}
-.cinta-js>*,.cinta-js .estilos>*{scroll-snap-align:none!important}
-.cinta-js.arrastrando{cursor:grabbing}
-.cinta-js img,.cinta-js video{-webkit-user-drag:none;pointer-events:none}
-.cinta-js.arrastrando a{pointer-events:none}
+/* vista que recorta la fila; la fila se mueve entera (transform) */
+.cinta-vista{overflow:hidden!important;touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.cinta-vista.arrastrando{cursor:grabbing}
+.cinta-vista.arrastrando a{pointer-events:none}
+.cinta-pista{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;overflow:visible!important;width:max-content;will-change:transform;-webkit-backface-visibility:hidden;backface-visibility:hidden;scroll-snap-type:none!important}
+.cinta-pista>*{scroll-snap-align:none!important}
+.cinta-pista img,.cinta-pista video{-webkit-user-drag:none;pointer-events:none}
+/* más queridos: el mismo ancho de tarjeta que tenía la grilla */
+.ecm-muestra .ecm-pista.cinta-pista>*{flex:0 0 calc((var(--cw,1200px) - 96px)/5)}
+@media (max-width:1199px){.ecm-muestra .ecm-pista.cinta-pista>*{flex-basis:calc((var(--cw,900px) - 72px)/4)}}
+@media (max-width:991px){.ecm-muestra .ecm-pista.cinta-pista>*{flex-basis:calc((var(--cw,700px) - 48px)/3)}}
+@media (max-width:767px){.ecm-muestra .ecm-pista.cinta-pista>*{flex-basis:calc((var(--cw,360px) - 14px)/2)}}
 /* Instagram en cinta: una fila de tarjetas del mismo ancho */
-.ecm-ig .ig-grilla.cinta-js{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;overflow-x:auto;scrollbar-width:none;gap:16px;padding-bottom:4px}
-.ecm-ig .ig-grilla.cinta-js::-webkit-scrollbar{display:none}
-.ecm-ig .ig-grilla.cinta-js>*{flex:0 0 clamp(190px,17vw,230px)}
+.ecm-ig .ig-grilla.cinta-pista{gap:16px;padding-bottom:4px}
+.ecm-ig .ig-grilla.cinta-pista>*{flex:0 0 clamp(190px,17vw,230px)}
 .estilo{display:block;text-decoration:none;color:inherit}
 .estilo-foto{display:block;aspect-ratio:4/5;overflow:hidden;border-radius:14px;background:var(--ecm-lila)}
 .estilo-foto img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
@@ -491,7 +497,7 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
   .estilo h3{font-size:16px;margin:10px 0 2px}
   .estilo p{font-size:12.5px;margin-bottom:6px;line-height:1.35}
   .estilo-ver{font-size:13px}
-  .ecm-ig .ig-grilla.cinta-js>*{flex-basis:40vw}
+  .ecm-ig .ig-grilla.cinta-pista>*{flex-basis:40vw}
 }
 
 /* ---- ideas de Triballe aprobadas (20-11) ---- */

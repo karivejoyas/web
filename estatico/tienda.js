@@ -550,8 +550,12 @@
     let a = {}; try { a = await ajustes(); } catch (e) {}
     const b = kvBienvenida(a);
     if (!b.activo || !(b.pct > 0)) return;
-    const visto = LS.get('kv_bienv') || '';
-    if (LS.get('kv_ya_compro') || visto === 'listo' || (/^cerrado:\d+$/.test(visto) && Date.now() - +visto.slice(8) < 3 * 864e5)) return;
+    // no aparece si ya compró o si la cerró hace menos de 3 días (la × de la pastilla tiene su propia marca)
+    const cerrada = LS.get('kv_bienv_pastilla') || '';
+    if (LS.get('kv_ya_compro') || (/^\d+$/.test(cerrada) && Date.now() - +cerrada < 3 * 864e5)) return;
+    // quien ya pidió su código y aún no lo usa: la pastilla le recuerda que lo tiene
+    const visto = LS.get('kv_bienv') || '', guardado = LS.get('kv_cupon_auto') || '';
+    const vigente = visto === 'listo' && guardado && kvBienvenidaRevisar(guardado, LS.get('kv_bienv_correo') || '').ok;
     // en la portada no tapa el botón de la foto: espera a que la persona baje
     const hero = $('.ecm-hero');
     if (hero && hero.getBoundingClientRect().bottom > innerHeight - 60) {
@@ -561,13 +565,15 @@
     }
     const pa = document.createElement('div');
     pa.className = 'bienv-pastilla';
-    pa.innerHTML = '<button type="button" class="bp-abrir">🎁 ' + b.pct + '%<span class="bp-largo"> en tu primera compra</span><span class="bp-corto"> primera compra</span></button>' +
+    pa.innerHTML = (vigente
+      ? '<button type="button" class="bp-abrir">🎁 <span class="bp-largo">Tienes ' + b.pct + '% de descuento · ver tu código</span><span class="bp-corto">Tu ' + b.pct + '% te espera</span></button>'
+      : '<button type="button" class="bp-abrir">🎁 ' + b.pct + '%<span class="bp-largo"> en tu primera compra</span><span class="bp-corto"> primera compra</span></button>') +
       '<button type="button" class="bp-x" aria-label="Cerrar">×</button>';
     document.body.appendChild(pa);
     requestAnimationFrame(() => requestAnimationFrame(() => pa.classList.add('ver')));
     const sacar = () => { pa.classList.remove('ver'); setTimeout(() => pa.parentNode && pa.parentNode.removeChild(pa), 300); };
     $('.bp-abrir', pa).addEventListener('click', () => { sacar(); bienvenida(true); });
-    $('.bp-x', pa).addEventListener('click', () => { LS.set('kv_bienv', 'cerrado:' + Date.now()); sacar(); });
+    $('.bp-x', pa).addEventListener('click', () => { LS.set('kv_bienv_pastilla', String(Date.now())); sacar(); });
   }
   if (!/finalizar-compra|mi-pedido/.test(location.pathname)) {
     let disparado = false;
