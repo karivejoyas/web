@@ -37,3 +37,12 @@ hay que subir tráfico **y** quitar fricciones.
 - Mercado Pago: confirmado por la dueña que cobra $0 de envío cuando corresponde envío gratis.
 - Regalo de bienvenida 10 % en la primera compra (código BIENVENIDA10): ventanita a los 12 s o al bajar la página (una vez; si la cierran vuelve a los 3 días), aviso en la franja de arriba, el código se ve en pantalla, se aplica solo al pagar y llega por correo. Se puede apagar o cambiar en Panel → Marketing → Regalo de bienvenida.
 - 19-11 (2): el código fijo BIENVENIDA10 se reemplazó por un **código personal** por correo (KV-XXXX-XXXXX), que solo sirve con ese correo y vence a las 72 h (se cambia en Marketing → Regalo de bienvenida). El pedido en el panel dice si el código es válido para ese correo. En «Tu pedido» del pago ahora se puede cambiar la cantidad y quitar productos.
+
+## 2026-11-20 · Ideas de la revisión de Triballe (aprobadas por la dueña: 1, 2, 4, 5 y 6)
+- 1 HECHA: costo de envío exacto por región en el carrito (selector, envío y total) y en la ficha («Envío a [región]: $X · gratis desde $Y»). La región queda guardada y aparece ya elegida al pagar. Sin plazos de entrega: la tienda no publica días; si la dueña los da, se agregan.
+- 2 HECHA: en el carrito, primero la sugerencia que completa el envío gratis («Con este…» o, si ninguno alcanza solo, «Con estos dos…»).
+- 3 (Navidad con fechas de corte): NO aprobada por ahora.
+- 4 HECHA: la bienvenida ya no abre una ventana sola: aparece una pastilla abajo («🎁 10% en tu primera compra») a los 15 s o al bajar; la ventana se abre solo si la tocan. En la portada espera a que la persona baje. Letra chica: vale 3 días, una compra, solo productos.
+- 5 HECHA: portada del celular con alto según la pantalla: el título y el botón se ven completos.
+- 6 HECHA: menú del celular con la foto de cada colección y su precio «desde».
+- Arreglos: las cintas siguen solas 2 s después de arrastrarlas aunque el mouse quede encima; en el iPhone la cinta de colecciones ya no queda en blanco (se quitó el difuminado con máscara y las fotos se cargan de una vez).

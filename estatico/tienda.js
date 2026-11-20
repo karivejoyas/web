@@ -86,6 +86,27 @@
     if (!rm && !reg) return '';
     return 'Envío gratis' + (rm ? ' desde ' + formatCLP(rm) + ' en la RM' : '') + (rm && reg ? ' y' : '') + (reg ? ' desde ' + formatCLP(reg) + ' en regiones' : '') + '.';
   }
+  /* región para calcular el envío: la misma que se usa al pagar (kv_datos_compra) */
+  function regionElegida() { try { return (JSON.parse(localStorage.getItem('kv_datos_compra') || '{}') || {}).region || ''; } catch (e) { return ''; } }
+  function regionGuardar(r) {
+    try {
+      const f = JSON.parse(localStorage.getItem('kv_datos_compra') || '{}') || {};
+      if (f.region !== r) { f.region = r; if (kvComunasDe(r).indexOf(f.comuna) < 0) f.comuna = ''; }
+      localStorage.setItem('kv_datos_compra', JSON.stringify(f));
+    } catch (e) {}
+  }
+  const nombreRegion = r => r === KV_REGION_RM ? 'Región Metropolitana' : r;
+  function selectorRegion(r, attr) {
+    const lista = [KV_REGION_RM].concat(KV_REGIONES.filter(x => x !== KV_REGION_RM));
+    return '<select ' + attr + ' aria-label="Región de envío"><option value="">elige tu región</option>' +
+      lista.map(x => '<option value="' + escapeHtml(x) + '"' + (x === r ? ' selected' : '') + '>' + escapeHtml(nombreRegion(x)) + '</option>').join('') + '</select>';
+  }
+  /* cuánto falta para el envío gratis en una región (sin región, la RM) */
+  function faltaGratis(sub, region) {
+    const u = kvEnvioGratisDesde(window.kvEnvioTarifas, region || KV_REGION_RM);
+    return { umbral: u, falta: u > 0 ? Math.max(0, u - sub) : 0 };
+  }
+  const dondeTxt = r => !r || r === KV_REGION_RM ? ' en la RM' : ' a ' + r;
   function usarTarifas(v) {
     const t = (v && v.envioTarifas) || {};
     // con monto (productos ya con descuento) aplica el envío gratis; sin monto, la tarifa de la región
@@ -248,17 +269,38 @@
   }
   /* «Combina con»: 2 productos disponibles que no están en el carrito, de la
      misma colección que lo elegido (si no hay, de otras). */
-  async function sugerencias(items) {
+  async function sugerencias(items, sub, region) {
     const caja = $('#carro-sugeridos'); if (!caja) return;
     try {
       const todos = (await productos()).filter(p => kvEnStock(p) && !carro[p.id]);
       const cols = items.map(it => it.p.category);
-      const orden = (p) => (cols.indexOf(p.category) !== -1 ? 0 : 1) + Math.random() * .9;
-      const elegidos = todos.map(p => [orden(p), p]).sort((a, b) => a[0] - b[0]).slice(0, 2).map(x => x[1]);
+      const misma = p => cols.indexOf(p.category) !== -1 ? 0 : 1;
+      // si falta poco para el envío gratis, primero el producto más barato que lo completa
+      const fg = faltaGratis(sub, region);
+      let completan = [];
+      if (fg.falta > 0) {
+        const uno = todos.filter(p => precioDe(p) >= fg.falta).sort((a, b) => (precioDe(a) - precioDe(b)) || (misma(a) - misma(b)))[0];
+        if (uno) completan = [uno];
+        else {
+          // ninguno alcanza solo: el par más barato que lo completa (de preferencia de las mismas colecciones)
+          const cand = todos.slice().sort((a, b) => misma(a) - misma(b) || precioDe(b) - precioDe(a)).slice(0, 60);
+          let mejor = null;
+          for (let i = 0; i < cand.length; i++) for (let j = i + 1; j < cand.length; j++) {
+            const s = precioDe(cand[i]) + precioDe(cand[j]);
+            if (s >= fg.falta && (!mejor || s < mejor.s || (s === mejor.s && misma(cand[i]) + misma(cand[j]) < mejor.m))) mejor = { s: s, m: misma(cand[i]) + misma(cand[j]), par: [cand[i], cand[j]] };
+          }
+          if (mejor) completan = mejor.par;
+        }
+      }
+      const orden = (p) => misma(p) + Math.random() * .9;
+      const resto = todos.filter(p => completan.indexOf(p) === -1).map(p => [orden(p), p]).sort((a, b) => a[0] - b[0]).slice(0, Math.max(0, 2 - completan.length)).map(x => x[1]);
+      const elegidos = completan.concat(resto);
       if (!elegidos.length) return;
-      caja.innerHTML = '<h3>Combina con</h3>' + elegidos.map(p =>
-        '<div class="sug"><a href="/p/' + encodeURIComponent(p.code) + '.html"><img src="' + escapeHtml(p.img) + '" alt="" width="56" height="56" loading="lazy"></a>' +
-        '<div><a href="/p/' + encodeURIComponent(p.code) + '.html">' + escapeHtml(p.name) + '</a><small>' + formatCLP(precioDe(p)) + '</small></div>' +
+      const aviso2 = completan.length === 2 ? '<p class="sug-par">🎁 Con estos dos, tu envío' + dondeTxt(region) + ' es gratis</p>' : '';
+      caja.innerHTML = '<h3>Combina con</h3>' + aviso2 + elegidos.map(p =>
+        '<div class="sug' + (completan.indexOf(p) !== -1 ? ' sug-completa' : '') + '"><a href="/p/' + encodeURIComponent(p.code) + '.html"><img src="' + escapeHtml(p.img) + '" alt="" width="56" height="56" loading="lazy"></a>' +
+        '<div><a href="/p/' + encodeURIComponent(p.code) + '.html">' + escapeHtml(p.name) + '</a><small>' + formatCLP(precioDe(p)) + '</small>' +
+        (completan.length === 1 && p === completan[0] ? '<em>🎁 Con este, tu envío' + dondeTxt(region) + ' es gratis</em>' : '') + '</div>' +
         '<button type="button" class="btn btn-borde btn-chico" data-sug="' + escapeHtml(p.id) + '">Añadir</button></div>').join('');
       caja.querySelectorAll('[data-sug]').forEach(b => b.addEventListener('click', async () => { b.disabled = true; await agregar(b.dataset.sug, 1); carroPintar(); }));
     } catch (e) {}
@@ -271,29 +313,32 @@
       return;
     }
     const sub = items.reduce((s, it) => s + precioDe(it.p) * it.qty, 0);
-    // avance hacia el envío gratis (con la tarifa de la RM, que es el primer umbral)
-    const t = window.kvEnvioTarifas, umbralRM = kvEnvioGratisDesde(t, KV_REGION_RM), umbralReg = kvEnvioGratisDesde(t, 'Valparaíso');
+    // avance hacia el envío gratis de la región elegida (sin región, la RM)
+    const t = window.kvEnvioTarifas, region = regionElegida(), fg = faltaGratis(sub, region);
     let gratis = '';
-    if (umbralRM || umbralReg) {
-      const meta = umbralRM && sub < umbralRM ? umbralRM : umbralReg && sub < umbralReg ? umbralReg : 0;
-      const pct = Math.min(100, Math.round(sub / (meta || sub || 1) * 100));
-      gratis = '<div class="carro-gratis">' + (meta
-        ? 'Te faltan <b>' + formatCLP(meta - sub) + '</b> para el <b>envío gratis' + (meta === umbralRM ? ' en la RM' : ' a todo Chile') + '</b>' + (meta === umbralRM && umbralReg ? ' (en regiones, desde ' + formatCLP(umbralReg) + ')' : '') + '.'
-        : '🎉 ¡Tienes <b>envío gratis</b>' + (umbralReg && sub >= umbralReg ? ' a todo Chile' : ' en la RM') + '!') +
-        '<span class="carro-barra"><i style="width:' + (meta ? pct : 100) + '%"></i></span></div>';
+    if (fg.umbral) {
+      gratis = '<div class="carro-gratis">' + (fg.falta > 0
+        ? 'Te faltan <b>' + formatCLP(fg.falta) + '</b> para el <b>envío gratis' + dondeTxt(region) + '</b>.' + (!region ? ' <small>En regiones, desde ' + formatCLP(kvEnvioGratisDesde(t, 'Valparaíso')) + '.</small>' : '')
+        : '🎉 ¡Tienes <b>envío gratis' + dondeTxt(region) + '</b>!') +
+        '<span class="carro-barra"><i style="width:' + Math.min(100, Math.round(sub * 100 / fg.umbral)) + '%"></i></span></div>';
     }
+    const envio = region ? kvEnvioPagar(t, region, sub) : null;
     cont.innerHTML = '<div class="carro">' + gratis + '<div class="carro-lista">' + items.map(it =>
       '<div class="carro-item"><img src="' + escapeHtml(it.p.img) + '" alt="" width="72" height="72" loading="lazy">' +
       '<div><b>' + escapeHtml(it.p.name) + '</b><small>' + escapeHtml(it.p.code) + ' · ' + formatCLP(precioDe(it.p)) + '</small>' +
       '<button type="button" class="carro-quitar" data-quitar="' + it.p.id + '" aria-label="Quitar ' + escapeHtml(it.p.name) + ' del carrito">Quitar</button></div>' +
       '<div class="cantidad"><button type="button" data-qty="-1" data-id="' + it.p.id + '" aria-label="Quitar uno">−</button><span>' + it.qty + '</span>' +
       '<button type="button" data-qty="1" data-id="' + it.p.id + '" aria-label="Agregar uno">+</button></div></div>').join('') +
-      '</div><div class="carro-pie"><div class="fila total"><span>Subtotal</span><span>' + formatCLP(sub) + '</span></div>' +
-      '<p class="nota">' + textoEnvio() + ' ' + textoGratis() + ' Si tienes un cupón, lo aplicas al pagar.</p>' +
+      '</div><div class="carro-pie"><div class="fila"><span>Subtotal</span><span>' + formatCLP(sub) + '</span></div>' +
+      '<div class="fila carro-envio"><label>Envío a ' + selectorRegion(region, 'data-region') + '</label><span>' + (envio == null ? '—' : envio ? formatCLP(envio) : 'Gratis 🎉') + '</span></div>' +
+      '<div class="fila total"><span>Total</span><span>' + formatCLP(sub + (envio || 0)) + '</span></div>' +
+      '<p class="nota">' + (region ? '' : 'Elige tu región para ver el costo exacto del envío. ') + 'Si tienes un cupón, lo aplicas al pagar.</p>' +
       '<a class="btn btn-1 btn-bloque" href="/finalizar-compra.html">Finalizar compra</a>' +
       '<button type="button" class="btn btn-borde btn-bloque" style="margin-top:8px" data-cerrar="cajon-carro">Seguir comprando</button>' +
       '<div class="carro-sugeridos" id="carro-sugeridos"></div></div></div>';
-    sugerencias(items);
+    sugerencias(items, sub, region);
+    const selReg = cont.querySelector('[data-region]');
+    if (selReg) selReg.addEventListener('change', () => { regionGuardar(selReg.value); carroPintar(); pintarCalc(); });
     cont.querySelectorAll('[data-qty]').forEach(b => b.addEventListener('click', async () => {
       const id = b.dataset.id, d = parseInt(b.dataset.qty, 10);
       const p = (await productos()).find(x => x.id === id);
@@ -315,6 +360,19 @@
     const sel = b.dataset.cantidadDe ? $(b.dataset.cantidadDe) : null;
     agregar(b.dataset.agregar, sel ? parseInt(sel.textContent, 10) || 1 : 1);
   });
+
+  /* ---------- ficha: costo de envío según la región (como en el carrito) ---------- */
+  function pintarCalc() {
+    const calc = $('[data-envio-calc]'); if (!calc) return;
+    const r = regionElegida(), t = window.kvEnvioTarifas, precio = Number(calc.dataset.precio) || 0;
+    const u = r ? kvEnvioGratisDesde(t, r) : 0, costo = r ? kvEnvioPagar(t, r, precio) : null;
+    calc.innerHTML = '<span class="ic" aria-hidden="true">🚚</span><div><label>Envío a ' + selectorRegion(r, 'data-region-ficha') + '</label>' +
+      (r ? '<div class="envio-calc-dato"><b>' + (costo ? formatCLP(costo) : 'Gratis 🎉') + '</b>' + (costo && u ? ' · gratis desde ' + formatCLP(u) + ' en productos' : '') + '</div>'
+        : '<div class="envio-calc-dato">Elige tu región y te mostramos el costo exacto.</div>') + '</div>';
+    calc.hidden = false;
+    $('[data-region-ficha]', calc).addEventListener('change', e => { regionGuardar(e.target.value); pintarCalc(); });
+  }
+  if ($('[data-envio-calc]')) ajustes().then(pintarCalc, pintarCalc);
 
   /* ---------- ficha: cantidad, stock al día y foto ampliada ---------- */
   const ficha = $('[data-ficha]');
@@ -454,7 +512,7 @@
       '<p>' + escapeHtml(b.texto.replace(/\{PCT\}/g, pct)) + '</p>' +
       '<form class="bienv-form" novalidate><input name="correo" type="email" inputmode="email" autocomplete="email" placeholder="Tu correo electrónico" aria-label="Tu correo electrónico" required>' +
       '<button type="submit" class="btn btn-1 btn-bloque">Quiero mi ' + pct + '% de descuento</button><div class="bienv-msg" role="status"></div></form>' +
-      '<p class="bienv-legal">Te enviaremos novedades de vez en cuando. Puedes darte de baja cuando quieras.</p>' +
+      '<p class="bienv-legal">Vale ' + (b.horas % 24 ? b.horas + ' horas' : (b.horas / 24 === 1 ? '1 día' : b.horas / 24 + ' días')) + ' desde que lo pides, para una compra y solo sobre los productos (no sobre el envío). Te enviaremos novedades de vez en cuando; puedes darte de baja cuando quieras.</p>' +
       '<button type="button" class="bienv-no" data-bienv-cerrar>No, gracias</button>') + '</div></div>';
     document.body.appendChild(v);
     requestAnimationFrame(() => requestAnimationFrame(() => v.classList.add('ver')));
@@ -485,18 +543,44 @@
       });
     }
   }
+  // en vez de abrir la ventana sola, aparece una pastilla pequeña abajo («10% en tu primera compra»);
+  // la ventana se abre solo si la tocan (como en Triballe)
+  async function pastilla() {
+    if (bienvAbierta || enMarcoB || $('.bienv-pastilla')) return;
+    let a = {}; try { a = await ajustes(); } catch (e) {}
+    const b = kvBienvenida(a);
+    if (!b.activo || !(b.pct > 0)) return;
+    const visto = LS.get('kv_bienv') || '';
+    if (LS.get('kv_ya_compro') || visto === 'listo' || (/^cerrado:\d+$/.test(visto) && Date.now() - +visto.slice(8) < 3 * 864e5)) return;
+    // en la portada no tapa el botón de la foto: espera a que la persona baje
+    const hero = $('.ecm-hero');
+    if (hero && hero.getBoundingClientRect().bottom > innerHeight - 60) {
+      const alPasar = () => { if (hero.getBoundingClientRect().bottom < innerHeight * 0.5) { window.removeEventListener('scroll', alPasar); pastilla(); } };
+      window.addEventListener('scroll', alPasar, { passive: true });
+      return;
+    }
+    const pa = document.createElement('div');
+    pa.className = 'bienv-pastilla';
+    pa.innerHTML = '<button type="button" class="bp-abrir">🎁 ' + b.pct + '%<span class="bp-largo"> en tu primera compra</span><span class="bp-corto"> primera compra</span></button>' +
+      '<button type="button" class="bp-x" aria-label="Cerrar">×</button>';
+    document.body.appendChild(pa);
+    requestAnimationFrame(() => requestAnimationFrame(() => pa.classList.add('ver')));
+    const sacar = () => { pa.classList.remove('ver'); setTimeout(() => pa.parentNode && pa.parentNode.removeChild(pa), 300); };
+    $('.bp-abrir', pa).addEventListener('click', () => { sacar(); bienvenida(true); });
+    $('.bp-x', pa).addEventListener('click', () => { LS.set('kv_bienv', 'cerrado:' + Date.now()); sacar(); });
+  }
   if (!/finalizar-compra|mi-pedido/.test(location.pathname)) {
     let disparado = false;
     const alBajar = () => { const h = document.documentElement; if (h.scrollTop > 600 && h.scrollTop > (h.scrollHeight - innerHeight) * 0.45) disparar(); };
-    function disparar() { if (disparado) return; disparado = true; window.removeEventListener('scroll', alBajar); bienvenida(false).then(r => { if (r === 'ocupado') setTimeout(() => bienvenida(false), 20000); }); }
-    setTimeout(disparar, 12000);
+    function disparar() { if (disparado) return; disparado = true; window.removeEventListener('scroll', alBajar); pastilla(); }
+    setTimeout(disparar, 15000);
     window.addEventListener('scroll', alBajar, { passive: true });
     document.addEventListener('mouseout', e => { if (!e.relatedTarget && e.clientY <= 0) disparar(); });
   }
   // la franja de arriba («10% en tu primera compra») y cualquier enlace a #bienvenida abren la ventanita
   document.addEventListener('click', e => {
     const t = e.target.closest('.an-txt, a[href="#bienvenida"]');
-    if (t && (t.matches('a') || /primera compra/i.test(t.textContent))) { e.preventDefault(); bienvenida(true); }
+    if (t && (t.matches('a') || /primera compra/i.test(t.textContent))) { e.preventDefault(); const pa = $('.bienv-pastilla'); if (pa) pa.parentNode.removeChild(pa); bienvenida(true); }
   });
 
   /* ============================================================

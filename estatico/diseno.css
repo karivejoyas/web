@@ -455,7 +455,11 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
 .estilos-cab h2{font-family:var(--ecm-titulos);font-size:clamp(28px,3.6vw,42px);line-height:1.1;margin:0;color:var(--tinta)}
 .estilos-cab p{margin:0;color:var(--ecm-suave);font-size:15.5px;line-height:1.55}
 /* cinta: avanza sola (diseno.js), se detiene con el mouse encima y se arrastra o desliza a mano */
-.estilos-marco{overflow-x:auto;scrollbar-width:none;margin:0 -8px;padding:0 8px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
+.estilos-envol{position:relative;margin:0 -8px}
+.estilos-envol::before,.estilos-envol::after{content:"";position:absolute;top:0;bottom:0;width:28px;z-index:2;pointer-events:none}
+.estilos-envol::before{left:0;background:linear-gradient(90deg,#fff,rgba(255,255,255,0))}
+.estilos-envol::after{right:0;background:linear-gradient(270deg,#fff,rgba(255,255,255,0))}
+.estilos-marco{overflow-x:auto;scrollbar-width:none;padding:0 8px}
 .estilos-marco::-webkit-scrollbar{display:none}
 .estilos{list-style:none;margin:0;padding:0;display:flex;gap:22px;width:max-content}
 .estilos li{flex:none;width:clamp(240px,22vw,310px)}
@@ -489,3 +493,50 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
   .estilo-ver{font-size:13px}
   .ecm-ig .ig-grilla.cinta-js>*{flex-basis:40vw}
 }
+
+/* ---- ideas de Triballe aprobadas (20-11) ---- */
+/* carrito: envío según la región */
+.carro-envio{align-items:center;gap:10px}
+.carro-envio label{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.carro-envio select,.envio-calc select{font:inherit;font-size:14px;border:1px solid var(--borde);border-radius:999px;padding:5px 28px 5px 10px;background:#fff;color:var(--tinta);max-width:200px}
+.carro-gratis small{display:block;color:var(--ecm-suave);font-size:12.5px;margin-top:2px}
+.carro-sugeridos .sug-completa{background:#FBF7F1;border-radius:12px;padding:8px;border-top:0;margin-bottom:4px}
+.carro-sugeridos .sug em{display:block;font-style:normal;font-size:12.5px;color:#7A4FA6;font-weight:600;margin-top:2px}
+/* ficha: costo de envío según la región */
+.envio-calc{display:flex;gap:10px;align-items:flex-start;background:#FBF7F1;border:1px solid var(--borde);border-radius:14px;padding:12px 14px;margin:0 0 12px;font-size:14.5px}
+.envio-calc .ic{font-size:18px;line-height:1.4}
+.envio-calc label{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.envio-calc-dato{margin-top:4px;color:var(--ecm-suave)}
+.envio-calc-dato b{color:var(--tinta)}
+/* bienvenida: pastilla pequeña abajo, al centro */
+.bienv-pastilla{position:fixed;left:50%;bottom:22px;z-index:45;display:flex;align-items:center;background:var(--ecm-dark,#2A123E);color:#F3E3B5;border-radius:999px;box-shadow:0 10px 26px -8px rgba(22,10,34,.55);opacity:0;transform:translate(-50%,16px);transition:opacity .3s,transform .3s;max-width:calc(100vw - 32px)}
+.bienv-pastilla.ver{opacity:1;transform:translate(-50%,0)}
+.bienv-pastilla button{background:none;border:0;color:inherit;font:inherit;cursor:pointer}
+.bp-abrir{padding:11px 4px 11px 16px;font-weight:600;font-size:14px;white-space:nowrap}
+.bp-x{padding:8px 14px 8px 8px;font-size:20px;line-height:1;opacity:.8}
+.bp-corto{display:none}
+body.ver-barra-compra .bienv-pastilla{bottom:92px}
+@media (max-width:767px){
+  .bienv-pastilla{bottom:26px;max-width:calc(100vw - 172px)}
+  .bp-largo{display:none}.bp-corto{display:inline}
+  .bp-abrir{font-size:13px;padding:10px 2px 10px 12px}
+  .bp-x{padding:8px 10px 8px 6px}
+}
+/* portada en el celular: el título y el botón se ven completos en la primera pantalla */
+@media (max-width:767px){
+  .ecm-muestra[data-portada="nueva"] .ecm-hero{height:clamp(460px,calc(100vh - 64px),640px);height:clamp(460px,calc(100svh - 64px),640px)}
+  .ecm-muestra[data-portada="nueva"] .ecm-hero .caption{bottom:38px}
+  .ecm-muestra[data-portada="nueva"] .ecm-hero .caption h1,.ecm-muestra[data-portada="nueva"] .ecm-hero .caption h2{font-size:32px}
+  .ecm-muestra[data-portada="nueva"] .ecm-hero .caption small{margin-bottom:16px}
+}
+/* menú del celular: colecciones con foto y precio «desde» */
+.menu-cols-tit{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--ecm-suave);margin:16px 0 8px}
+.menu-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--borde)}
+.cajon-panel nav a.menu-col{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:0;border:0;min-height:0;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 0 var(--borde);font-size:14px}
+.menu-col img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--ecm-lila)}
+.menu-col span{display:block;padding:7px 10px 9px;line-height:1.25}
+.menu-col b{display:block;font-weight:600;font-size:14px;color:var(--tinta)}
+.menu-col small{font-size:12px;color:var(--ecm-suave)}
+.cajon-panel nav a.menu-col.todo{justify-content:center;align-items:center;text-align:center;background:var(--ecm-dark,#2A123E)}
+.menu-col.todo b{color:#fff}.menu-col.todo small{color:#E3C572}
+.carro-sugeridos .sug-par{margin:0 0 6px;font-size:13px;font-weight:600;color:#7A4FA6}

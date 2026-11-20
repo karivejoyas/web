@@ -25,6 +25,8 @@
     const orig = Array.from(lista.children);
     if (orig.length < 2) return null;
     sc.classList.add('cinta-js');
+    // en el iPhone las fotos «lazy» de una fila que se mueve sola a veces no cargan: se piden de una vez
+    lista.querySelectorAll('img[loading="lazy"]').forEach(i => { i.loading = 'eager'; });
     const dir = opc.dir || 1;   // 1: de derecha a izquierda · -1: de izquierda a derecha
     const vel = () => innerWidth < 768 ? (opc.velMovil || 26) : (opc.vel || 40);
     const copiar = () => orig.forEach(n => {
@@ -62,14 +64,15 @@
     requestAnimationFrame(paso);
     sc.addEventListener('mouseenter', () => { encima = true; });
     sc.addEventListener('mouseleave', () => { encima = false; });
-    sc.addEventListener('focusin', () => { foco = true; });
+    // solo el foco del teclado la detiene (un clic con el mouse no la deja quieta para siempre)
+    sc.addEventListener('focusin', e => { try { foco = e.target.matches(':focus-visible'); } catch (err) { foco = false; } });
     sc.addEventListener('focusout', () => { foco = false; });
     sc.addEventListener('touchstart', () => { tocando = true; }, { passive: true });
     const soltar = () => { tocando = false; hasta = performance.now() + 2000; };
     sc.addEventListener('touchend', soltar, { passive: true });
     sc.addEventListener('touchcancel', soltar, { passive: true });
     // arrastrar con el mouse
-    sc.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.button !== 0) return; arr = { x: e.clientX, pos: pos }; movio = false; empuje = null; });
+    sc.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.button !== 0) return; e.preventDefault(); arr = { x: e.clientX, pos: pos }; movio = false; empuje = null; });
     addEventListener('pointermove', e => {
       if (!arr) return;
       const d = e.clientX - arr.x;
@@ -79,7 +82,8 @@
       if (P > 0 && pos >= P) { pos -= P; arr.pos -= P; } else if (P > 0 && pos < 0) { pos += P; arr.pos += P; }
       sc.scrollLeft = pos; ultimo = sc.scrollLeft;
     });
-    addEventListener('pointerup', () => { if (!arr) return; arr = null; sc.classList.remove('arrastrando'); hasta = performance.now() + 1200; });
+    // al soltar sigue sola a los 2 s, aunque el mouse quede encima (vuelve a detenerse si sale y entra de nuevo)
+    addEventListener('pointerup', () => { if (!arr) return; const fue = movio; arr = null; sc.classList.remove('arrastrando'); if (fue) { encima = false; hasta = performance.now() + 2000; } });
     sc.addEventListener('click', e => { if (movio) { e.preventDefault(); e.stopPropagation(); movio = false; } }, true);
     sc.addEventListener('dragstart', e => e.preventDefault());
     if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(sc);

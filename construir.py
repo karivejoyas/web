@@ -476,6 +476,34 @@ addEventListener('pagereveal',function(e){{var n=window.navigation&&navigation.a
 ACTUAL_URL = {"tienda": "/tienda/", "nosotros": "/nosotros.html", "preguntas": "/preguntas-frecuentes.html", "contacto": "/contacto.html"}
 
 
+IMG_COLS = {}   # foto de portada de cada colección (se llena en main)
+
+
+def foto_coleccion(c):
+    """La foto de una colección: la elegida en Personalizar, la de la colección o la de su primer producto."""
+    fija = imagen(((TEMA.get("portada") or {}).get("colecciones") or {}).get("imagenes", {}).get(c["id"]))
+    if fija:
+        return fija
+    if IMG_COLS.get(c["id"]):
+        return IMG_COLS[c["id"]]
+    p = next((p for p in c.get("_prods") or [] if p["hay"]), None)
+    return p["img_chica"] if p else ""
+
+
+def menu_cols_movil(cols, titulo):
+    """Menú del celular: cada colección con su foto y el precio «desde» (como Triballe)."""
+    tarj = []
+    for c in cols:
+        hay = [p for p in c.get("_prods") or [] if p["hay"]]
+        if not hay:
+            continue
+        tarj.append('<a class="menu-col" href="/c/%s.html"><img src="%s" alt="" width="160" height="120" loading="lazy"><span><b>%s</b><small>desde %s</small></span></a>'
+                    % (e(c["slug"]), e(foto_coleccion(c)), e(c["nombre"]), pesos(min(p["vigente"] for p in hay))))
+    total = sum(1 for c in cols for p in c.get("_prods") or [] if p["hay"])
+    tarj.append('<a class="menu-col todo" href="/tienda/"><span><b>Ver todo</b><small>%d diseños</small></span></a>' % total)
+    return '<div class="menu-cols-tit">%s</div><div class="menu-cols">%s</div>' % (titulo, "".join(tarj))
+
+
 def menu_html(cols, movil=False, actual=""):
     sub = "".join('<a href="/c/%s.html">%s</a>' % (e(c["slug"]), e(c["nombre"])) for c in cols)
     out = []
@@ -483,7 +511,7 @@ def menu_html(cols, movil=False, actual=""):
         t = e(it.get("texto") or "")
         if it.get("tipo") == "colecciones":
             if movil:
-                out.append('<details class="pliegue"><summary>%s%s</summary><div class="sub">%s</div></details>' % (t, ICONOS["abajo"], sub))
+                out.append(menu_cols_movil(cols, t))
             else:
                 out.append('<div class="desplegable"><button type="button" aria-expanded="false" aria-haspopup="true">%s ▾</button>'
                            '<div class="desplegable-panel">%s<a href="/tienda/">Ver todo</a></div></div>' % (t, sub))
@@ -1113,7 +1141,7 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
                    e(FRASE_COLECCION.get(c["slug"]) or "Aros hechos a mano, en series pequeñas."), e(CC.get("botonTarjeta") or "Ver colección")))
     tarjetas_col = "".join(tarjeta_col(c, False) for c in con_prods)   # la copia para el giro la agrega diseno.js
     sec["colecciones"] = ('<section class="ecm-seccion envoltura ecm-estilos" id="colecciones"><div class="estilos-cab"><div><span class="ojo"%s>%s</span><h2%s>%s</h2></div>'
-                          '<p%s>%s</p></div><div class="estilos-marco"><ul class="estilos">%s</ul></div>'
+                          '<p%s>%s</p></div><div class="estilos-envol"><div class="estilos-marco"><ul class="estilos">%s</ul></div></div>'
                           '<div class="centro"><a class="enlace-flecha" href="/tienda/"%s>%s</a></div></section>'
                           % (kv("portada.colecciones.antetitulo"), tx(CC.get("antetitulo") or "Colecciones"),
                              kv("portada.colecciones.titulo"), tx(CC.get("titulo") or "Encuentra tu estilo"),
@@ -1337,6 +1365,7 @@ def producto(p, cols):
       <div class="cantidad"><button type="button" data-mas="-1" aria-label="Uno menos">−</button><span id="ficha-cantidad">1</span><button type="button" data-mas="1" aria-label="Uno más">+</button></div>
       <button type="button" class="btn btn-1" id="ficha-agregar" data-agregar="{id}" data-cantidad-de="#ficha-cantidad"{dis}>{btxt}</button>
     </div>
+    <div class="envio-calc" data-envio-calc data-precio="{pv}" hidden></div>
     <a class="btn btn-2 btn-bloque" href="https://wa.me/{wa}?text={wat}">Consultar por WhatsApp</a>
     <ul class="lista-confianza" data-kv-lista="producto.beneficios">{benef}</ul>
     <div class="barra-compra" aria-hidden="true"><span class="bc-precio">{precio}</span><button type="button" class="btn btn-1" data-agregar="{id}" data-cantidad-de="#ficha-cantidad" tabindex="-1"{dis}>{btxt}</button></div>
@@ -1358,6 +1387,7 @@ def producto(p, cols):
            opiniones=opiniones_html(p["id"]),
            benef=(("<li>🎁 %s.</li>" % e(texto_envio_gratis())) if texto_envio_gratis() else "") + "".join("<li>%s</li>" % tx(x) for x in (TEMA.get("producto") or {}).get("beneficios") or []),
            medida=("<li>Medida: %s</li>" % e(p["medida"])) if p["medida"] else "",
+           pv=p["vigente"],
            medida_corta=('<div class="ficha-medida">Medida: %s</div>' % e(p["medida"])) if p["medida"] else "",
            color=("<li>Color: %s</li>" % e(p["color"])) if p["color"] else "",
            faq="".join("<details><summary>%s</summary><p>%s</p></details>" % (e(q), e(a)) for q, a in faq),
@@ -1695,6 +1725,7 @@ def main():
     prods, cols, mas_vistos = cargar()
     publicar_fotos(prods)
     img_cols = imagenes_colecciones()
+    IMG_COLS.update(img_cols)
     ig_pubs = instagram()
     portada(prods, cols, mas_vistos, img_cols, ig_pubs)
     tienda(prods, cols)
