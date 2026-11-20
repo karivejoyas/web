@@ -1111,14 +1111,14 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
                 '<h3>%s</h3><p>%s</p><span class="estilo-ver">%s <span aria-hidden="true">→</span></span></a></li>'
                 % (oculto, e(c["slug"]), tab, e(foto_col(c)), "" if copia else e("Aros %s hechos a mano – %s" % (c["nombre"].lower(), MARCA)), e(c["nombre"]),
                    e(FRASE_COLECCION.get(c["slug"]) or "Aros hechos a mano, en series pequeñas."), e(CC.get("botonTarjeta") or "Ver colección")))
-    tarjetas_col = "".join(tarjeta_col(c, False) for c in con_prods) + "".join(tarjeta_col(c, True) for c in con_prods)
+    tarjetas_col = "".join(tarjeta_col(c, False) for c in con_prods)   # la copia para el giro la agrega diseno.js
     sec["colecciones"] = ('<section class="ecm-seccion envoltura ecm-estilos" id="colecciones"><div class="estilos-cab"><div><span class="ojo"%s>%s</span><h2%s>%s</h2></div>'
-                          '<p%s>%s</p></div><div class="estilos-marco"><ul class="estilos" style="--dur:%ds">%s</ul></div>'
+                          '<p%s>%s</p></div><div class="estilos-marco"><ul class="estilos">%s</ul></div>'
                           '<div class="centro"><a class="enlace-flecha" href="/tienda/"%s>%s</a></div></section>'
                           % (kv("portada.colecciones.antetitulo"), tx(CC.get("antetitulo") or "Colecciones"),
                              kv("portada.colecciones.titulo"), tx(CC.get("titulo") or "Encuentra tu estilo"),
                              kv("portada.colecciones.texto"), tx(CC.get("texto") or "Aros hechos a mano, en series pequeñas. Elige por colección y encuentra el par que va contigo."),
-                             7 * len(con_prods), tarjetas_col, kv("portada.colecciones.enlace"), tx(CC.get("enlace") or "Ver todo →"))) if con_prods else ""
+                             tarjetas_col, kv("portada.colecciones.enlace"), tx(CC.get("enlace") or "Ver todo →"))) if con_prods else ""
     # lo nuevo, en grilla de 5 columnas
     sec["nuevos"] = ('<section class="ecm-seccion envoltura"><div class="ecm-hr"></div><h2 class="ecm-titulo"%s>%s</h2><ul class="grilla ecm-grilla">%s</ul>'
                      '<div class="centro"><a class="btn ecm-btn" href="/tienda/?orden=nuevos">%s</a></div></section>'

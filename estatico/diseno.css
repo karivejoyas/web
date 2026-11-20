@@ -454,17 +454,20 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
 .estilos-cab .ojo{display:block;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#B8963E;margin-bottom:6px}
 .estilos-cab h2{font-family:var(--ecm-titulos);font-size:clamp(28px,3.6vw,42px);line-height:1.1;margin:0;color:var(--tinta)}
 .estilos-cab p{margin:0;color:var(--ecm-suave);font-size:15.5px;line-height:1.55}
-/* cinta: avanza sola de derecha a izquierda y se detiene con el mouse encima (o al tocarla) */
-.estilos-marco{overflow:hidden;margin:0 -8px;padding:0 8px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
-.estilos{list-style:none;margin:0;padding:0;display:flex;gap:22px;width:max-content;animation:kv-cinta var(--dur,48s) linear infinite}
+/* cinta: avanza sola (diseno.js), se detiene con el mouse encima y se arrastra o desliza a mano */
+.estilos-marco{overflow-x:auto;scrollbar-width:none;margin:0 -8px;padding:0 8px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
+.estilos-marco::-webkit-scrollbar{display:none}
+.estilos{list-style:none;margin:0;padding:0;display:flex;gap:22px;width:max-content}
 .estilos li{flex:none;width:clamp(240px,22vw,310px)}
-@keyframes kv-cinta{to{transform:translateX(calc(-50% - 11px))}}
-.estilos-marco:hover .estilos,.estilos-marco:focus-within .estilos,.estilos-marco.quieto .estilos{animation-play-state:paused}
-@media (prefers-reduced-motion:reduce){
-  .estilos{animation:none}
-  .estilos-marco{overflow-x:auto;-webkit-mask-image:none;mask-image:none}
-  .estilos li[aria-hidden]{display:none}
-}
+.cinta-js{scroll-snap-type:none!important;cursor:grab;-webkit-user-select:none;user-select:none}
+.cinta-js>*,.cinta-js .estilos>*{scroll-snap-align:none!important}
+.cinta-js.arrastrando{cursor:grabbing}
+.cinta-js img,.cinta-js video{-webkit-user-drag:none;pointer-events:none}
+.cinta-js.arrastrando a{pointer-events:none}
+/* Instagram en cinta: una fila de tarjetas del mismo ancho */
+.ecm-ig .ig-grilla.cinta-js{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;overflow-x:auto;scrollbar-width:none;gap:16px;padding-bottom:4px}
+.ecm-ig .ig-grilla.cinta-js::-webkit-scrollbar{display:none}
+.ecm-ig .ig-grilla.cinta-js>*{flex:0 0 clamp(190px,17vw,230px)}
 .estilo{display:block;text-decoration:none;color:inherit}
 .estilo-foto{display:block;aspect-ratio:4/5;overflow:hidden;border-radius:14px;background:var(--ecm-lila)}
 .estilo-foto img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
@@ -478,8 +481,11 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
 .enlace-flecha{font-weight:600;color:var(--tinta);text-decoration:underline;text-underline-offset:4px}
 @media (max-width:899px){
   .estilos-cab{grid-template-columns:1fr;gap:10px;margin-bottom:18px}
-  .estilos{gap:14px}
-  .estilos li{width:64vw;max-width:280px}
-  @keyframes kv-cinta{to{transform:translateX(calc(-50% - 7px))}}
-  .estilo h3{font-size:19px}
+  .estilos{gap:12px}
+  .estilos li{width:42vw;max-width:200px}
+  .estilo-foto{border-radius:12px}
+  .estilo h3{font-size:16px;margin:10px 0 2px}
+  .estilo p{font-size:12.5px;margin-bottom:6px;line-height:1.35}
+  .estilo-ver{font-size:13px}
+  .ecm-ig .ig-grilla.cinta-js>*{flex-basis:40vw}
 }

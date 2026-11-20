@@ -16,12 +16,89 @@
     $$('[data-an]', an).forEach(b => b.addEventListener('click', () => { paso(+b.dataset.an); auto(); }));
     auto();
   }
-  // «Encuentra tu estilo»: en el celular la cinta se detiene mientras la tocan y sigue 2 s después
-  const marco = $('.estilos-marco');
-  if (marco) {
-    let t = null;
-    marco.addEventListener('touchstart', () => { clearTimeout(t); marco.classList.add('quieto'); }, { passive: true });
-    marco.addEventListener('touchend', () => { clearTimeout(t); t = setTimeout(() => marco.classList.remove('quieto'), 2000); }, { passive: true });
+  /* ---------- cintas que avanzan solas (colecciones, más queridos, Instagram) ----------
+     - avanzan sin fin (los productos se repiten al final con una copia oculta)
+     - se detienen con el mouse encima, al tocarlas o al usar el teclado dentro
+     - se pueden arrastrar con el mouse y deslizar con el dedo
+     - quien pidió «reducir movimiento» las ve quietas y las mueve a mano */
+  function cinta(sc, lista, opc) {
+    const orig = Array.from(lista.children);
+    if (orig.length < 2) return null;
+    sc.classList.add('cinta-js');
+    const dir = opc.dir || 1;   // 1: de derecha a izquierda · -1: de izquierda a derecha
+    const vel = () => innerWidth < 768 ? (opc.velMovil || 26) : (opc.vel || 40);
+    const copiar = () => orig.forEach(n => {
+      const c = n.cloneNode(true);
+      c.setAttribute('aria-hidden', 'true'); c.classList.add('cinta-clon', 'visto');
+      c.querySelectorAll('a, button, video, input, [tabindex]').forEach(x => x.setAttribute('tabindex', '-1'));
+      c.querySelectorAll('[data-revelar]').forEach(x => x.classList.add('visto'));
+      c.querySelectorAll('video').forEach(v => { v.muted = true; verVideo(v); });
+      lista.appendChild(c);
+    });
+    copiar();
+    let P = 0;
+    const medir = () => {
+      P = lista.querySelector('.cinta-clon').offsetLeft - orig[0].offsetLeft;
+      for (let k = 0; k < 4 && P > 0 && sc.scrollWidth < P + sc.clientWidth + 2; k++) copiar();
+    };
+    medir(); addEventListener('resize', medir);
+    let pos = 0, ultimo = 0, t0 = 0, hasta = 0, encima = false, tocando = false, foco = false, visible = true, arr = null, movio = false, empuje = null;
+    const poner = () => { if (P > 0) { pos = ((pos % P) + P) % P; } sc.scrollLeft = pos; ultimo = sc.scrollLeft; };
+    const quieta = () => encima || tocando || foco || arr || !visible || document.hidden || performance.now() < hasta;
+    function paso(t) {
+      const dt = t0 ? Math.min(64, t - t0) / 1000 : 0; t0 = t;
+      if (P > 0 && !arr) {
+        if (Math.abs(sc.scrollLeft - ultimo) > 1) pos = sc.scrollLeft;   // la movieron a mano
+        if (empuje) {
+          const k = Math.min(1, (t - empuje.t) / 450);
+          pos = empuje.de + (empuje.a - empuje.de) * (1 - Math.pow(1 - k, 3));
+          if (k >= 1) empuje = null;
+          poner();
+        } else if (!quieta()) { pos += dir * vel() * dt; poner(); }
+        else if (!tocando && (pos < 1 || pos >= P)) poner();   // da la vuelta también si la movieron a mano
+      }
+      requestAnimationFrame(paso);
+    }
+    requestAnimationFrame(paso);
+    sc.addEventListener('mouseenter', () => { encima = true; });
+    sc.addEventListener('mouseleave', () => { encima = false; });
+    sc.addEventListener('focusin', () => { foco = true; });
+    sc.addEventListener('focusout', () => { foco = false; });
+    sc.addEventListener('touchstart', () => { tocando = true; }, { passive: true });
+    const soltar = () => { tocando = false; hasta = performance.now() + 2000; };
+    sc.addEventListener('touchend', soltar, { passive: true });
+    sc.addEventListener('touchcancel', soltar, { passive: true });
+    // arrastrar con el mouse
+    sc.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.button !== 0) return; arr = { x: e.clientX, pos: pos }; movio = false; empuje = null; });
+    addEventListener('pointermove', e => {
+      if (!arr) return;
+      const d = e.clientX - arr.x;
+      if (!movio && Math.abs(d) > 5) { movio = true; sc.classList.add('arrastrando'); }
+      if (!movio) return;
+      pos = arr.pos - d;
+      if (P > 0 && pos >= P) { pos -= P; arr.pos -= P; } else if (P > 0 && pos < 0) { pos += P; arr.pos += P; }
+      sc.scrollLeft = pos; ultimo = sc.scrollLeft;
+    });
+    addEventListener('pointerup', () => { if (!arr) return; arr = null; sc.classList.remove('arrastrando'); hasta = performance.now() + 1200; });
+    sc.addEventListener('click', e => { if (movio) { e.preventDefault(); e.stopPropagation(); movio = false; } }, true);
+    sc.addEventListener('dragstart', e => e.preventDefault());
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[0].isIntersecting; }).observe(sc);
+    return { empujar: (n) => { const ancho = orig[0].getBoundingClientRect().width + (parseFloat(getComputedStyle(lista).columnGap) || 0); empuje = { de: pos, a: pos + n * ancho, t: performance.now() }; hasta = performance.now() + 3000; } };
+  }
+  // los videos de Instagram de las copias también se reproducen solo cuando se ven
+  const ioCopias = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+    const v = e.target;
+    if (e.isIntersecting) { v.preload = 'auto'; const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); } else v.pause();
+  }), { rootMargin: '120px 0px' }) : null;
+  function verVideo(v) { if (ioCopias && !quieto) ioCopias.observe(v); }
+  const cintas = {};
+  if (!quieto) {
+    const marcoEst = $('.estilos-marco'), listaEst = $('.estilos');
+    if (marcoEst && listaEst) cintas.estilos = cinta(marcoEst, listaEst, { dir: 1, vel: 45, velMovil: 30 });
+    const pistaFav = $('.ecm-pista');
+    if (pistaFav) cintas.favoritos = cinta(pistaFav, pistaFav, { dir: -1, vel: 35, velMovil: 26 });
+    const ig = $('.ecm-ig .ig-grilla');
+    if (ig) cintas.instagram = cinta(ig, ig, { dir: 1, vel: 35, velMovil: 26 });
   }
   // ficha en el celular: barra fija con precio y «Agregar al carrito» cuando el botón principal no se ve
   const btnFicha = $('#ficha-agregar'), barra = $('.barra-compra');
@@ -53,7 +130,11 @@
   }
   // carrusel de destacados
   const pista = $('.ecm-pista');
-  if (pista) {
+  if (pista && cintas.favoritos) {
+    // con la cinta en movimiento, las flechas la empujan una tarjeta; los puntos sobran
+    $$('[data-pista]').forEach(b => b.addEventListener('click', () => cintas.favoritos.empujar(+b.dataset.pista)));
+    const pu = $('.ecm-puntos'); if (pu) pu.hidden = true;
+  } else if (pista) {
     const puntos = $('.ecm-puntos');
     const n = () => Math.max(1, Math.ceil(pista.scrollWidth / pista.clientWidth - 0.05));
     const pintar = () => { const k = n(); puntos.innerHTML = Array.from({ length: k }, () => '<i></i>').join(''); marcar(); };
