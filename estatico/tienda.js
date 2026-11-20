@@ -233,6 +233,7 @@
       aviso('Solo queda' + (tope === 1 ? ' 1 unidad' : 'n ' + tope + ' unidades') + ' de ' + p.name);
     } else {
       carro[id] = nuevo; carroGuardar();
+      if (window.fbq) try { fbq('track', 'AddToCart', { content_ids: [p.code], content_type: 'product', value: precioDe(p) * (n || 1), currency: 'CLP' }); } catch (e) {}
       const cj = $('#cajon-carro');
       aviso('✓ ' + p.name + ' agregado', !(cj && cj.classList.contains('abierto')));
     }
@@ -386,6 +387,7 @@
     productosAlDia([id]).then(lista => {
       const p = lista.find(x => x.id === id);
       if (!p) return;
+      if (window.fbq) try { fbq('track', 'ViewContent', { content_ids: [p.code], content_type: 'product', content_name: p.name, value: precioDe(p), currency: 'CLP' }); } catch (e) {}
       const precio = $('#ficha-precio'); if (precio) precio.innerHTML = precioHtml(p);
       const st = $('#ficha-stock'), btn = $('#ficha-agregar');
       const tope = kvStockCantidad(p);

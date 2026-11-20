@@ -288,6 +288,7 @@
   }
 
   function listo(num, total) {
+    if (window.fbq) try { fbq('track', 'Purchase', { value: Number(total) || 0, currency: 'CLP', content_type: 'product', content_ids: items.map(it => it.p.code) }); } catch (e) {}
     try { localStorage.setItem('kv_ya_compro', '1'); localStorage.removeItem('kv_cupon_auto'); } catch (e) {}
     if (KV.visita) KV.visita({ hizoPedido: true });
     const txt = 'Hola Karivé 💜 ' + (form.nombre ? 'Soy ' + form.nombre.trim() + ', acabo' : 'Acabo') + ' de hacer ' + (num ? 'el pedido #' + num : 'un pedido') +
@@ -333,6 +334,7 @@
     try { A = await KV.ajustes(); } catch (e) { A = {}; }
     if (await vueltaPago()) return;
     items = await KV.carroItems();
+    if (items.length && window.fbq) try { fbq('track', 'InitiateCheckout', { value: subtotal(), currency: 'CLP', num_items: items.reduce((s, it) => s + it.qty, 0), content_ids: items.map(it => it.p.code), content_type: 'product' }); } catch (e) {}
     // código guardado (regalo de bienvenida): se aplica solo
     try {
       const auto = localStorage.getItem('kv_cupon_auto'), autoCorreo = localStorage.getItem('kv_bienv_correo');

@@ -88,6 +88,9 @@ def envio_rango():
     todas = otras + [envio_de(REGION_RM)]
     return min(todas), max(todas), min(otras), max(otras)
 CORREO = "karive.joyas@gmail.com"
+# Píxel de Meta (Facebook e Instagram): mide qué visitas llegan desde los anuncios y
+# qué hacen en la tienda. Vacío = apagado (no se carga nada de Meta).
+META_PIXEL = ""
 WA_MSG = ""
 RESENAS = []
 TEMA = T.TEMA_DEFECTO
@@ -436,6 +439,17 @@ def efectos():
     return por, tr
 
 
+def pixel_meta():
+    """Código base del píxel de Meta (solo si está configurado)."""
+    if not META_PIXEL:
+        return ""
+    return ("<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};"
+            "if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];"
+            "s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');"
+            "fbq('init','%s');fbq('track','PageView');</script>\n"
+            '<noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=%s&ev=PageView&noscript=1"></noscript>\n') % (META_PIXEL, META_PIXEL)
+
+
 def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="index, follow, max-image-preview:large", extra=""):
     url = SITIO + ruta.lstrip("/")
     j = ('<script type="application/ld+json">%s</script>' % json.dumps(jsonld, ensure_ascii=False).replace("</", "<\\/")) if jsonld else ""
@@ -468,9 +482,9 @@ def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="
 addEventListener('pagereveal',function(e){{var n=window.navigation&&navigation.activation,h=document.documentElement;if(!e.viewTransition||!n||n.navigationType!=='traverse')return;h.dataset.dir='atras';e.viewTransition.finished.finally(function(){{delete h.dataset.dir}})}})</script>
 {colores}
 {j}
-</head>
+{pixel}</head>
 """.format(t=e(titulo), d=e(desc), u=e(url), img=e(imagen_url), tipo=tipo, m=e(MARCA), rob=robots, fuentes=FUENTES, v=VERSION, j=j, extra=extra,
-           colores=estilo_colores(), tc=e((TEMA.get("colores") or {}).get("oscuro") or "#2A123E"), ef_por=ef_por, ef_tr=ef_tr, vt=vt)
+           colores=estilo_colores(), tc=e((TEMA.get("colores") or {}).get("oscuro") or "#2A123E"), ef_por=ef_por, ef_tr=ef_tr, vt=vt, pixel=pixel_meta())
 
 
 ACTUAL_URL = {"tienda": "/tienda/", "nosotros": "/nosotros.html", "preguntas": "/preguntas-frecuentes.html", "contacto": "/contacto.html"}
@@ -1721,6 +1735,8 @@ def main():
         shutil.copy("assets/" + f, DIST + "/assets/" + f)
     shutil.copytree("assets/pagos", DIST + "/assets/pagos")      # logos de tarjetas (página de pago)
     shutil.copytree("assets/sobre", DIST + "/assets/sobre", dirs_exist_ok=True)   # fotos de «Sobre nosotros»
+    if os.path.isdir("assets/anuncios"):
+        shutil.copytree("assets/anuncios", DIST + "/assets/anuncios", dirs_exist_ok=True)   # imágenes de los anuncios de Meta
 
     prods, cols, mas_vistos = cargar()
     publicar_fotos(prods)
