@@ -90,7 +90,9 @@ def envio_rango():
 CORREO = "karive.joyas@gmail.com"
 # Píxel de Meta (Facebook e Instagram): mide qué visitas llegan desde los anuncios y
 # qué hacen en la tienda. Vacío = apagado (no se carga nada de Meta).
-META_PIXEL = ""
+META_PIXEL = "1668222701367142"   # «Karivé Joyas · karivejoyas.cl»
+# verificación del dominio karivejoyas.cl en Meta (va en el <head> de todas las páginas)
+META_DOMINIO = "fkorj0pp8abew6jg6elhxdm9jmgm6n"
 WA_MSG = ""
 RESENAS = []
 TEMA = T.TEMA_DEFECTO
@@ -467,6 +469,7 @@ def cabeza(titulo, desc, ruta, imagen_url, jsonld=None, tipo="website", robots="
 <meta name="robots" content="{rob}">
 <meta name="google-site-verification" content="gntO12xw5MtwsQ7yMhAah_xzH_QfZygK2XTzN83ulyM">
 <meta name="google-site-verification" content="SiVit-HXZLFAfeKjKZUczVcrXe4KV9qn7xE_ECb6DeA">
+<meta name="facebook-domain-verification" content="{fbdom}">
 <link rel="canonical" href="{u}">
 <meta name="theme-color" content="{tc}">
 <meta property="og:type" content="{tipo}"><meta property="og:site_name" content="{m}"><meta property="og:locale" content="es_CL">
@@ -484,7 +487,7 @@ addEventListener('pagereveal',function(e){{var n=window.navigation&&navigation.a
 {j}
 {pixel}</head>
 """.format(t=e(titulo), d=e(desc), u=e(url), img=e(imagen_url), tipo=tipo, m=e(MARCA), rob=robots, fuentes=FUENTES, v=VERSION, j=j, extra=extra,
-           colores=estilo_colores(), tc=e((TEMA.get("colores") or {}).get("oscuro") or "#2A123E"), ef_por=ef_por, ef_tr=ef_tr, vt=vt, pixel=pixel_meta())
+           colores=estilo_colores(), tc=e((TEMA.get("colores") or {}).get("oscuro") or "#2A123E"), ef_por=ef_por, ef_tr=ef_tr, vt=vt, pixel=pixel_meta(), fbdom=META_DOMINIO)
 
 
 ACTUAL_URL = {"tienda": "/tienda/", "nosotros": "/nosotros.html", "preguntas": "/preguntas-frecuentes.html", "contacto": "/contacto.html"}
@@ -1482,11 +1485,29 @@ def pagina_tema(clave, ruta, actual="", jsonld=None, robots="index, follow"):
         # los logos de las empresas de envío van bajo la tabla de precios
         h = str(pg.get("html") or "")
         pg = dict(pg, html=h.replace("{tabla_envios}", "{tabla_envios}{empresas_envio}", 1) if "{tabla_envios}" in h else h + "{empresas_envio}")
+    contenido = html_pagina(pg.get("html"))
+    if clave == "privacidad" and META_PIXEL:
+        contenido = privacidad_con_pixel(contenido)
     cuerpo = ('<h1%s>%s</h1><div class="pagina-html" data-kv-html="paginas.%s.html">%s</div>'
-              % (kv("paginas.%s.titulo" % clave), tx(pg.get("titulo")),
-                 clave, html_pagina(pg.get("html"))))
+              % (kv("paginas.%s.titulo" % clave), tx(pg.get("titulo")), clave, contenido))
     pagina_texto(ruta, tp(pg.get("seoTitulo") or (pg.get("titulo") + " | " + MARCA)), tp(pg.get("seoDesc") or pg.get("titulo")),
                  cuerpo, cols_global, actual, jsonld, robots, clave=clave)
+
+
+PRIVACIDAD_PIXEL = ("<h2>Anuncios en Facebook e Instagram (píxel de Meta)</h2>"
+                    "<p>Usamos el píxel de Meta para saber qué visitas llegan desde nuestros anuncios en Facebook e Instagram y qué hacen en la tienda "
+                    "(ver un producto, agregarlo al carrito, ir a pagar o comprar). Meta puede usar una cookie para esto, de acuerdo con su propia "
+                    "política de privacidad. Puedes limitar el uso de esta información para anuncios en la configuración de anuncios de tu cuenta de Meta.</p>")
+
+
+def privacidad_con_pixel(h):
+    """La política de privacidad dice que se usa el píxel de Meta (si está encendido)."""
+    h = re.sub(r"<li>\s*No usamos cookies de seguimiento ni publicidad\.?\s*</li>",
+               "<li>Usamos el píxel de Meta para medir los anuncios en Facebook e Instagram (más abajo te contamos cómo).</li>", h)
+    if "píxel de Meta)" not in h:
+        m = re.search(r"<h2>Pedidos y contacto</h2>", h)
+        h = (h[:m.start()] + PRIVACIDAD_PIXEL + h[m.start():]) if m else h + PRIVACIDAD_PIXEL
+    return h
 
 
 def legales_por_defecto():
