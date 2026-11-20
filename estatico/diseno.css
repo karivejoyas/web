@@ -448,3 +448,28 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
 .cantidad-chica button{width:34px;height:34px;font-size:18px}
 .cantidad-chica span{min-width:22px;font-size:14px}
 .resumen-cant .carro-quitar{margin:0}
+/* ---- «Encuentra tu estilo» bajo la portada ---- */
+.ecm-estilos{padding-top:8px}
+.estilos-cab{display:grid;grid-template-columns:1fr minmax(0,420px);gap:24px;align-items:end;margin-bottom:28px}
+.estilos-cab .ojo{display:block;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#B8963E;margin-bottom:6px}
+.estilos-cab h2{font-family:var(--ecm-titulos);font-size:clamp(28px,3.6vw,42px);line-height:1.1;margin:0;color:var(--tinta)}
+.estilos-cab p{margin:0;color:var(--ecm-suave);font-size:15.5px;line-height:1.55}
+.estilos{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.estilo{display:block;text-decoration:none;color:inherit}
+.estilo-foto{display:block;aspect-ratio:4/5;overflow:hidden;border-radius:14px;background:var(--ecm-lila)}
+.estilo-foto img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
+.estilo:hover .estilo-foto img{transform:scale(1.05)}
+.estilo h3{font-family:var(--ecm-titulos);font-weight:500;font-size:21px;margin:14px 0 4px;color:var(--tinta)}
+.estilo p{margin:0 0 10px;color:var(--ecm-suave);font-size:14.5px;line-height:1.45}
+.estilo-ver{font-weight:600;font-size:14.5px;color:var(--morado)}
+.estilo-ver span{display:inline-block;transition:transform .25s}
+.estilo:hover .estilo-ver span{transform:translateX(4px)}
+.ecm-estilos .centro{margin-top:22px}
+.enlace-flecha{font-weight:600;color:var(--tinta);text-decoration:underline;text-underline-offset:4px}
+@media (max-width:899px){
+  .estilos-cab{grid-template-columns:1fr;gap:10px;margin-bottom:18px}
+  .estilos{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:72%;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;padding-bottom:6px;margin-right:-16px;padding-right:16px;scrollbar-width:none}
+  .estilos::-webkit-scrollbar{display:none}
+  .estilos li{scroll-snap-align:start}
+  .estilo h3{font-size:19px}
+}

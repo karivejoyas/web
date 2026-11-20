@@ -1030,6 +1030,18 @@ def olas_ecm(id_, clase):
             % (clase, id_, OLA, id_, id_, id_, id_))
 
 
+# una frase por colección para «Encuentra tu estilo» (solo lo que ya dice la tienda)
+FRASE_COLECCION = {
+    "flores": "Modeladas y pintadas a mano, pétalo por pétalo.",
+    "argollas-de-cristal": "Tejidas con cristales y mostacillas que atrapan la luz.",
+    "corazones": "Un clásico para regalar o regalarte.",
+    "charms": "Divertidos, livianos y llenos de color.",
+    "marina": "Conchitas, estrellas y detalles inspirados en el mar.",
+    "fiestas": "Para celebrar las fechas especiales.",
+    "otros": "Formas y texturas que no se ven en cualquier tienda.",
+}
+
+
 def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     """La portada: carrusel con velo morado, lo nuevo, ¿por qué elegirnos?,
     favoritos, Instagram, sobre nosotros y preguntas frecuentes."""
@@ -1079,6 +1091,30 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     flechas = ('<button class="flecha prev" type="button" data-hero="-1" aria-label="Anterior">‹</button>'
                '<button class="flecha next" type="button" data-hero="1" aria-label="Siguiente">›</button>') if len(slides) > 1 else ""
     sec["hero"] = '<section class="ecm-hero" aria-roledescription="carrusel">%s%s</section>%s' % ("".join(slides), flechas, olas_ecm("ola-baja", "ola-baja"))
+    # «Encuentra tu estilo»: 4 colecciones grandes bajo la portada (como «El tamaño del gesto» de Triballe)
+    CC = P.get("colecciones") or {}
+    con_prods = [c for c in cols if any(p["hay"] for p in c["_prods"])][:4]
+    def foto_col(c):
+        fija = imagen((CC.get("imagenes") or {}).get(c["id"]))
+        if fija:
+            return fija
+        if img_cols.get(c["id"]):
+            return img_cols[c["id"]]
+        p = next((p for p in c["_prods"] if p["hay"]), None)
+        return p["img"] if p else ""
+    tarjetas_col = "".join(
+        '<li><a class="estilo" href="/c/%s.html"><span class="estilo-foto"><img src="%s" alt="Aros %s hechos a mano – %s" loading="lazy" width="600" height="750"></span>'
+        '<h3>%s</h3><p>%s</p><span class="estilo-ver">%s <span aria-hidden="true">→</span></span></a></li>'
+        % (e(c["slug"]), e(foto_col(c)), e(c["nombre"].lower()), e(MARCA), e(c["nombre"]),
+           e(FRASE_COLECCION.get(c["slug"]) or "Aros hechos a mano, en series pequeñas."), e(CC.get("botonTarjeta") or "Ver colección"))
+        for c in con_prods)
+    sec["colecciones"] = ('<section class="ecm-seccion envoltura ecm-estilos" id="colecciones"><div class="estilos-cab"><div><span class="ojo"%s>%s</span><h2%s>%s</h2></div>'
+                          '<p%s>%s</p></div><ul class="estilos">%s</ul>'
+                          '<div class="centro"><a class="enlace-flecha" href="/tienda/"%s>%s</a></div></section>'
+                          % (kv("portada.colecciones.antetitulo"), tx(CC.get("antetitulo") or "Colecciones"),
+                             kv("portada.colecciones.titulo"), tx(CC.get("titulo") or "Encuentra tu estilo"),
+                             kv("portada.colecciones.texto"), tx(CC.get("texto") or "Aros hechos a mano, en series pequeñas. Elige por colección y encuentra el par que va contigo."),
+                             tarjetas_col, kv("portada.colecciones.enlace"), tx(CC.get("enlace") or "Ver todo →"))) if con_prods else ""
     # lo nuevo, en grilla de 5 columnas
     sec["nuevos"] = ('<section class="ecm-seccion envoltura"><div class="ecm-hr"></div><h2 class="ecm-titulo"%s>%s</h2><ul class="grilla ecm-grilla">%s</ul>'
                      '<div class="centro"><a class="btn ecm-btn" href="/tienda/?orden=nuevos">%s</a></div></section>'
@@ -1113,8 +1149,8 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     # orden fijo del diseño; las secciones que se ocultan en el panel (Tienda online → Secciones) no se muestran
     ocultas = set(P.get("ocultas") or []) - {"hero"}
     h += '<div data-kv-secciones data-kv-fijo>\n'
-    for k in ("hero", "nuevos", "confianza", "favoritos", "instagram", "sobre", "preguntas"):
-        if k in sec:
+    for k in ("hero", "colecciones", "nuevos", "confianza", "favoritos", "instagram", "sobre", "preguntas"):
+        if sec.get(k):
             h += '<div data-kv-sec="%s"%s>%s</div>\n' % (k, " hidden" if k in ocultas else "", sec[k])
     h += '</div>\n'
     h += pie(cols)
