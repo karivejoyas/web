@@ -55,3 +55,17 @@ hay que subir tráfico **y** quitar fricciones.
 - Mismo texto en los 4; cambia solo la foto: A Flores (modelo), B Argollas de cristal, C Charms, D Corazones. Enlaces con utm_campaign=prueba1 y utm_content por foto.
 - Píxel 1668222701367142 instalado en la web (PageView, ViewContent, AddToCart, InitiateCheckout, Purchase). Dominio karivejoyas.cl verificado en Meta.
 - Pendiente: tras el primer cobro, mover la cuenta al negocio «Karivé Joyas» (Meta no lo permite antes), conectar píxel y catálogo, y probar el carrusel de catálogo y los videos (moño y serpiente, cuando estén en la tienda).
+
+## 21-11-2026 · Cuenta en el negocio y borrador de la Prueba 2
+
+- La extensión (vuelta 10) movió la cuenta publicitaria 1978823892839689 al negocio «Karivé Joyas» (1683570519543921) y conectó el píxel 1668222701367142 a la cuenta. La dueña tiene acceso total. El catálogo ya está disponible para la cuenta.
+- Nuevo conjunto de productos en el catálogo: «Aros disponibles» (1146774611442341), con un filtro de disponibilidad «en stock». Tiene 143 de 156 productos y no se modificó ningún producto.
+- La campaña anterior era de **Tráfico**, optimizada para clics.
+- Borrador de la Prueba 2 (sin activar): campaña 120250290776280003, «Prueba 2 · Catálogo + Argollas · Visitas».
+  - Objetivo: Tráfico, optimizado para visitas a la página (no para clics).
+  - Presupuesto: $2.000 diarios para toda la campaña.
+  - Público: todo Chile, desde los 18 años.
+  - Ubicaciones: solo Facebook e Instagram (sin Audience Network).
+  - Conjunto A (120250290781620003): carrusel de catálogo tipo Triballe con el nombre y el precio de cada producto. Anuncio 120250290782850003, utm_content=catalogo.
+  - Conjunto B (120250290781810003): foto de Argollas (la ganadora de la Prueba 1) con productos del catálogo debajo. Anuncio 120250290784340003, utm_content=argollas.
+  - Falta: definir la fecha de término (3 días) al activar. Solo se activa con un «actívala» explícito.
