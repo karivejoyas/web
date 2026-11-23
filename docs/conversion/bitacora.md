@@ -69,3 +69,12 @@ hay que subir tráfico **y** quitar fricciones.
   - Conjunto A (120250290781620003): carrusel de catálogo tipo Triballe con el nombre y el precio de cada producto. Anuncio 120250290782850003, utm_content=catalogo.
   - Conjunto B (120250290781810003): foto de Argollas (la ganadora de la Prueba 1) con productos del catálogo debajo. Anuncio 120250290784340003, utm_content=argollas.
   - Falta: definir la fecha de término (3 días) al activar. Solo se activa con un «actívala» explícito.
+
+## 23-11-2026 · La Prueba 2 pasa a Ventas
+
+- Después de mover la cuenta al negocio, la conexión con Meta perdió el acceso. La dueña volvió a conectarla y el acceso quedó de nuevo.
+- La campaña 120250290776280003 cambió de objetivo: ahora es **Ventas** y se llama «Prueba 2 · Catálogo + Argollas · Ventas».
+  - Los conjuntos A y B se optimizan para **compras**: el evento PURCHASE del píxel 1668222701367142. El conjunto A mantiene el grupo de productos 1146774611442341.
+  - El borrador no tiene errores y sigue sin activar.
+- Eventos que ha recibido el píxel entre el 20 y el 22 de noviembre: unas 322 visitas de página y 15 vistas de producto. Todavía no hay ningún «agregar al carrito» ni ninguna compra.
+- El evento de compra está en `compra.js` → `listo()`. Se envía en los pedidos por transferencia y cuando la clienta vuelve desde Mercado Pago.
