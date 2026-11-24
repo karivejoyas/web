@@ -333,6 +333,11 @@ def cargar():
         f = doc.get("fields", {})
         p0 = {c: gen.valor(f.get(c)) for c in campos}
         cod = (p0.get("code") or "").strip()
+        # un producto recién subido sin precio todavía no está listo: no se
+        # publica en ninguna parte (ni ficha, ni mapa del sitio, ni catálogos
+        # de Google y Meta), para que nunca aparezca a $0
+        if int(p0.get("price") or 0) <= 0:
+            continue
         ruta = gen.foto_publica(cod, p0.get("photo") or "") if cod else None
         if not cod or not ruta or ruta.startswith("http"):
             continue
