@@ -78,3 +78,11 @@ hay que subir tráfico **y** quitar fricciones.
   - El borrador no tiene errores y sigue sin activar.
 - Eventos que ha recibido el píxel entre el 20 y el 22 de noviembre: unas 322 visitas de página y 15 vistas de producto. Todavía no hay ningún «agregar al carrito» ni ninguna compra.
 - El evento de compra está en `compra.js` → `listo()`. Se envía en los pedidos por transferencia y cuando la clienta vuelve desde Mercado Pago.
+
+## 24-11-2026 · 21 aros nuevos (ocultos, sin precio)
+
+- Se subieron 21 productos desde la carpeta de Drive «FOTOS LISTAS PARA SUBIR», con los códigos OT-013 a OT-033.
+  - Colección: Otros. Quedan **ocultos**, con precio 0 y nombres provisorios.
+  - Cada foto se guardó en JPEG de 1086×1448, entre 156 y 318 KB, en el mismo formato que usa el panel.
+  - La dueña completa el precio y los activa.
+- `construir.py`: un producto con precio 0 ya no se publica en ninguna parte (ficha, mapa del sitio ni catálogos de Google y Meta).
