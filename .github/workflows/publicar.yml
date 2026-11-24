@@ -82,7 +82,19 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+      # GitHub a veces tarda unos segundos en "ver" el paquete recién subido
+      # (error «No artifacts named github-pages were found»): se espera un
+      # poco antes de publicar y, si igual falla, se reintenta una vez.
+      - name: Esperar a que GitHub registre el paquete
+        run: sleep 20
       - id: despliegue
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Esperar antes de reintentar
+        if: steps.despliegue.outcome == 'failure'
+        run: sleep 60
+      - id: despliegue2
+        if: steps.despliegue.outcome == 'failure'
         uses: actions/deploy-pages@v4
       - name: Avisar a Bing y otros buscadores (IndexNow)
         run: python3 herramientas/indexnow.py avisar
