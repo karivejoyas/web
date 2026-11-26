@@ -40,7 +40,8 @@
       web: cat.doc('web'),
       temas: cat.doc('web').collection('temas'),
       medios: cat.doc('web').collection('medios'),
-      respaldos: cat.doc('web').collection('respaldos')
+      respaldos: cat.doc('web').collection('respaldos'),
+      encargos: cat.doc('encargos').collection('items')   // pedidos informales (privado)
     },
     // datos en memoria
     productos: [], settings: {}, pedidos: [], visitas: [], suscritos: [], web: null,
@@ -313,6 +314,7 @@
       A.webError = /permission/i.test(e.code || e.message) ? 'permiso' : 'error';
       emitir('web');
     }));
+    if (A.escucharEncargos) escuchas.push(A.escucharEncargos());   // encargos.js
     A.cargarProductos();
     A.cargarTemaPublicado();
   }
@@ -593,7 +595,7 @@
     const prods = A.productos.filter(p => A.sinTildes((p.name || '') + ' ' + (p.code || '')).indexOf(q) !== -1).slice(0, 6);
     const peds = A.pedidos.filter(p => A.sinTildes('#' + (p.num || '') + ' ' + ((p.cliente || {}).nombre || '') + ' ' + ((p.cliente || {}).correo || '')).indexOf(q) !== -1)
       .sort((a, b) => (b.num || 0) - (a.num || 0)).slice(0, 5);
-    const secciones = [['Inicio', ''], ['Pedidos', 'pedidos'], ['Carritos abandonados', 'pedidos/pendientes'], ['Productos', 'productos'], ['Colecciones', 'colecciones'], ['Inventario', 'inventario'],
+    const secciones = [['Inicio', ''], ['Pedidos', 'pedidos'], ['Encargos', 'encargos'], ['Anotar encargo', 'encargos/nuevo'], ['Carritos abandonados', 'pedidos/pendientes'], ['Productos', 'productos'], ['Colecciones', 'colecciones'], ['Inventario', 'inventario'],
       ['Clientes', 'clientes'], ['Suscriptores', 'clientes/suscriptores'], ['Descuentos y cupones', 'descuentos'], ['Páginas', 'contenido/paginas'], ['Archivos', 'contenido/archivos'],
       ['Opiniones', 'contenido/opiniones'], ['Informes', 'informes'], ['Vista en tiempo real', 'informes/vivo'], ['Temas', 'tienda'], ['Personalizar tema', 'tienda/editor'],
       ['Navegación (menús)', 'tienda/navegacion'], ['Preferencias (SEO)', 'tienda/preferencias'], ['Mercado Libre', 'apps/mercadolibre'], ['Instagram y Facebook', 'apps/instagram'], ['Asistente IA', 'apps/ia'], ['Apps', 'apps'], ['Configuración general', 'config/general'],
