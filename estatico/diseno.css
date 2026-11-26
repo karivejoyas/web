@@ -468,6 +468,10 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
 .cinta-vista.arrastrando{cursor:grabbing}
 .cinta-vista.arrastrando a{pointer-events:none}
 .cinta-pista{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;overflow:visible!important;width:max-content;scroll-snap-type:none!important;position:relative}
+/* tienda.css tiene una cinta de texto antigua con la misma clase (.cinta-pista) que se desliza sola
+   con una animación de 42 s: en estas cintas la movía hacia el otro lado con el mouse encima y daba
+   un salto cada vez que la animación volvía a empezar. Aquí la fila no se anima: se mueven las tarjetas. */
+.cinta-vista>.cinta-pista{animation:none!important;transform:none!important}
 /* ya medidas, cada tarjeta queda en su lugar y se mueve sola (diseno.js) */
 .cinta-pista.cinta-abs{display:block!important;width:auto}
 .cinta-pista.cinta-abs>*{position:absolute!important;top:var(--pt,0);left:0;width:var(--ancho)!important;height:var(--alto,auto)!important;margin:0!important;transition:none!important;animation:none!important;opacity:1!important;-webkit-backface-visibility:hidden;backface-visibility:hidden}
