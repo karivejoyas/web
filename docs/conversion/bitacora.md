@@ -86,3 +86,12 @@ hay que subir tráfico **y** quitar fricciones.
   - Cada foto se guardó en JPEG de 1086×1448, entre 156 y 318 KB, en el mismo formato que usa el panel.
   - La dueña completa el precio y los activa.
 - `construir.py`: un producto con precio 0 ya no se publica en ninguna parte (ficha, mapa del sitio ni catálogos de Google y Meta).
+
+## 26-11-2026 · Cintas sin salto y 15 aros de Navidad (ocultos)
+
+- Causa del salto y del movimiento al revés de las cintas: `tienda.css` animaba `.cinta-pista`, la clase de una cinta de texto antigua, con `translateX(-50%)` en 42 s. En `diseno.css` se anula la animación dentro de `.cinta-vista`.
+- Las fotos de «Encuentra tu estilo» ahora salen en versiones de 720 px (`medio_chico`) y se decodifican antes de entrar a la pantalla.
+- Con el mouse encima la cinta queda detenida también después de arrastrarla.
+- Se subieron 15 aros de Navidad (FS-017 a FS-031) a la colección Fiestas.
+  - Quedan ocultos, con precio 0 y nombres provisorios.
+  - Las fotos vienen de la carpeta de Drive de la dueña.
