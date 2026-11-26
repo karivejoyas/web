@@ -91,9 +91,13 @@
     addEventListener('resize', () => { if (vista.clientWidth !== anchoVista) medir(); });
     addEventListener('load', medir);   // ya con las fotos cargadas, por si cambió el alto
     let t0 = 0, hasta = 0, encima = false, foco = false, visible = true, arr = null, movio = false, empuje = null, inercia = 0;
-    const quieta = () => encima || foco || arr || !visible || document.hidden || performance.now() < hasta;
+    // con el mouse encima no se detiene: va más lento (a la dueña le gusta así)
+    const LENTO = 0.3;
+    // velocidad que se busca en cada momento; la real (vAct) la sigue suave, sin frenazos ni arranques bruscos
+    const objetivo = () => (foco || !visible || document.hidden || performance.now() < hasta) ? 0 : dir * vel() * (encima ? LENTO : 1);
+    let vAct = dir * vel();
     function paso1(t) {
-      const dt = t0 ? Math.min(64, t - t0) / 1000 : 0; t0 = t;
+      const dt = t0 ? Math.min(50, t - t0) / 1000 : 0; t0 = t;
       if (L > 0 && !arr) {
         if (empuje) {
           const k = Math.min(1, (t - empuje.t) / 450);
@@ -102,8 +106,12 @@
           pintar();
         } else if (Math.abs(inercia) > 15) {       // sigue un poco después de soltarla con el dedo
           pos += inercia * dt; inercia *= Math.exp(-dt * 3.2); pintar();
-          hasta = Math.max(hasta, performance.now() + 1800);
-        } else if (!quieta()) { inercia = 0; pos += dir * vel() * dt; pintar(); }
+          hasta = Math.max(hasta, performance.now() + 1800); vAct = 0;
+        } else {
+          inercia = 0;
+          vAct += (objetivo() - vAct) * (1 - Math.exp(-dt * 3));   // ~1/3 s para cambiar de velocidad
+          if (Math.abs(vAct) > 0.02) { pos += vAct * dt; pintar(); }
+        }
       }
       requestAnimationFrame(paso1);
     }
@@ -123,7 +131,7 @@
     vista.addEventListener('pointerdown', e => {
       if (e.button !== 0) return;
       if (e.pointerType === 'mouse') e.preventDefault();
-      arr = { x: e.clientX, pos: pos, id: e.pointerId }; movio = false; empuje = null; inercia = 0; hist = [[performance.now(), 0]];
+      arr = { x: e.clientX, pos: pos, id: e.pointerId }; movio = false; empuje = null; inercia = 0; vAct = 0; hist = [[performance.now(), 0]];
     });
     addEventListener('pointermove', e => {
       if (!arr || e.pointerId !== arr.id) return;
@@ -143,7 +151,7 @@
       if (fue) {
         const a = hist[0], b = hist[hist.length - 1], dtm = Math.max(16, b[0] - a[0]);
         if (tipo !== 'mouse' && performance.now() - b[0] < 120) inercia = Math.max(-2500, Math.min(2500, -(b[1] - a[1]) / dtm * 1000));
-        // con el mouse: si quedó encima sigue detenida (como siempre con el mouse encima); al sacarlo, sigue sola
+        // con el mouse: si quedó encima sigue lenta (como siempre con el mouse encima); al sacarlo, vuelve a su velocidad
         if (tipo === 'mouse') { try { encima = vista.matches(':hover'); } catch (err) { encima = false; } }
       }
       hasta = performance.now() + 2000;

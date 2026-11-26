@@ -474,7 +474,7 @@ body.ver-barra-compra .aviso-toast{bottom:92px}
 .cinta-vista>.cinta-pista{animation:none!important;transform:none!important}
 /* ya medidas, cada tarjeta queda en su lugar y se mueve sola (diseno.js) */
 .cinta-pista.cinta-abs{display:block!important;width:auto}
-.cinta-pista.cinta-abs>*{position:absolute!important;top:var(--pt,0);left:0;width:var(--ancho)!important;height:var(--alto,auto)!important;margin:0!important;transition:none!important;animation:none!important;opacity:1!important;-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.cinta-pista.cinta-abs>*{position:absolute!important;top:var(--pt,0);left:0;width:var(--ancho)!important;height:var(--alto,auto)!important;margin:0!important;transition:none!important;animation:none!important;opacity:1!important;-webkit-backface-visibility:hidden;backface-visibility:hidden;will-change:transform}
 .cinta-pista>*{scroll-snap-align:none!important}
 .cinta-pista img,.cinta-pista video{-webkit-user-drag:none;pointer-events:none}
 /* más queridos: el mismo ancho de tarjeta que tenía la grilla */
