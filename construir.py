@@ -796,6 +796,26 @@ def lista_couriers():
     return out
 
 
+def medio_chico(url, ancho=720):
+    """Versión liviana de una foto subida en Archivos (assets/medios) para las
+    cintas que se mueven: el navegador no tiene que decodificar una foto de
+    1.300 px cada vez que la tarjeta vuelve a entrar (eso se veía como un salto)."""
+    if not url or not url.startswith("/assets/medios/") or not gen.Image or not os.path.exists(DIST + url):
+        return url
+    destino = "/assets/medios/%s-%d.webp" % (url.rsplit("/", 1)[1].rsplit(".", 1)[0], ancho)
+    if os.path.exists(DIST + destino):
+        return destino
+    try:
+        im = gen.Image.open(DIST + url).convert("RGB")
+        if im.width <= ancho:
+            return url
+        im = im.resize((ancho, round(im.height * ancho / im.width)), gen.Image.LANCZOS)
+        im.save(DIST + destino, "WEBP", quality=80, method=6)
+        return destino
+    except Exception:
+        return url
+
+
 def logo_ajustado(ruta):
     """Logo sin el margen liso que suelen traer (blanco o transparente): así se
     ve grande aunque lo hayan subido cuadrado, como el de Bluexpress."""
@@ -1157,9 +1177,9 @@ def portada(prods, cols, mas_vistos, img_cols, ig_pubs=()):
     def tarjeta_col(c, copia):
         oculto = ' aria-hidden="true"' if copia else ''
         tab = ' tabindex="-1"' if copia else ''
-        return ('<li%s><a class="estilo" href="/c/%s.html"%s><span class="estilo-foto"><img src="%s" alt="%s" loading="lazy" width="600" height="750"></span>'
+        return ('<li%s><a class="estilo" href="/c/%s.html"%s><span class="estilo-foto"><img src="%s" alt="%s" loading="lazy" decoding="async" width="600" height="750"></span>'
                 '<h3>%s</h3><p>%s</p><span class="estilo-ver">%s <span aria-hidden="true">→</span></span></a></li>'
-                % (oculto, e(c["slug"]), tab, e(foto_col(c)), "" if copia else e("Aros %s hechos a mano – %s" % (c["nombre"].lower(), MARCA)), e(c["nombre"]),
+                % (oculto, e(c["slug"]), tab, e(medio_chico(foto_col(c))), "" if copia else e("Aros %s hechos a mano – %s" % (c["nombre"].lower(), MARCA)), e(c["nombre"]),
                    e(FRASE_COLECCION.get(c["slug"]) or "Aros hechos a mano, en series pequeñas."), e(CC.get("botonTarjeta") or "Ver colección")))
     tarjetas_col = "".join(tarjeta_col(c, False) for c in con_prods)   # la copia para el giro la agrega diseno.js
     sec["colecciones"] = ('<section class="ecm-seccion envoltura ecm-estilos" id="colecciones"><div class="estilos-cab"><div><span class="ojo"%s>%s</span><h2%s>%s</h2></div>'

@@ -41,6 +41,8 @@
     orig.forEach(n => { n.classList.add('visto'); n.querySelectorAll('[data-revelar]').forEach(x => x.classList.add('visto')); });
     // las fotos se piden de una vez (las «lazy» de una fila que se mueve sola tardaban en aparecer)
     pista.querySelectorAll('img[loading="lazy"]').forEach(i => { i.loading = 'eager'; });
+    // y se decodifican antes de que entren a la pantalla (si no, la primera pasada daba un tirón)
+    pista.querySelectorAll('img').forEach(i => { i.decoding = 'async'; if (i.decode) i.decode().catch(() => {}); });
     const dir = opc.dir || 1;   // 1: de derecha a izquierda · -1: de izquierda a derecha
     const vel = () => innerWidth < 768 ? (opc.velMovil || 26) : (opc.vel || 40);
     const copiar = () => orig.forEach(n => {
@@ -141,7 +143,8 @@
       if (fue) {
         const a = hist[0], b = hist[hist.length - 1], dtm = Math.max(16, b[0] - a[0]);
         if (tipo !== 'mouse' && performance.now() - b[0] < 120) inercia = Math.max(-2500, Math.min(2500, -(b[1] - a[1]) / dtm * 1000));
-        if (tipo === 'mouse') encima = false;   // sigue sola aunque el mouse quede encima
+        // con el mouse: si quedó encima sigue detenida (como siempre con el mouse encima); al sacarlo, sigue sola
+        if (tipo === 'mouse') { try { encima = vista.matches(':hover'); } catch (err) { encima = false; } }
       }
       hasta = performance.now() + 2000;
     };
