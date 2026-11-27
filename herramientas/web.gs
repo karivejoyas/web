@@ -270,6 +270,14 @@ function webPesos(n) { return '$' + String(Math.round(n || 0)).replace(/\B(?=(\d
 function webEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
 function webRecordatorios() {
+  // una sola revisión a la vez: si se cruzan dos (por ejemplo, un activador repetido), la segunda
+  // espera a que termine la primera y ya ve lo que se envió, así nunca llega un correo dos veces
+  var candado = LockService.getScriptLock();
+  if (!candado.tryLock(60000)) return;
+  try { webRecordatoriosSinCruce(); } finally { candado.releaseLock(); }
+}
+
+function webRecordatoriosSinCruce() {
   var pase = webPase();
   if (!pase) return;
   try { webEncargosRecordar(pase); } catch (e) { Logger.log('❌ Encargos: ' + e); }
@@ -355,8 +363,14 @@ function webEncargosRecordar(pase) {
   var encargos = webEncargosLeer(pase);
   if (!encargos) return;
   var pend = encargos.filter(function (e) { return !e.entregado && e.fechaEntrega; });
-  var avisar = pend.filter(function (e) { return e.fechaEntrega === manana && e.recordadoPara !== e.fechaEntrega; });
+  var props = PropertiesService.getScriptProperties();
+  var hechos = (props.getProperty('WEB_ENC_AVISADOS') || '').split(',').filter(Boolean);
+  var avisar = pend.filter(function (e) {
+    return e.fechaEntrega === manana && e.recordadoPara !== e.fechaEntrega && hechos.indexOf(e._ruta.split('/').pop() + '@' + e.fechaEntrega) === -1;
+  });
   if (!avisar.length) return;
+  avisar.forEach(function (e) { hechos.push(e._ruta.split('/').pop() + '@' + e.fechaEntrega); });
+  props.setProperty('WEB_ENC_AVISADOS', hechos.slice(-150).join(','));
   var atrasados = pend.filter(function (e) { return e.fechaEntrega < hoy; });
   var falta = function (e) { return e.pagado ? 'pagado' : (e.precio ? 'falta cobrar ' + webPesos(Math.max(0, (e.precio || 0) - (e.abono || 0))) : ''); };
   var linea = function (e) { return (e.nombre || 'Sin nombre') + (e.que ? ': ' + e.que : '') + (e.contacto ? ' · ' + e.contacto : '') + (falta(e) ? ' · ' + falta(e) : ''); };
@@ -377,7 +391,7 @@ function webEncargosRecordar(pase) {
     '<p><a href="' + panel + '" style="display:inline-block;background:#5B2A82;color:#fff;text-decoration:none;padding:11px 20px;border-radius:24px">Ver los encargos</a></p>' +
     '<p style="color:#6B5A7B;font-size:13px">Aviso automático del panel de Karivé Joyas. Llega el día antes de la fecha de entrega de cada encargo pendiente.</p></div>';
   var para = PropertiesService.getScriptProperties().getProperty('FIREBASE_EMAIL') || 'karive.joyas@gmail.com';
-  webEnviarCorreo(para, '📝 Mañana: ' + (avisar.length === 1 ? 'encargo de ' + (avisar[0].nombre || 'una clienta') : avisar.length + ' encargos para entregar'), texto, html);
+  webEnviarCorreo(para, 'Mañana: ' + (avisar.length === 1 ? 'encargo de ' + (avisar[0].nombre || 'una clienta') : avisar.length + ' encargos para entregar'), texto, html);
   avisar.forEach(function (e) {
     UrlFetchApp.fetch(WEB_FS + '/' + e._ruta + '?updateMask.fieldPaths=recordadoPara', {
       method: 'patch', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + pase },
