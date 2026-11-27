@@ -52,9 +52,12 @@ function encPesos(n) { return '$' + String(Math.round(n || 0)).replace(/\B(?=(\d
 function encargosConfigurar() {
   if (!encProp('TELEGRAM_TOKEN')) { Logger.log('⚠️ Falta la propiedad TELEGRAM_TOKEN.'); return; }
   if (!encProp('ENC_CODIGO')) { Logger.log('⚠️ Falta la propiedad ENC_CODIGO (la palabra secreta).'); return; }
-  var url = ScriptApp.getService().getUrl();
-  if (!url) { Logger.log('⚠️ Primero implementa el proyecto como «Aplicación web» (paso 4).'); return; }
+  // Desde el editor, getUrl() suele dar la dirección de PRUEBA (…/dev), que solo abre con tu sesión de
+  // Google: Telegram no puede entrar. Se usa la pública (…/exec), o la de la propiedad ENC_URL si la pusiste.
+  var url = encProp('ENC_URL') || String(ScriptApp.getService().getUrl() || '').replace(/\/dev$/, '/exec');
+  if (!/\/exec$/.test(url)) { Logger.log('⚠️ Primero implementa el proyecto como «Aplicación web» (paso 4), o pon su dirección (la que termina en /exec) en la propiedad ENC_URL.'); return; }
   var r = encTg('setWebhook', { url: url, drop_pending_updates: true, allowed_updates: ['message', 'callback_query'] });
+  Logger.log('Dirección del bot: …' + url.slice(-30));
   encTg('setMyCommands', { commands: [
     { command: 'nuevo', description: 'Anotar un encargo' },
     { command: 'pendientes', description: 'Ver los encargos pendientes' },
@@ -389,6 +392,16 @@ function encMarcarEntregado(chat, id) {
   });
   if (r.getResponseCode() !== 200) { encDecir(chat, '❌ No se pudo marcar (' + r.getResponseCode() + ').'); return; }
   encDecir(chat, '✅ Marcado como entregado.\n\nSi quieres que cuente como venta en Informes, ábrelo en el panel → <a href="' + ENC_PANEL + '">Encargos</a> y toca «Registrar como venta».');
+}
+
+/* Dice qué ve Telegram: a qué dirección manda los mensajes, cuántos esperan y el último error. */
+function encargosDiagnostico() {
+  var r = encTg('getWebhookInfo', {});
+  if (!r.ok) { Logger.log('❌ Telegram respondió: ' + JSON.stringify(r)); return; }
+  var w = r.result || {};
+  Logger.log('Dirección: …' + String(w.url || '(ninguna)').slice(-30));
+  Logger.log('Mensajes esperando: ' + (w.pending_update_count || 0));
+  Logger.log(w.last_error_message ? '❌ Último error: ' + w.last_error_message + ' (' + new Date((w.last_error_date || 0) * 1000).toLocaleString() + ')' : '✅ Sin errores.');
 }
 
 /* Para probar a mano sin Telegram: revisa la base y las fechas. */
