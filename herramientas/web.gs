@@ -11,6 +11,8 @@
 //  a Instagram que ya tiene el publicador: no hay que configurar nada.
 //  Y manda un correo de recordatorio a quien se fue a pagar y no terminó
 //  (una sola vez por pedido; ver «RECORDATORIO DE PAGO PENDIENTE» más abajo).
+//  Y el día antes de la fecha de un encargo pendiente (panel → Encargos) te
+//  llega un correo con lo que hay que entregar (ver «RECORDATORIO DE ENCARGOS»).
 //
 //  Este archivo va APARTE del publicador: en Apps Script, junto al archivo
 //  que ya tienes, aprieta "+" → "Secuencia de comandos", llámalo "web" y
@@ -270,6 +272,7 @@ function webEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, functi
 function webRecordatorios() {
   var pase = webPase();
   if (!pase) return;
+  try { webEncargosRecordar(pase); } catch (e) { Logger.log('❌ Encargos: ' + e); }
   var pedidos = webPedidosRecientes(pase, 3);
   if (!pedidos) return;
   var props = PropertiesService.getScriptProperties();
@@ -322,6 +325,78 @@ function webEnviarCorreo(para, asunto, texto, html) {
   var opciones = { htmlBody: html, name: 'Karivé Joyas', replyTo: WEB_REMITENTE };
   try { if (GmailApp.getAliases().indexOf(WEB_REMITENTE) !== -1) opciones.from = WEB_REMITENTE; } catch (e) {}
   GmailApp.sendEmail(para, asunto, texto, opciones);
+}
+
+// ------------------------------------------------------------
+//  RECORDATORIO DE ENCARGOS (panel → Encargos)
+//  El día antes de la fecha de entrega de un encargo pendiente, a partir de
+//  las 9 de la mañana, llega un correo a la tienda con lo que hay que tener
+//  listo para mañana (y lo que esté atrasado). Una sola vez por encargo y
+//  fecha: si cambias la fecha, vuelve a avisar.
+// ------------------------------------------------------------
+function webEncargosLeer(pase) {
+  var r = UrlFetchApp.fetch(WEB_FS + '/catalog/encargos/items?pageSize=300' +
+    ['nombre', 'contacto', 'que', 'tipo', 'precio', 'abono', 'pagado', 'entregado', 'fechaEntrega', 'recordadoPara', 'notas'].map(function (k) { return '&mask.fieldPaths=' + k; }).join(''),
+    { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + pase } });
+  if (r.getResponseCode() === 403) { Logger.log('⚠️ Encargos: falta el permiso en Firebase (el panel lo muestra en Encargos).'); return null; }
+  if (r.getResponseCode() !== 200) { Logger.log('❌ No pude leer los encargos (' + r.getResponseCode() + ').'); return null; }
+  return (JSON.parse(r.getContentText()).documents || []).map(function (d) {
+    var e = webValor({ mapValue: { fields: d.fields || {} } });
+    e._ruta = d.name.split('/documents/')[1];
+    return e;
+  });
+}
+
+function webEncargosRecordar(pase) {
+  var zona = 'America/Santiago', ahora = new Date();
+  if (Number(Utilities.formatDate(ahora, zona, 'H')) < 9) return;          // se avisa desde las 9 de la mañana
+  var hoy = Utilities.formatDate(ahora, zona, 'yyyy-MM-dd');
+  var manana = Utilities.formatDate(new Date(ahora.getTime() + 864e5), zona, 'yyyy-MM-dd');
+  var encargos = webEncargosLeer(pase);
+  if (!encargos) return;
+  var pend = encargos.filter(function (e) { return !e.entregado && e.fechaEntrega; });
+  var avisar = pend.filter(function (e) { return e.fechaEntrega === manana && e.recordadoPara !== e.fechaEntrega; });
+  if (!avisar.length) return;
+  var atrasados = pend.filter(function (e) { return e.fechaEntrega < hoy; });
+  var falta = function (e) { return e.pagado ? 'pagado' : (e.precio ? 'falta cobrar ' + webPesos(Math.max(0, (e.precio || 0) - (e.abono || 0))) : ''); };
+  var linea = function (e) { return (e.nombre || 'Sin nombre') + (e.que ? ': ' + e.que : '') + (e.contacto ? ' · ' + e.contacto : '') + (falta(e) ? ' · ' + falta(e) : ''); };
+  var lineaHtml = function (e, extra) {
+    return '<li><b>' + webEsc(e.nombre || 'Sin nombre') + '</b>' + (e.que ? ': ' + webEsc(e.que) : '') +
+      (e.contacto ? ' <span style="color:#6B5A7B">· ' + webEsc(e.contacto) + '</span>' : '') + (falta(e) ? ' <span style="color:#6B5A7B">· ' + falta(e) + '</span>' : '') + (extra || '') + '</li>';
+  };
+  var cuantos = avisar.length === 1 ? 'este encargo' : 'estos ' + avisar.length + ' encargos';
+  var atr = atrasados.length === 1 ? 'hay 1 encargo atrasado' : 'hay ' + atrasados.length + ' encargos atrasados';
+  var panel = 'https://karivejoyas.cl/admin/#/encargos';
+  var texto = 'Hola Karina:\n\nMañana tienes que entregar ' + cuantos + ':\n\n' + avisar.map(function (e) { return '• ' + linea(e); }).join('\n') +
+    (atrasados.length ? '\n\nY ' + atr + ':\n\n' + atrasados.map(function (e) { return '• ' + linea(e) + ' (era para el ' + e.fechaEntrega + ')'; }).join('\n') : '') +
+    '\n\nVer todos los encargos: ' + panel + '\n\nKarivé Joyas · aviso automático del panel';
+  var html = '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.55;color:#2A1838;max-width:560px">' +
+    '<p>Hola Karina:</p><p>Mañana tienes que entregar ' + cuantos + ':</p><ul>' + avisar.map(function (e) { return lineaHtml(e); }).join('') + '</ul>' +
+    (atrasados.length ? '<p style="color:#A3262A"><b>Y ' + atr + ':</b></p><ul>' +
+      atrasados.map(function (e) { return lineaHtml(e, ' <span style="color:#A3262A">(era para el ' + webEsc(e.fechaEntrega) + ')</span>'); }).join('') + '</ul>' : '') +
+    '<p><a href="' + panel + '" style="display:inline-block;background:#5B2A82;color:#fff;text-decoration:none;padding:11px 20px;border-radius:24px">Ver los encargos</a></p>' +
+    '<p style="color:#6B5A7B;font-size:13px">Aviso automático del panel de Karivé Joyas. Llega el día antes de la fecha de entrega de cada encargo pendiente.</p></div>';
+  var para = PropertiesService.getScriptProperties().getProperty('FIREBASE_EMAIL') || 'karive.joyas@gmail.com';
+  webEnviarCorreo(para, '📝 Mañana: ' + (avisar.length === 1 ? 'encargo de ' + (avisar[0].nombre || 'una clienta') : avisar.length + ' encargos para entregar'), texto, html);
+  avisar.forEach(function (e) {
+    UrlFetchApp.fetch(WEB_FS + '/' + e._ruta + '?updateMask.fieldPaths=recordadoPara', {
+      method: 'patch', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + pase },
+      payload: JSON.stringify({ fields: { recordadoPara: { stringValue: e.fechaEntrega } } })
+    });
+  });
+  Logger.log('✉️ Recordatorio de encargos enviado (' + avisar.length + ').');
+}
+
+/* Para probar a mano: dice qué encargos avisaría, sin enviar nada. */
+function webProbarEncargos() {
+  var pase = webPase();
+  if (!pase) { Logger.log('⚠️ Encargos: falta la propiedad FIREBASE_PASSWORD.'); return; }
+  var encargos = webEncargosLeer(pase);
+  if (!encargos) return;
+  var manana = Utilities.formatDate(new Date(Date.now() + 864e5), 'America/Santiago', 'yyyy-MM-dd');
+  var pend = encargos.filter(function (e) { return !e.entregado; });
+  Logger.log('✅ Encargos: leo ' + encargos.length + ' (' + pend.length + ' pendientes; ' +
+    pend.filter(function (e) { return e.fechaEntrega === manana; }).length + ' para mañana).');
 }
 
 /* Para probar a mano: dice cuántos pedidos podría recordar ahora, sin enviar nada. */

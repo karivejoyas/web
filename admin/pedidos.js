@@ -75,7 +75,7 @@
             '<td class="tenue om" style="white-space:nowrap">' + h(A.fecha(p.fecha)) + '</td>' +
             '<td>' + h((p.cliente || {}).nombre || 'Sin nombre') + '</td>' +
             '<td class="num">' + A.clp(p.total) + '</td><td>' + ins(e.pago) + '</td><td class="om">' + ins(e.prep) + '</td>' +
-            '<td class="num om">' + articulos(p) + '</td><td class="tenue om">' + (p.medioPago === 'mercadopago' ? 'Tarjeta' : 'Transferencia') + '</td></tr>';
+            '<td class="num om">' + articulos(p) + '</td><td class="tenue om">' + (p.medioPago === 'mercadopago' ? 'Tarjeta' : p.medioPago === 'encargo' ? 'Encargo' : 'Transferencia') + '</td></tr>';
         }).join('') + '</tbody></table></div>') +
       '</div></div>';
     A.$$('[data-pest]', vista).forEach(b => b.addEventListener('click', () => A.ir('pedidos' + (b.dataset.pest === 'todos' ? '' : '?estado=' + b.dataset.pest))));
@@ -88,7 +88,7 @@
         const c = p.cliente || {}, d = p.direccion || {};
         filas.push([p.num || '', A.fecha(p.fecha), c.nombre, c.correo, c.telefono, d.calle, d.comuna, d.region,
           (p.items || []).map(i => i.qty + 'x ' + i.name + ' (' + (i.code || '') + ')').join(' | '), p.subtotal || '', (p.cupon || {}).codigo || '', (p.cupon || {}).descuento || '',
-          (p.envio || {}).costo || '', p.total || '', p.medioPago === 'mercadopago' ? 'Mercado Pago' : 'Transferencia', kvPedidoEstado(p.estado).nombre, p.courier || '', p.tracking || '']);
+          (p.envio || {}).costo || '', p.total || '', p.medioPago === 'mercadopago' ? 'Mercado Pago' : p.medioPago === 'encargo' ? 'Encargo' : 'Transferencia', kvPedidoEstado(p.estado).nombre, p.courier || '', p.tracking || '']);
       });
       A.descargar('pedidos-karive-' + A.diaClave(Date.now()) + '.csv', A.csv(filas), 'text/csv;charset=utf-8');
     });
@@ -135,6 +135,7 @@
           rejected: '❌ Mercado Pago rechazó el pago', 'sin-pago': '❌ No hay ningún pago con esta referencia (no completó la compra)' }[p.pagoEstado] || (p.pagoEstado ? '⚠ ' + h(p.pagoEstado) : '')) +
         (p.pagoDetalle ? '<br><small>' + h(p.pagoDetalle) + '</small>' : '') + '</div>' +
         '<button class="btn" data-acc="verificar-mp">🔎 Verificar pago con Mercado Pago</button>'
+      : p.medioPago === 'encargo' ? '<div class="nota ok">🤝 Encargo pagado en persona o por transferencia directa. Se registró desde Encargos.</div>'
       : (p.comprobante ? '<a class="comprobante" href="' + h(p.comprobante) + '" target="_blank" rel="noopener" style="background-image:url(\'' + h(p.comprobante) + '\')" title="Ver comprobante en grande"></a><p class="ayuda mt">Toca el comprobante para verlo en grande.</p>' : '<div class="nota">⚠ La clienta no adjuntó comprobante.</div>');
 
     const hitos = [];
@@ -153,7 +154,7 @@
           (est !== 'nuevo' ? '<button class="btn" data-acc="retroceder">↩ Retroceder estado</button>' : '') +
           '<button class="btn btn-peligro" data-acc="eliminar">' + A.ic.basura + ' Eliminar</button>'
       }) +
-      '<p class="pag-sub">' + h(A.fecha(p.fecha)) + ' · ' + (p.medioPago === 'mercadopago' ? 'Pago con tarjeta (Mercado Pago)' : 'Transferencia bancaria') + '</p>' +
+      '<p class="pag-sub">' + h(A.fecha(p.fecha)) + ' · ' + (p.medioPago === 'mercadopago' ? 'Pago con tarjeta (Mercado Pago)' : p.medioPago === 'encargo' ? 'Encargo anotado en el panel (entregado en persona)' + (p.encargoId ? ' · <a href="#/encargos/' + h(p.encargoId) + '">ver encargo</a>' : '') : 'Transferencia bancaria') + '</p>' +
       '<div class="dos-col"><div>' +
         '<div class="tarjeta"><div class="tarjeta-cab"><h2>Artículos</h2>' + ins(e.prep) + '</div><div class="tarjeta-c">' + itemsHtml + '</div>' +
           (accion ? '<div class="tarjeta-pie">' + accion + '</div>' : '') + '</div>' +

@@ -175,10 +175,16 @@
   function productosLivianos() {
     return A.productos.map(p => { const o = { id: p.id }; CAMPOS_PROD.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); return o; });
   }
+  // encargos (pedidos informales) sin la foto, para que el respaldo diario siga liviano
+  const hayEncargos = () => A.listo.encargos && !A.encargosError && Array.isArray(A.encargos);
+  function encargosLivianos() {
+    return A.encargos.map(e => { const o = Object.assign({}, e); delete o.foto; return o; });
+  }
   async function crearRespaldo(automatico) {
     if (!A.productos.length) await A.cargarProductos();
     if (A.productos.length < 20) throw new Error('llegaron muy pocos productos; no se hizo el respaldo para no guardar algo incompleto');
     const r = { fecha: new Date().toISOString(), automatico: !!automatico, tema: A.temaVigente(), nombreTema: A.nombreTemaVivo(), settings: settingsLiviano(), productos: productosLivianos() };
+    if (hayEncargos()) r.encargos = encargosLivianos();
     const ref = await A.ref.respaldos.add(r);
     return ref.id;
   }
@@ -224,8 +230,12 @@
         '<pre style="background:#2A123E;color:#F6EEFB;border-radius:10px;padding:12px;overflow:auto;font-size:12px;margin:0 0 8px">' + h(REGLAS_SEG) + '</pre>' +
         '<button class="btn" id="cr-copiar-seg">' + A.ic.copiar + ' Copiar</button>') +
       '</div></div>' +
+      '<div class="tarjeta"><div class="tarjeta-cab"><h2>Permiso para «Encargos»</h2>' + (A.encargosError === 'permiso' ? '<span class="ins rojo">Falta activarlo</span>' : '<span class="ins verde">Activo</span>') + '</div><div class="tarjeta-c">' +
+        (A.encargosError === 'permiso' ? '<p class="ayuda" style="margin:0">Falta un permiso para guardar los encargos. <a href="#/encargos">Ve a Encargos</a>: ahí están las líneas para copiar en Firebase.</p>'
+          : '<p class="ayuda" style="margin:0">El panel puede guardar los encargos. Son privados: solo los ve quien entra al panel.</p>') +
+      '</div></div>' +
       '<div class="tarjeta"><div class="tarjeta-cab"><h2>Respaldos</h2><div class="acciones"><button class="btn btn-primario btn-chico" id="cr-crear"' + (ok ? '' : ' disabled') + '>Crear respaldo ahora</button></div></div>' +
-        '<p class="ayuda" style="padding:6px 16px 0">Cada respaldo guarda los textos y diseño de la web, la configuración (cupones, colecciones, pagos…) y los datos de todos los productos (nombre, precio, stock, código), sin las fotos. Se hace uno automático cada día.</p>' +
+        '<p class="ayuda" style="padding:6px 16px 0">Cada respaldo guarda los textos y diseño de la web, la configuración (cupones, colecciones, pagos…) los datos de todos los productos (nombre, precio, stock, código) y los encargos, sin las fotos. Se hace uno automático cada día.</p>' +
         '<div id="cr-lista">' + (ok ? A.cargandoHtml : '') + '</div></div>' +
       '<div class="tarjeta"><div class="tarjeta-cab"><h2>Respaldo completo en tu computador</h2></div><div class="tarjeta-c">' +
         '<p class="ayuda">Descarga un archivo con TODO, incluidas las fotos de los productos y las imágenes de la web. Guárdalo en tu computador o en Drive. Puede pesar varios MB.</p>' +
@@ -246,6 +256,7 @@
         let medios = {}; try { medios = await A.cargarMedios(); } catch (x) {}
         const datos = { tipo: 'respaldo-karive', fecha: new Date().toISOString(), nombreTema: A.nombreTemaVivo(), tema: A.temaVigente(), settings: ss.data() || {},
           productos: ps.docs.map(d => Object.assign({ id: d.id }, d.data())), medios: medios };
+        if (hayEncargos()) datos.encargos = A.encargos.map(x => Object.assign({}, x));   // con sus fotos
         A.descargar('respaldo-karive-' + A.diaClave(Date.now()) + '.json', JSON.stringify(datos));
         A.toast('Respaldo descargado ✓');
       } catch (err) { A.errorGuardar(err); }
@@ -300,10 +311,12 @@
         (r.settings ? '<label class="check" style="margin-bottom:8px"><input type="checkbox" id="rs-conf"> Configuración: cupones, descuentos, colecciones, pagos, opiniones, WhatsApp</label>' : '') +
         (r.productos ? '<label class="check" style="margin-bottom:4px"><input type="checkbox" id="rs-prod"> Productos: ' + cambiosProd.length + ' cambian' + (recrear.length ? ' y ' + recrear.length + ' se vuelven a crear' : '') + '</label>' +
           (cambiosProd.length ? '<details style="margin:0 0 8px 24px"><summary class="ayuda">Ver qué cambia</summary><div style="max-height:200px;overflow:auto;font-size:12.5px">' + cambiosProd.map(([id, d, p]) => '<div>' + h(p.code + ' · ' + p.name) + ': ' + Object.keys(d).filter(k => k !== '_foto').map(k => h(k) + ' ' + h(JSON.stringify(p[k] === undefined ? null : p[k])) + ' → ' + h(JSON.stringify(d[k]))).join(', ') + '</div>').join('') + '</div></details>' : '') +
-          '<p class="ayuda" style="margin:0 0 0 24px">Los productos creados después del respaldo no se tocan.' + (r.productos.some(x => x.photo) ? ' Las fotos se recuperan del archivo.' : ' Las fotos actuales se mantienen.') + '</p>' : ''),
-      botones: [{ texto: 'Cancelar' }, { texto: 'Restaurar', clase: 'btn-peligro-solido', accion: (c) => ({ tema: !!(A.$('#rs-tema', c) || {}).checked, conf: !!(A.$('#rs-conf', c) || {}).checked, prod: !!(A.$('#rs-prod', c) || {}).checked }) }]
+          '<p class="ayuda" style="margin:0 0 0 24px">Los productos creados después del respaldo no se tocan.' + (r.productos.some(x => x.photo) ? ' Las fotos se recuperan del archivo.' : ' Las fotos actuales se mantienen.') + '</p>' : '') +
+        (Array.isArray(r.encargos) && r.encargos.length ? '<label class="check" style="margin:8px 0 4px"><input type="checkbox" id="rs-enc"> Encargos: ' + r.encargos.length + ' en el respaldo</label>' +
+          '<p class="ayuda" style="margin:0 0 0 24px">Vuelven los que se borraron y los cambiados quedan como estaban. Los anotados después del respaldo no se tocan.' + (r.encargos.some(x => x.foto) ? ' Las fotos se recuperan del archivo.' : ' Las fotos actuales se mantienen.') + '</p>' : ''),
+      botones: [{ texto: 'Cancelar' }, { texto: 'Restaurar', clase: 'btn-peligro-solido', accion: (c) => ({ tema: !!(A.$('#rs-tema', c) || {}).checked, conf: !!(A.$('#rs-conf', c) || {}).checked, prod: !!(A.$('#rs-prod', c) || {}).checked, enc: !!(A.$('#rs-enc', c) || {}).checked }) }]
     });
-    if (!res || !(res.tema || res.conf || res.prod)) return;
+    if (!res || !(res.tema || res.conf || res.prod || res.enc)) return;
     try {
       await crearRespaldo(false).catch(e => { throw new Error('no se pudo respaldar lo actual antes de restaurar (' + e.message + ')'); });
       if (res.tema && r.tema) await A.guardarTemaVivo(A.mezclar(A.temaDefecto(), r.tema), r.nombreTema || undefined);
@@ -335,6 +348,17 @@
         if (r.medios) for (const id of Object.keys(r.medios)) await A.ref.medios.doc(id).set(r.medios[id]).catch(() => {});
         A.medios = null;
         await A.cargarProductos();
+      }
+      if (res.enc && Array.isArray(r.encargos)) {
+        let lote = A.db.batch(), n = 0;
+        for (const be of r.encargos) {
+          if (!be || !be.id) continue;
+          const datos = Object.assign({}, be); delete datos.id;
+          if (!be.foto) delete datos.foto;   // respaldo liviano: la foto actual se mantiene
+          lote.set(A.ref.encargos.doc(be.id), datos, { merge: true });
+          if (++n >= 20) { await lote.commit(); lote = A.db.batch(); n = 0; }
+        }
+        if (n) await lote.commit();
       }
       A.avisar('Listo. Lo elegido quedó como estaba en ' + origen + '. La web se actualiza en unos minutos.\n\nSi algo no te gustó, en la lista de respaldos está el que se creó justo antes de restaurar.', 'Restaurado ✓');
       A.repintar();

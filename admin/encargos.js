@@ -28,6 +28,11 @@
     if (d <= 3) return '<span class="ins ambar">En ' + d + ' día' + (d === 1 ? '' : 's') + '</span>';
     return '<span class="ins azul">Para el ' + h(A.fecha(e.fechaEntrega + 'T12:00:00', false)) + '</span>';
   }
+  // para el Inicio: encargos pendientes atrasados, para hoy y para mañana
+  A.encargosUrgentes = function () {
+    const pend = A.encargos.filter(pendiente), en = (f) => pend.filter(e => { const d = diasPara(e); return d !== null && f(d); });
+    return { atrasados: en(d => d < 0), hoy: en(d => d === 0), manana: en(d => d === 1), pendientes: pend.length };
+  };
   // WhatsApp: acepta 9 1234 5678, +56 9…, 12345678
   function whatsapp(contacto) {
     let d = String(contacto || '').replace(/[^0-9]/g, '');
@@ -37,6 +42,31 @@
   }
   const fotoDe = (e) => e.foto || (e.productoId && A.foto ? A.foto({ id: e.productoId }) : '') || '';
   const producto = (id) => (A.productos || []).find(p => p.id === id);
+
+  /* Un encargo entregado se puede registrar como venta: queda en Pedidos, en
+     Clientes y en Informes. No descuenta stock (stockDescontado) ni manda
+     correos (no pasa por el publicador y no tiene número de pedido web). */
+  async function registrarVenta(e) {
+    const p = producto(e.productoId), ahora = new Date().toISOString(), precio = Number(e.precio) || 0;
+    const esTel = !!whatsapp(e.contacto);
+    const nombreItem = (e.tipo === 'reposicion' && p ? p.name : '') || String(e.que || '').split('\n')[0].slice(0, 90) || (p && p.name) || 'Encargo';
+    const ref = await A.ref.pedidos.add({
+      fecha: e.entregadoEl || ahora, origen: 'encargo', encargoId: e.id,
+      cliente: { nombre: e.nombre || '', correo: '', telefono: esTel ? e.contacto : '', instagram: esTel ? '' : (e.contacto || '') },
+      direccion: {}, items: [{ id: e.productoId || '', code: p ? p.code || '' : '', name: nombreItem, precio: precio, qty: 1 }],
+      subtotal: precio, total: precio, envio: null, cupon: null,
+      notas: 'Encargo anotado en el panel' + (e.notas ? ' · ' + e.notas : ''),
+      medioPago: 'encargo', pagoEstado: 'approved', estado: 'enviado', verificadoFecha: ahora, enviadoFecha: ahora,
+      courier: 'Entrega en persona', stockDescontado: true
+    });
+    await A.ref.encargos.doc(e.id).update({ pedidoId: ref.id, actualizado: ahora });
+    return ref.id;
+  }
+  async function ofrecerVenta(e) {
+    if (!e || e.pedidoId || !(Number(e.precio) > 0)) return;
+    if (!(await A.confirmar('¿Lo registro como venta de ' + A.clp(e.precio) + '?\n\nQueda en Pedidos, Clientes e Informes, así tus números incluyen los encargos. No descuenta stock ni le manda correos a nadie.', { titulo: 'Encargo entregado ✓', si: 'Registrar venta' }))) return;
+    try { await registrarVenta(e); A.toast('Venta registrada ✓'); } catch (err) { A.errorGuardar(err); }
+  }
 
   A.actualizarEncargosN = function () {
     const n = A.encargos.filter(pendiente).length;
@@ -123,7 +153,8 @@
       const datos = { [campo]: c.checked, actualizado: new Date().toISOString() };
       if (campo === 'entregado') datos.entregadoEl = c.checked ? new Date().toISOString() : null;
       try { await A.ref.encargos.doc(id).update(datos); A.toast(campo === 'entregado' ? (c.checked ? 'Marcado como entregado ✓' : 'Vuelve a pendientes') : (c.checked ? 'Marcado como pagado ✓' : 'Marcado como no pagado')); }
-      catch (e) { c.checked = !c.checked; A.errorGuardar(e); }
+      catch (e) { c.checked = !c.checked; A.errorGuardar(e); return; }
+      if (campo === 'entregado' && c.checked) ofrecerVenta(Object.assign({}, A.encargos.find(x => x.id === id), datos));
     }));
   }, ['encargos', 'productos']);
 
@@ -135,7 +166,7 @@
       '<div class="enc-info"><div class="enc-tit"><b>' + h(e.nombre || 'Sin nombre') + '</b> ' + aviso(e) +
         (e.tipo === 'reposicion' ? ' <span class="ins morado sin-punto">Reposición</span>' : ' <span class="ins oro sin-punto">Aro nuevo</span>') + '</div>' +
         '<div class="enc-que">' + h(e.que || (p ? p.name : '') || 'Sin descripción') + '</div>' +
-        '<div class="enc-meta tenue">' + [e.precio ? A.clp(e.precio) : 'Sin precio', e.pagado ? 'Pagado' : (e.abono ? 'Abonó ' + A.clp(e.abono) + ' · falta ' + A.clp(resto) : ''), e.contacto ? h(e.contacto) : '', 'Anotado ' + h(A.hace(e.creado))].filter(Boolean).join(' · ') + '</div></div>' +
+        '<div class="enc-meta tenue">' + [e.precio ? A.clp(e.precio) : 'Sin precio', e.pagado ? 'Pagado' : (e.abono ? 'Abonó ' + A.clp(e.abono) + ' · falta ' + A.clp(resto) : ''), e.pedidoId ? 'Venta registrada' : '', e.contacto ? h(e.contacto) : '', 'Anotado ' + h(A.hace(e.creado))].filter(Boolean).join(' · ') + '</div></div>' +
       '<div class="enc-acc">' +
         (wa ? '<a class="btn btn-chico" href="' + h(wa) + '" target="_blank" rel="noopener" title="Escribirle por WhatsApp">WhatsApp</a>' : '') +
         '<label class="enc-check"><input type="checkbox" data-marca="pagado"' + (e.pagado ? ' checked' : '') + '> Pagado</label>' +
@@ -188,6 +219,8 @@
           '<label class="campo"><span>Abono (lo que ya pagó)</span><div class="campo-pre"><span>$</span><input id="ef-abono" inputmode="numeric" value="' + (orig.abono || '') + '" placeholder="0"></div><small id="ef-falta"></small></label>' +
         '</div></div>' +
         (nuevo ? '<button class="btn btn-primario" id="ef-guardar" style="width:100%">Guardar encargo</button>' :
+          (orig.pedidoId ? '<div class="tarjeta tarjeta-c"><p style="margin:0 0 8px">✅ Registrado como venta: cuenta en Pedidos, Clientes e Informes.</p><a class="btn btn-chico" href="#/pedidos/' + h(orig.pedidoId) + '">Ver la venta</a></div>'
+            : orig.entregado && orig.precio ? '<div class="tarjeta tarjeta-c"><p class="ayuda" style="margin:0 0 8px">Ya está entregado. Si lo registras como venta, se suma en Pedidos e Informes (sin descontar stock ni mandar correos).</p><button class="btn btn-chico" id="ef-venta" type="button">Registrar como venta</button></div>' : '') +
           '<div class="derecha"><button class="btn btn-peligro" id="ef-eliminar">' + A.ic.basura + ' Eliminar encargo</button></div>' +
           '<p class="ayuda" style="margin-top:10px">Anotado ' + h(A.fecha(orig.creado, true)) + (orig.entregadoEl ? ' · entregado ' + h(A.fecha(orig.entregadoEl, false)) : '') + '</p>') +
       '</div></div></div>';
@@ -243,11 +276,13 @@
       try {
         if (nuevo) {
           datos.creado = ahora;
-          await A.ref.encargos.add(datos);
+          const ref = await A.ref.encargos.add(datos);
           A.limpiarCambios(); A.toast('Encargo anotado ✓'); A.ir('encargos');
+          if (v.entregado) ofrecerVenta(Object.assign({ id: ref.id }, datos));
         } else {
           await A.ref.encargos.doc(orig.id).update(datos);
           A.limpiarCambios(); A.toast('Encargo guardado ✓');
+          if (v.entregado && !orig.entregado) ofrecerVenta(Object.assign({}, orig, datos));
         }
         return true;
       } catch (e) { A.errorGuardar(e); return false; }
@@ -255,6 +290,11 @@
     const revisar = A.formulario($('ef'), leer, guardar);
     $('ef').addEventListener('input', falta); $('ef').addEventListener('change', falta);
     if ($('ef-guardar')) $('ef-guardar').addEventListener('click', async (e) => { e.target.disabled = true; const ok = await guardar(); if (!ok) e.target.disabled = false; });
+    if ($('ef-venta')) $('ef-venta').addEventListener('click', async (e) => {
+      if (A.hayCambios()) { A.avisar('Primero guarda los cambios del encargo.'); return; }
+      e.target.disabled = true;
+      try { await registrarVenta(orig); A.toast('Venta registrada ✓'); } catch (err) { A.errorGuardar(err); e.target.disabled = false; }
+    });
     if ($('ef-eliminar')) $('ef-eliminar').addEventListener('click', async () => {
       if (!(await A.confirmar('El encargo de «' + (orig.nombre || 'sin nombre') + '» se borra y no se puede deshacer.\n\nSi ya lo entregaste, mejor márcalo como «Entregado»: así queda el historial.', { titulo: '¿Eliminar encargo?', si: 'Eliminar', peligro: true }))) return;
       try { await A.ref.encargos.doc(orig.id).delete(); A.limpiarCambios(); A.toast('Encargo eliminado'); A.ir('encargos'); } catch (e) { A.errorGuardar(e); }

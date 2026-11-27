@@ -120,6 +120,16 @@
     if (agotados.length) tareas.push(['#/inventario?filtro=agotados', '⚠️', '<b>' + agotados.length + ' producto' + (agotados.length > 1 ? 's' : '') + '</b> visibles con 0 unidades']);
     if (bajos.length) tareas.push(['#/inventario?filtro=pocos', '📉', '<b>' + bajos.length + ' producto' + (bajos.length > 1 ? 's' : '') + '</b> con pocas unidades']);
     if (A.webError === 'permiso') tareas.push(['#/config/respaldos', '🔐', '<b>Falta activar un permiso</b> para guardar los cambios de la web']);
+    // encargos (pedidos informales): lo atrasado, lo de hoy y lo de mañana, primero
+    if (A.encargosError === 'permiso') tareas.unshift(['#/encargos', '🔐', '<b>Falta activar un permiso</b> para guardar los encargos']);
+    else if (A.encargosUrgentes) {
+      const u = A.encargosUrgentes(), nom = (l) => l.slice(0, 3).map(e => A.h(e.nombre || 'sin nombre')).join(', ') + (l.length > 3 ? ' y ' + (l.length - 3) + ' más' : '');
+      const enc = [];
+      if (u.atrasados.length) enc.push(['#/encargos', '⏰', '<b>' + u.atrasados.length + ' encargo' + (u.atrasados.length > 1 ? 's' : '') + ' atrasado' + (u.atrasados.length > 1 ? 's' : '') + '</b> · ' + nom(u.atrasados)]);
+      if (u.hoy.length) enc.push(['#/encargos', '📝', '<b>' + u.hoy.length + ' encargo' + (u.hoy.length > 1 ? 's' : '') + ' para hoy</b> · ' + nom(u.hoy)]);
+      if (u.manana.length) enc.push(['#/encargos', '📅', '<b>' + u.manana.length + ' encargo' + (u.manana.length > 1 ? 's' : '') + ' para mañana</b> · ' + nom(u.manana)]);
+      tareas.unshift.apply(tareas, enc);
+    }
 
     const ultimos = A.pedidos.slice().sort((a, b) => A.fechaPedido(b) - A.fechaPedido(a)).slice(0, 5);
 
@@ -168,5 +178,5 @@
     const marco = A.$('#ini-marco', vista);
     const escalar = () => { const f = marco.querySelector('iframe'); const s = marco.clientWidth / 1280; f.style.transform = 'scale(' + s + ')'; marco.style.height = Math.round(760 * s) + 'px'; };
     escalar(); window.addEventListener('resize', escalar, { once: true });
-  }, ['pedidos', 'productos']);   // las visitas cambian a cada rato: no recargan la vista de la tienda
+  }, ['pedidos', 'productos', 'encargos']);   // las visitas cambian a cada rato: no recargan la vista de la tienda
 })();
