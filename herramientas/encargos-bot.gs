@@ -186,7 +186,9 @@ function doPost(e) {
   } catch (err) { console.error(err); }
   return encOk();
 }
-function encOk() { return ContentService.createTextOutput('ok'); }
+/* Respuesta a Telegram. ContentService responde con una redirección (302): Telegram la toma como
+   error, reintenta y deja en espera los mensajes siguientes. HtmlService responde 200 directo. */
+function encOk() { return HtmlService.createHtmlOutput('ok'); }
 
 function encProcesar(u) {
   var msg = u.message, cb = u.callback_query;
