@@ -40,3 +40,5 @@ base de datos y la misma contraseña que el panel antiguo, que sigue funcionando
 - **Permiso necesario** (una vez): reglas de Firestore para `catalog/web` (las muestra el
   panel en Configuración → Respaldos y permisos).
 - `herramientas/web.gs` vuelve a publicar la web cuando cambian productos, configuración o tema.
+- `herramientas/encargos-bot.gs` bot de Telegram para anotar encargos (panel → Encargos) haciendo preguntas;
+  va en su propio proyecto de Apps Script (instrucciones al inicio del archivo).
