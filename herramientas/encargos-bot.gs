@@ -21,7 +21,9 @@
 //  4) Implementar → Nueva implementación → tipo «Aplicación web» →
 //     Ejecutar como: Yo · Quién tiene acceso: Cualquier usuario → Implementar
 //     (acepta los permisos).
-//  5) Arriba elige «encargosConfigurar» y aprieta ▶ Ejecutar.
+//  5) Copia la URL de la aplicación web (termina en /exec) y agrégala como
+//     propiedad del script  ENC_URL. Después, arriba elige «encargosConfigurar»
+//     y aprieta ▶ Ejecutar.
 //  6) En Telegram abre tu bot, escribe /start y después la palabra secreta.
 //     Cada persona que lo vaya a usar hace lo mismo una vez.
 // ============================================================
@@ -52,10 +54,13 @@ function encPesos(n) { return '$' + String(Math.round(n || 0)).replace(/\B(?=(\d
 function encargosConfigurar() {
   if (!encProp('TELEGRAM_TOKEN')) { Logger.log('⚠️ Falta la propiedad TELEGRAM_TOKEN.'); return; }
   if (!encProp('ENC_CODIGO')) { Logger.log('⚠️ Falta la propiedad ENC_CODIGO (la palabra secreta).'); return; }
-  // Desde el editor, getUrl() suele dar la dirección de PRUEBA (…/dev), que solo abre con tu sesión de
-  // Google: Telegram no puede entrar. Se usa la pública (…/exec), o la de la propiedad ENC_URL si la pusiste.
-  var url = encProp('ENC_URL') || String(ScriptApp.getService().getUrl() || '').replace(/\/dev$/, '/exec');
-  if (!/\/exec$/.test(url)) { Logger.log('⚠️ Primero implementa el proyecto como «Aplicación web» (paso 4), o pon su dirección (la que termina en /exec) en la propiedad ENC_URL.'); return; }
+  // Desde el editor, getUrl() suele dar la dirección de PRUEBA (…/dev), que Telegram no puede abrir, y su
+  // código NO es el de la implementación. Por eso se usa la dirección exacta de la implementación, guardada
+  // en la propiedad ENC_URL (Implementar → Gestionar implementaciones → la URL que termina en /exec).
+  var url = encProp('ENC_URL') || String(ScriptApp.getService().getUrl() || '');
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) {
+    Logger.log('⚠️ Falta la propiedad ENC_URL: copia la URL de la aplicación web (Implementar → Gestionar implementaciones, la que termina en /exec) y agrégala como propiedad ENC_URL.'); return;
+  }
   var r = encTg('setWebhook', { url: url, drop_pending_updates: true, allowed_updates: ['message', 'callback_query'] });
   Logger.log('Dirección del bot: …' + url.slice(-30));
   encTg('setMyCommands', { commands: [
