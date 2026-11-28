@@ -96,7 +96,7 @@ hay que subir tráfico **y** quitar fricciones.
   - Quedan ocultos, con precio 0 y nombres provisorios.
   - Las fotos vienen de la carpeta de Drive de la dueña.
 
-## 28 de noviembre de 2026
+## 28-11-2026 · Bot de encargos con IA
 - Bot de Encargos (Telegram): **modo rápido con Gemini**.
   - Se le escribe o se le manda un audio como se habla («Natalia llevó aros de corazones y me debe 6 lucas») y lo anota solo en Encargos.
   - Entiende pedidos nuevos, entregas, abonos, deudas, fechas, correcciones y preguntas («¿quién me debe?»).
