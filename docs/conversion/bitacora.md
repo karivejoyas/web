@@ -95,3 +95,10 @@ hay que subir tráfico **y** quitar fricciones.
 - Se subieron 15 aros de Navidad (FS-017 a FS-031) a la colección Fiestas.
   - Quedan ocultos, con precio 0 y nombres provisorios.
   - Las fotos vienen de la carpeta de Drive de la dueña.
+
+## 28 de noviembre de 2026
+- Bot de Encargos (Telegram): **modo rápido con Gemini**.
+  - Se le escribe o se le manda un audio como se habla («Natalia llevó aros de corazones y me debe 6 lucas») y lo anota solo en Encargos.
+  - Entiende pedidos nuevos, entregas, abonos, deudas, fechas, correcciones y preguntas («¿quién me debe?»).
+  - Cada anotación trae «↩️ Deshacer». /nuevo sigue funcionando paso a paso.
+  - Necesita la propiedad GEMINI_KEY en el proyecto del bot y una nueva versión de la implementación.

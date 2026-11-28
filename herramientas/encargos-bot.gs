@@ -1,7 +1,8 @@
 // ============================================================
 //  BOT DE ENCARGOS · KARIVÉ JOYAS (Telegram)
-//  Para anotar un encargo en segundos desde el celular: le escribes al bot y
-//  te va preguntando (nombre, contacto, qué pidió, precio, para cuándo, foto).
+//  Para anotar un encargo en segundos desde el celular: le escribes al bot como
+//  hablas (o le mandas un audio) y Gemini lo entiende y lo anota; o con /nuevo
+//  te va preguntando paso a paso (nombre, contacto, qué pidió, precio, fecha, foto).
 //  Al final lo guarda en el panel → Encargos, igual que si lo anotaras ahí.
 //  También muestra los pendientes y marca uno como entregado.
 //
@@ -26,6 +27,15 @@
 //     y aprieta ▶ Ejecutar.
 //  6) En Telegram abre tu bot, escribe /start y después la palabra secreta.
 //     Cada persona que lo vaya a usar hace lo mismo una vez.
+//
+//  MODO RÁPIDO CON GEMINI (opcional, recomendado)
+//  Agrega la propiedad  GEMINI_KEY  (tu clave de Gemini, de aistudio.google.com/apikey).
+//  Desde ahí se le puede escribir o mandar un audio como se habla:
+//     «Natalia llevó aros de corazones y me debe 6 lucas»
+//  y lo anota solo, con un botón «Deshacer». /nuevo sigue funcionando paso a paso.
+//  Para probarlo sin Telegram: ▶ Ejecutar encargosProbarIA (no guarda nada).
+//  OJO: cada vez que cambies este código, Implementar → Gestionar implementaciones →
+//  ✏️ → Versión: «Nueva versión» → Implementar (la URL /exec no cambia).
 // ============================================================
 
 var ENC_FB_KEY = 'AIzaSyC6XWnbq6QEg4DjldVKvoafbe9dtZdyLqI';
@@ -105,7 +115,7 @@ function encCampos(o) { var f = {}; Object.keys(o).forEach(function (k) { f[k] =
 
 function encLeerEncargos() {
   var r = UrlFetchApp.fetch(ENC_FS + '/catalog/encargos/items?pageSize=300' +
-    ['nombre', 'contacto', 'que', 'precio', 'abono', 'pagado', 'entregado', 'fechaEntrega', 'creado'].map(function (k) { return '&mask.fieldPaths=' + k; }).join(''),
+    ['nombre', 'contacto', 'que', 'tipo', 'notas', 'precio', 'abono', 'pagado', 'entregado', 'entregadoEl', 'fechaEntrega', 'creado', 'actualizado'].map(function (k) { return '&mask.fieldPaths=' + k; }).join(''),
     { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + encPase() } });
   if (r.getResponseCode() !== 200) return null;
   return (JSON.parse(r.getContentText()).documents || []).map(function (d) {
@@ -214,20 +224,36 @@ function encProcesar(u) {
 
   var cmd = encSinTildes(texto).replace(/@\w+$/, '');
   if (cmd === '/cancelar' || cmd === 'cancelar' || dato === 'cancelar') { encGuardarEstado(chat, null); encDecir(chat, 'Cancelado. Escribe /nuevo cuando quieras anotar otro.'); return; }
-  if (cmd === '/start' || cmd === '/ayuda' || cmd === 'ayuda') { encDecir(chat, 'Escribe /nuevo para anotar un encargo, /pendientes para verlos o /entregado para marcar uno como entregado.'); return; }
+  if (cmd === '/start' || cmd === '/ayuda' || cmd === 'ayuda') { encDecir(chat, encAyuda()); return; }
   if (cmd === '/pendientes' || cmd === 'pendientes') { encPendientes(chat); return; }
   if (cmd === '/entregado' || cmd === 'entregado') { encElegirEntregado(chat); return; }
   if (dato.indexOf('ent:') === 0) { encMarcarEntregado(chat, dato.slice(4)); return; }
+  if (dato.indexOf('undo:') === 0) { encDeshacer(chat, dato.slice(5)); return; }
   if (dato === 'ver') { encPendientes(chat); return; }
   if (dato === 'entregar') { encElegirEntregado(chat); return; }
   if (cmd === '/nuevo' || cmd === 'nuevo' || cmd === 'encargo' || dato === 'nuevo') { encPaso(chat, { paso: 'nombre', e: {} }); return; }
 
   var est = encEstado(chat);
-  if (!est) {   // sin conversación abierta: cualquier mensaje empieza un encargo
+  if (!est) {
+    // MODO RÁPIDO: sin conversación abierta, el mensaje (texto, audio o foto con texto) lo entiende Gemini
+    if (msg && encProp('GEMINI_KEY') && (texto || msg.caption || msg.voice || msg.audio)) { encRapido(chat, msg); return; }
+    if (msg && msg.photo && !msg.caption) { encDecir(chat, '📷 Mándame la foto <b>con un texto</b> que diga de quién es (ej: «foto del encargo de Natalia») y la adjunto.'); return; }
     encDecir(chat, '¿Qué quieres hacer?', [[{ text: '📝 Anotar encargo', callback_data: 'nuevo' }], [{ text: '📋 Ver pendientes', callback_data: 'ver' }, { text: '✅ Marcar entregado', callback_data: 'entregar' }]]);
     return;
   }
   encResponder(chat, est, msg, texto, dato);
+}
+
+function encAyuda() {
+  if (!encProp('GEMINI_KEY')) return 'Escribe /nuevo para anotar un encargo, /pendientes para verlos o /entregado para marcar uno como entregado.';
+  return '✍️ <b>Escríbeme como hablas</b> (o mándame un audio 🎤) y lo anoto solo. Por ejemplo:\n\n' +
+    '• <i>Natalia pidió aros de corazones rojos para el viernes, 8 lucas</i>\n' +
+    '• <i>Natalia llevó los aros de corazones y me debe 6 lucas</i>\n' +
+    '• <i>La Cami me pagó 3 lucas</i>\n' +
+    '• <i>Le entregué a la Fran</i>\n' +
+    '• <i>¿Quién me debe plata?</i>\n\n' +
+    'Si me equivoco, toca «↩️ Deshacer» o corrígeme (ej: <i>no, eran 8 lucas</i>).\n\n' +
+    'También sigue funcionando paso a paso: /nuevo · /pendientes · /entregado';
 }
 
 // ------------------------------------------------------------ preguntas
@@ -399,6 +425,247 @@ function encMarcarEntregado(chat, id) {
   });
   if (r.getResponseCode() !== 200) { encDecir(chat, '❌ No se pudo marcar (' + r.getResponseCode() + ').'); return; }
   encDecir(chat, '✅ Marcado como entregado.\n\nSi quieres que cuente como venta en Informes, ábrelo en el panel → <a href="' + ENC_PANEL + '">Encargos</a> y toca «Registrar como venta».');
+}
+
+// ============================================================ MODO RÁPIDO CON GEMINI
+// Ella escribe (o graba un audio) como habla: «Natalia llevó aros de corazones y me debe 6 lucas».
+// Gemini lo convierte en acciones sobre la lista de encargos; el bot las guarda al tiro y ofrece «Deshacer».
+
+var ENC_GEM_MODELOS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-lite'];
+var ENC_DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+function encPromptSistema() {
+  var hoy = encHoy(0), dia = ENC_DIAS[Number(Utilities.formatDate(new Date(), ENC_ZONA, 'u')) % 7];
+  return [
+    'Eres quien anota los encargos de Karivé Joyas, una tienda chilena de aros hechos a mano.',
+    'La dueña te escribe (o te habla en un audio) en chileno informal. Conviertes su mensaje en acciones sobre su lista de encargos.',
+    'Hoy es ' + dia + ' ' + hoy + ' (Chile).',
+    '',
+    'JERGA: «luca/lucas» = mil pesos (6 lucas = 6000; 6 lucas y media = 6500); «6k» o «6 mil» = 6000; «la Cami», «el Pedro» = Cami, Pedro.',
+    '',
+    'REGLAS:',
+    '- «pidió / encargó / quiere / me pidió» → encargo NUEVO pendiente (entregado=false).',
+    '- «llevó / se llevó / retiró / le entregué / le pasé / ya tiene» → entregado=true. Si en la lista hay un encargo NO entregado de esa persona que calza, ACTUALÍZALO; si no hay ninguno, crea uno NUEVO ya entregado.',
+    '- «cuesta / vale / le cobro / son X» → precio = X.',
+    '- «me debe X» → lo que falta por cobrar es X. Si el encargo ya tiene precio: abono = precio − X. Si no tiene precio: precio = abono actual + X (en uno nuevo: precio = X y abono = 0).',
+    '- «pagó X / abonó X / me transfirió X / me dio X» → abono = abono actual + X.',
+    '- «pagó todo / me pagó / quedó pagado» (sin monto) → pagado=true y abono = precio.',
+    '- pagado = true solo cuando el abono cubre el precio completo.',
+    '- Fechas: «para el viernes», «mañana», «el 15» → fechaEntrega con formato AAAA-MM-DD, nunca en el pasado. Si no dice fecha, no la pongas.',
+    '- «que»: lo pedido en pocas palabras, como ella lo dice (ej: «aros de corazones rojos»). «nombre»: con mayúscula inicial.',
+    '- Si una persona tiene más de un encargo y no se sabe cuál, o falta algo indispensable (por ejemplo, el nombre en un encargo nuevo), NO adivines: usa la acción «preguntar» y escribe la pregunta en «respuesta».',
+    '- Si te pregunta algo (quién debe, qué hay para mañana, cuánto le falta a alguien), usa «consulta» y contesta en «respuesta» usando solo la lista.',
+    '- Si te corrige («no, eran 8 lucas», «era para el sábado»), actualiza el encargo de la conversación reciente.',
+    '- NUNCA inventes montos, fechas ni nombres que no estén en el mensaje o en la lista.',
+    '- Un mensaje puede traer varias cosas: devuelve una acción por cada una.',
+    '',
+    'RESPONDE SOLO CON JSON, así:',
+    '{"transcripcion":"(solo si vino un audio: lo que entendiste)","acciones":[',
+    '  {"accion":"nuevo","campos":{"nombre":"","contacto":"","que":"","precio":0,"abono":0,"pagado":false,"entregado":false,"fechaEntrega":"","notas":""}},',
+    '  {"accion":"actualizar","id":"(id de la lista)","campos":{ solo los campos que cambian, con su valor FINAL }},',
+    '  {"accion":"consulta"}, {"accion":"preguntar"}',
+    '],"respuesta":"(texto corto para consultas o preguntas; vacío si no hace falta)"}'
+  ].join('\n');
+}
+
+/* Lista que ve Gemini: lo pendiente, lo que deben y lo que se tocó en los últimos 3 días. */
+function encContexto(lista) {
+  var limite = new Date(Date.now() - 3 * 864e5).toISOString();
+  return lista.filter(function (e) { return !e.entregado || !e.pagado || String(e.actualizado || e.creado || '') >= limite; })
+    .sort(function (a, b) { return String(b.actualizado || b.creado || '') < String(a.actualizado || a.creado || '') ? -1 : 1; })
+    .slice(0, 80)
+    .map(function (e) {
+      return { id: e.id, nombre: e.nombre || '', contacto: e.contacto || '', que: e.que || '', precio: e.precio || 0, abono: e.abono || 0,
+        pagado: !!e.pagado, entregado: !!e.entregado, fechaEntrega: e.fechaEntrega || '', notas: e.notas || '' };
+    });
+}
+
+function encGemini(partes) {
+  var key = encProp('GEMINI_KEY'), ultimo = '';
+  for (var i = 0; i < ENC_GEM_MODELOS.length; i++) {
+    var m = ENC_GEM_MODELOS[i];
+    var gen = { temperature: 0.1, responseMimeType: 'application/json' };
+    if (/^gemini-2\.5-flash$/.test(m)) gen.thinkingConfig = { thinkingBudget: 0 };   // más rápido
+    var r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + encodeURIComponent(key), {
+      method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      payload: JSON.stringify({ systemInstruction: { parts: [{ text: encPromptSistema() }] }, contents: [{ role: 'user', parts: partes }], generationConfig: gen })
+    });
+    var c = r.getResponseCode();
+    if (c === 200) {
+      try {
+        var t = JSON.parse(r.getContentText()).candidates[0].content.parts.map(function (p) { return p.text || ''; }).join('');
+        return JSON.parse(t.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+      } catch (e) { ultimo = 'respuesta rara de ' + m; continue; }
+    }
+    ultimo = m + ' → ' + c;
+    if (c === 400 || c === 401 || c === 403) { if (!/not found|not supported|thinking/i.test(r.getContentText())) break; }
+  }
+  throw new Error(ultimo);
+}
+
+/* Memoria corta por chat (10 min) para que entienda correcciones y respuestas a sus preguntas. */
+function encMemoria(chat, nueva) {
+  var cache = CacheService.getScriptCache(), k = 'mem_' + chat;
+  var m = []; try { m = JSON.parse(cache.get(k) || '[]'); } catch (e) {}
+  if (nueva) { m.push(nueva); m = m.slice(-6); cache.put(k, JSON.stringify(m), 600); }
+  return m;
+}
+
+function encAudioParte(msg) {
+  var a = msg.voice || msg.audio;
+  if (!a) return null;
+  if ((a.file_size || 0) > 6000000) return 'grande';
+  var f = encTg('getFile', { file_id: a.file_id });
+  if (!f.ok) return null;
+  var blob = UrlFetchApp.fetch('https://api.telegram.org/file/bot' + encProp('TELEGRAM_TOKEN') + '/' + f.result.file_path, { muteHttpExceptions: true }).getBlob();
+  var tipo = a.mime_type || (msg.voice ? 'audio/ogg' : 'audio/mpeg');
+  return { inline_data: { mime_type: tipo, data: Utilities.base64Encode(blob.getBytes()) } };
+}
+
+var ENC_CAMPOS_OK = ['nombre', 'contacto', 'que', 'precio', 'abono', 'pagado', 'entregado', 'fechaEntrega', 'notas'];
+function encLimpiar(c) {
+  var o = {};
+  Object.keys(c || {}).forEach(function (k) {
+    if (ENC_CAMPOS_OK.indexOf(k) === -1) return;
+    var v = c[k];
+    if (k === 'precio' || k === 'abono') { v = Math.round(Math.abs(Number(v) || 0)); }
+    else if (k === 'pagado' || k === 'entregado') { v = v === true || v === 'true'; }
+    else if (k === 'fechaEntrega') { v = /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : ''; }
+    else { v = String(v == null ? '' : v).trim().slice(0, k === 'nombre' || k === 'contacto' ? 80 : 500); }
+    o[k] = v;
+  });
+  return o;
+}
+
+function encRapido(chat, msg) {
+  encTg('sendChatAction', { chat_id: chat, action: 'typing' });
+  var pase = encPase();
+  if (!pase) { encDecir(chat, '❌ No pude entrar a la base de datos. Revisa la propiedad FIREBASE_PASSWORD del bot.'); return; }
+  var lista = encLeerEncargos();
+  if (!lista) { encDecir(chat, '❌ No pude leer los encargos.'); return; }
+  var porId = {}; lista.forEach(function (e) { porId[e.id] = e; });
+
+  var texto = (msg.text || msg.caption || '').trim();
+  var audio = encAudioParte(msg);
+  if (audio === 'grande') { encDecir(chat, 'El audio es muy largo 😅 Mándame uno más corto o escríbelo.'); return; }
+  var memoria = encMemoria(chat);
+  var partes = [{ text:
+    'ENCARGOS (JSON):\n' + JSON.stringify(encContexto(lista)) +
+    (memoria.length ? '\n\nCONVERSACIÓN RECIENTE:\n' + memoria.join('\n') : '') +
+    '\n\nMENSAJE NUEVO:\n' + (texto || (audio ? '(viene en el audio adjunto)' : '')) }];
+  if (audio) partes.push(audio);
+
+  var res;
+  try { res = encGemini(partes); }
+  catch (err) { encDecir(chat, '❌ La IA no respondió (' + encEsc(err.message) + '). Prueba de nuevo o usa /nuevo.'); return; }
+
+  var dicho = res.transcripcion ? '🎤 <i>' + encEsc(res.transcripcion) + '</i>\n\n' : '';
+  var acciones = (res.acciones || []).filter(function (a) { return a && (a.accion === 'nuevo' || a.accion === 'actualizar'); });
+  var foto = msg.photo && msg.photo.length ? encFotoDataUrl(msg.photo.reduce(function (b, x) { return ((x.width || 0) <= 1300 && (x.file_size || 0) <= 600000) ? x : b; }, msg.photo[0]).file_id) : '';
+
+  if (!acciones.length) {
+    var resp = res.respuesta || 'No entendí 😅 Prueba así: «Natalia pidió aros de corazones para el viernes, 8 lucas».';
+    encMemoria(chat, 'Ella: ' + (texto || res.transcripcion || '(audio)') + '\nTú: ' + resp);
+    encDecir(chat, dicho + encEsc(resp), [[{ text: '📋 Ver pendientes', callback_data: 'ver' }]]);
+    return;
+  }
+
+  var ahora = new Date().toISOString(), hechos = [], deshacer = [], lineas = [];
+  acciones.forEach(function (a, i) {
+    var c = encLimpiar(a.campos);
+    if (foto && i === 0) c.foto = foto;
+    if (a.accion === 'nuevo') {
+      if (!c.nombre) return;
+      var d = { nombre: '', contacto: '', que: '', tipo: 'nuevo', productoId: '', notas: '', precio: 0, abono: 0, pagado: false, entregado: false,
+        fechaEntrega: '', foto: '', creado: ahora, actualizado: ahora, origen: 'telegram' };
+      Object.keys(c).forEach(function (k) { d[k] = c[k]; });
+      if (d.precio && d.abono >= d.precio) d.pagado = true;
+      if (d.pagado && !d.abono) d.abono = d.precio;
+      if (d.entregado) d.entregadoEl = ahora;
+      var r = UrlFetchApp.fetch(ENC_FS + '/catalog/encargos/items', {
+        method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + pase },
+        payload: JSON.stringify({ fields: encCampos(d) })
+      });
+      if (r.getResponseCode() !== 200) { lineas.push('❌ No pude guardar el de ' + encEsc(d.nombre) + ' (' + r.getResponseCode() + ')'); return; }
+      var id = JSON.parse(r.getContentText()).name.split('/').pop();
+      deshacer.push({ t: 'crear', id: id });
+      hechos.push(id + ' (nuevo: ' + d.nombre + ')');
+      lineas.push('📝 <b>Nuevo</b> · ' + encLinea(d));
+    } else {
+      var e0 = porId[a.id];
+      if (!e0) return;
+      var cambios = {};
+      Object.keys(c).forEach(function (k) { if (c[k] !== (k === 'precio' || k === 'abono' ? (e0[k] || 0) : k === 'pagado' || k === 'entregado' ? !!e0[k] : (e0[k] || ''))) cambios[k] = c[k]; });
+      var fin = {}; Object.keys(e0).forEach(function (k) { fin[k] = e0[k]; }); Object.keys(cambios).forEach(function (k) { fin[k] = cambios[k]; });
+      var pagadoFin = !!(fin.precio && (fin.abono || 0) >= fin.precio) || (cambios.pagado === true);
+      if (pagadoFin !== !!e0.pagado) cambios.pagado = pagadoFin; else delete cambios.pagado;
+      if (cambios.pagado === true && !(fin.abono >= fin.precio)) cambios.abono = fin.precio || fin.abono || 0;
+      if (cambios.entregado === true) cambios.entregadoEl = ahora;
+      if (cambios.entregado === false) cambios.entregadoEl = '';
+      if (!Object.keys(cambios).length) { lineas.push('👌 ' + encEsc(e0.nombre) + ': ya estaba así.'); return; }
+      var antes = {}; Object.keys(cambios).forEach(function (k) { antes[k] = e0[k] === undefined ? (k === 'precio' || k === 'abono' ? 0 : k === 'pagado' || k === 'entregado' ? false : '') : e0[k]; });
+      if (e0.foto === undefined) delete antes.foto;   // la foto anterior no se leyó: deshacer no la toca
+      cambios.actualizado = ahora; antes.actualizado = e0.actualizado || ahora;
+      if (encParchar(a.id, cambios, pase) !== 200) { lineas.push('❌ No pude actualizar el de ' + encEsc(e0.nombre)); return; }
+      deshacer.push({ t: 'cambiar', id: a.id, antes: antes });
+      Object.keys(cambios).forEach(function (k) { fin[k] = cambios[k]; });
+      hechos.push(a.id + ' (cambiado: ' + e0.nombre + ')');
+      lineas.push('✏️ <b>Actualizado</b> · ' + encLinea(fin));
+    }
+  });
+
+  if (!lineas.length) { encDecir(chat, dicho + 'No encontré qué anotar 😅 Prueba de nuevo con el nombre de la persona.'); return; }
+  var token = Utilities.getUuid().slice(0, 8);
+  if (deshacer.length) CacheService.getScriptCache().put('undo_' + token, JSON.stringify(deshacer), 21600);
+  encMemoria(chat, 'Ella: ' + (texto || res.transcripcion || '(audio)') + '\nTú anotaste: ' + hechos.join('; '));
+  var botones = [[{ text: '📋 Pendientes', callback_data: 'ver' }]];
+  if (deshacer.length) botones[0].unshift({ text: '↩️ Deshacer', callback_data: 'undo:' + token });
+  encDecir(chat, dicho + lineas.join('\n\n') + (res.respuesta ? '\n\n' + encEsc(res.respuesta) : ''), botones);
+}
+
+function encLinea(d) {
+  var falta = Math.max(0, (d.precio || 0) - (d.abono || 0));
+  var plata = d.pagado ? (d.precio ? encPesos(d.precio) + ' · pagado ✅' : 'pagado ✅')
+    : d.precio ? encPesos(d.precio) + (d.abono ? ' · abonó ' + encPesos(d.abono) : '') + ' · <b>debe ' + encPesos(falta) + '</b>' : 'sin precio';
+  return '<b>' + encEsc(d.nombre) + '</b>' + (d.que ? ' — ' + encEsc(d.que) : '') +
+    '\n    ' + (d.entregado ? '📦 entregado' : '📅 ' + encFechaBonita(d.fechaEntrega)) + ' · 💰 ' + plata +
+    (d.foto ? ' · 📷' : '') + (d.notas ? '\n    🗒 ' + encEsc(d.notas) : '');
+}
+
+function encParchar(id, campos, pase) {
+  var mask = Object.keys(campos).map(function (k) { return 'updateMask.fieldPaths=' + k; }).join('&');
+  var r = UrlFetchApp.fetch(ENC_FS + '/catalog/encargos/items/' + id + '?' + mask + '&currentDocument.exists=true', {
+    method: 'patch', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + (pase || encPase()) },
+    payload: JSON.stringify({ fields: encCampos(campos) })
+  });
+  return r.getResponseCode();
+}
+
+function encDeshacer(chat, token) {
+  var cache = CacheService.getScriptCache(), l = cache.get('undo_' + token);
+  if (!l) { encDecir(chat, 'Ya no puedo deshacer eso (pasó mucho rato). Corrígelo en el panel → <a href="' + ENC_PANEL + '">Encargos</a>.'); return; }
+  var pase = encPase(), ok = 0, mal = 0;
+  JSON.parse(l).reverse().forEach(function (u) {
+    if (u.t === 'crear') {
+      var r = UrlFetchApp.fetch(ENC_FS + '/catalog/encargos/items/' + u.id, { method: 'delete', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + pase } });
+      r.getResponseCode() === 200 ? ok++ : mal++;
+    } else { encParchar(u.id, u.antes, pase) === 200 ? ok++ : mal++; }
+  });
+  cache.remove('undo_' + token);
+  encMemoria(chat, 'Ella deshizo lo último que anotaste.');
+  encDecir(chat, mal ? '⚠️ Deshice ' + ok + ', pero ' + mal + ' no se pudo. Revísalo en el panel.' : '↩️ Listo, lo deshice.');
+}
+
+/* Prueba el modo rápido desde el editor (no guarda nada): ▶ Ejecutar encargosProbarIA */
+function encargosProbarIA() {
+  if (!encProp('GEMINI_KEY')) { Logger.log('⚠️ Falta la propiedad GEMINI_KEY.'); return; }
+  var lista = encLeerEncargos() || [];
+  ['Natalia pidió aros de corazones rojos para el viernes, 8 lucas', 'Natalia llevó aros de corazones y me debe 6 lucas', '¿quién me debe plata?'].forEach(function (t) {
+    try {
+      var r = encGemini([{ text: 'ENCARGOS (JSON):\n' + JSON.stringify(encContexto(lista)) + '\n\nMENSAJE NUEVO:\n' + t }]);
+      Logger.log('«' + t + '» → ' + JSON.stringify(r));
+    } catch (e) { Logger.log('❌ ' + e.message); }
+  });
 }
 
 /* Dice qué ve Telegram: a qué dirección manda los mensajes, cuántos esperan y el último error. */
